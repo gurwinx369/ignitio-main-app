@@ -8,7 +8,10 @@ export default function InteractiveOverviewOne() {
     const [buttonPressed, setButtonPressed] = useState(false);
 
     useEffect(() => {
-        setIsLoaded(true);
+        const timer = setTimeout(() => {
+            setIsLoaded(true);
+        }, 1000)
+        return () => clearTimeout(timer)
     }, []);
 
     const handleContinue = () => {

@@ -1,3 +1,3 @@
-import InteractiveOverviewOne from "@/features/roadmaps/GitGithub/interactive-overviews/InteractiveOverviewOne";
+import {InteractiveOverviewOne} from "@/features/roadmaps/index";
 
 export default InteractiveOverviewOne
