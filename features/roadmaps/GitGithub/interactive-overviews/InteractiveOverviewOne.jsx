@@ -23,7 +23,7 @@ export default function InteractiveOverviewOne() {
         }));
 
         // Navigate to next page (e.g., lessons)
-        router.push('/lessons/git-github/intro');
+        router.push('/roadmaps/git-github/interactive-overviews/second-overview');
     };
 
     const benefits = [

@@ -15,13 +15,13 @@ export default function WelcomeBadgePage() {
 
     const handleCollect = () => {
         // Save badge collection to localStorage
-        localStorage.setItem('priority_badge_collected', JSON.stringify({
+        const collectedBadge = localStorage.setItem('priority_badge_collected', JSON.stringify({
             collectedAt: new Date().toISOString(),
             badgeType: 'priority_user'
         }));
 
-        // Navigate to next page (e.g., roadmap or dashboard)
-        router.push('/roadmap/git-github');
+        // Navigate to next page (e.g., roadmap or dashboard) 
+        router.push('/roadmaps/git-github/interactive-overviews/first-overview');
     };
 
     return (
