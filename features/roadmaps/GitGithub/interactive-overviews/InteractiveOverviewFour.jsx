@@ -24,7 +24,7 @@ export default function WhyLearnGitFirst() {
 
     return (
         <div className="min-h-screen bg-[#F5EFE7] flex flex-col items-center justify-center px-4 py-12 sm:px-6 md:px-8">
-            <div className="w-full max-w-[900px] flex flex-col items-center">
+            <div className="w-full max-w-225 flex flex-col items-center">
                 {/* Title */}
                 <h1
                     className={`text-[#1a1a2e] font-extrabold tracking-tight text-center mb-12 sm:mb-16 md:mb-20 transition-all duration-700 ease-out ${
@@ -41,7 +41,7 @@ export default function WhyLearnGitFirst() {
                 </h1>
 
                 {/* Features List */}
-                <div className="w-full max-w-[750px] mb-12 sm:mb-16 md:mb-20 space-y-6 sm:space-y-8 md:space-y-10">
+                <div className="w-full max-w-187.5 mb-12 sm:mb-16 md:mb-20 space-y-6 sm:space-y-8 md:space-y-10">
                     {features.map((feature, index) => (
                         <div
                             key={index}
@@ -53,7 +53,7 @@ export default function WhyLearnGitFirst() {
                             }}
                         >
                             {/* Chevron Icon */}
-                            <div className="flex-shrink-0 text-[#1a1a2e] font-bold pt-1"
+                            <div className="shrink-0 text-[#1a1a2e] font-bold pt-1"
                                  style={{
                                      fontSize: 'clamp(2rem, 4vw, 2.5rem)',
                                      lineHeight: '1'
