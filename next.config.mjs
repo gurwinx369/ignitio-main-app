@@ -1,19 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
-  allowedDevOrigins: [
-    'http://localhost:5000',
-    'http://127.0.0.1:5000',
-    'https://*.repl.co',
-    'https://*.replit.dev',
-    'https://*.replit.app',
-    'https://*.replit.com',
-    'https://*.kirk.replit.dev',
-    'https://*.spock.replit.dev',
-    'https://*.picard.replit.dev',
-    'https://*.janeway.replit.dev',
-    'https://*.sisko.replit.dev',
-  ],
+  serverExternalPackages: ["mongoose"],
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

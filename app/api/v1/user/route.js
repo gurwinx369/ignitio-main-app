@@ -19,9 +19,9 @@ export async function POST(request) {
   }
   const doesUserExist = await UserProfile.findOne({email})
   if (doesUserExist) return NextResponse.json({message: "User already exists"}, {status: 400})
-   const doesBadgeExist = await BadgeSchema.findOne({name: badges})
+   const doesBadgeExist = await Badge.findOne({name: badges})
    if (!doesBadgeExist) return NextResponse.json({message: "Badge does not exist"}, {status: 400})
-   const doesRoadmapExist = await RoadmapSchema.findOne({name: roadmaps})
+   const doesRoadmapExist = await Roadmap.findOne({name: roadmaps})
    if (!doesRoadmapExist) return NextResponse.json({message: "Roadmap does not exist"}, {status: 400})
   const userProfile = new UserProfile({
     name,
