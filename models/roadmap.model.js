@@ -4,6 +4,7 @@ const RoadmapSchema = new Schema({
   name: {
     type: String,
     required: true,
+    unique: true,
   },
   phases: {
     Beginner: {
@@ -19,7 +20,7 @@ const RoadmapSchema = new Schema({
       ref: "Level",
     },
   },
-}, timestamps: true);
+}, {timestamps: true});
 
 export const Roadmap =
-  mongoose.models.RoadmapSchema || mongoose.model("Roadmap", RoadmapSchema);
+  mongoose.models.Roadmap || mongoose.model("Roadmap", RoadmapSchema);

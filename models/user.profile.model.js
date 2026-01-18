@@ -36,7 +36,7 @@ const UserProfileSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Roadmap",
   },
-}, timestamps: true);
+}, {timestamps: true});
 
 export const UserProfile =
   mongoose.models.UserProfileSchema ||

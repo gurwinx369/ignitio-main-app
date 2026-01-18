@@ -9,6 +9,6 @@ const BadgeSchema = new Schema({
     type: String,
     required: false,
   }
-}, timestamps: true)
+}, {timestamps: true})
 
 export const Badge = mongoose.models.BadgeSchema || mongoose.model('Badge', BadgeSchema);

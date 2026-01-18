@@ -5,9 +5,15 @@ const LevelSchema = new Schema({
     type: String,
     required: true,
   },
-  phase: {
+  roadmap: {
     type: Schema.Types.ObjectId,
-    ref: "Phase",
+    ref: "Roadmap",
+    required: true,
+  },
+  phase: {
+    type: String,
+    enum: ["Beginner", "Intermediate", "Advanced"],
+    required: true,
   },
   feedback: {
     like: {
@@ -19,7 +25,7 @@ const LevelSchema = new Schema({
       default: 0,
     },
   },
-}, timestamps: true);
+}, {timestamps: true});
 
 export const Level =
-  mongoose.models.LevelSchema || mongoose.model("Level", LevelSchema);
+  mongoose.models.Level || mongoose.model("Level", LevelSchema);
