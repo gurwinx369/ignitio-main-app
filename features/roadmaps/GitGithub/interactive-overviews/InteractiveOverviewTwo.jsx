@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
 
 export default function GitHubOverview() {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -48,7 +48,7 @@ export default function GitHubOverview() {
                     }`}
                     style={{
                         aspectRatio: "1 / 1",
-                        maxWidth: "730px",
+                        maxWidth: "650px",
                         margin: "0 auto",
                         border: "2px dashed rgba(26, 26, 46, 0.2)",
                         backgroundColor: "rgba(245, 239, 231, 0.5)",
@@ -61,8 +61,7 @@ export default function GitHubOverview() {
                         playsInline
                         poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23F5EFE7'/%3E%3C/svg%3E"
                     >
-                        {/* Add your video source here */}
-                        {/* <source src="/path-to-your-video.mp4" type="video/mp4" /> */}
+                        <source src="/videos/git-overview.mp4" type="video/mp4"/>
                     </video>
                     <div
                         className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -77,7 +76,6 @@ export default function GitHubOverview() {
                             padding: "1rem",
                         }}
                     >
-                        Git Explanation in Motion Graphics
                     </div>
                 </div>
 
