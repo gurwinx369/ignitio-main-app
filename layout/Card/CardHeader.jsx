@@ -1,34 +1,34 @@
-import React from 'react';
-import {ChevronDown, ChevronUp} from 'lucide-react';
-import GitHubProgressGrid from './GitHubProgressGrid';
-import Image from "next/image"
+import React from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import GitHubProgressGrid from "./GitHubProgressGrid";
+import Image from "next/image";
 
 const CardHeader = ({
-                        name,
-                        color,
-                        image,
-                        levels,
-                        completedLevels,
-                        isExpanded,
-                        onToggle
-                    }) => {
+    name,
+    color,
+    image,
+    levels,
+    completedLevels,
+    isExpanded,
+    onToggle,
+}) => {
     return (
         <div
             className="relative px-4 sm:px-8 lg:px-12 py-8 sm:py-12 lg:py-16 cursor-pointer transition-all duration-300 hover:brightness-105 overflow-hidden"
-            style={{backgroundColor: color}}
+            style={{ backgroundColor: color }}
             onClick={onToggle}
         >
             {/* Background Image - Perfectly aligned to bottom right */}
             {image && (
-                <div
-                    className="absolute -bottom-2 -right-2 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 opacity-50 pointer-events-none">
+                <div className="absolute -bottom-2 -right-2 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 opacity-50 pointer-events-none">
                     <Image
                         height={256}
                         width={256}
                         src={image}
+                        loading="eager"
                         alt="Card decoration"
                         className="w-full h-full object-contain object-bottom-right"
-                        style={{ objectPosition: 'bottom right' }}
+                        style={{ objectPosition: "bottom right" }}
                     />
                 </div>
             )}
@@ -55,9 +55,9 @@ const CardHeader = ({
                 }}
             >
                 {isExpanded ? (
-                    <ChevronUp className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8"/>
+                    <ChevronUp className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                 ) : (
-                    <ChevronDown className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8"/>
+                    <ChevronDown className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                 )}
             </button>
         </div>
