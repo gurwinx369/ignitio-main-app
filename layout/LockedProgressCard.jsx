@@ -38,14 +38,16 @@ const LockedProgressCard = ({
                 </div>
             )}
 
+            {/* Blackish Overlay for "Cool" effect */}
+            <div className="absolute inset-0 bg-black/20 pointer-events-none z-15" />
+
             {/* Lock Icon - Top Right */}
             {isLocked && (
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 z-20">
-                    <div className="rounded-full p-2 sm:p-3 md:p-4">
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-30">
+                    <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 sm:p-3 md:p-4 border border-white/10 shadow-xl">
                         <Lock
-                            className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8"
-                            fill="currentColor"
-                            strokeWidth={0}
+                            className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white"
+                            strokeWidth={2.5}
                         />
                     </div>
                 </div>
