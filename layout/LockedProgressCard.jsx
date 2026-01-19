@@ -17,13 +17,23 @@ const LockedProgressCard = ({
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-8">
             <div
-                className="relative px-4 sm:px-8 lg:px-12 py-8 sm:py-12 lg:py-16 cursor-pointer transition-all duration-300 hover:brightness-105 overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-2xl border-4 border-dashed"
+                className={`relative px-4 sm:px-8 lg:px-12 py-8 sm:py-12 lg:py-16 cursor-pointer transition-all duration-700 overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-2xl border-2 border-dashed ${isLocked ? 'opacity-90 grayscale-[0.3]' : 'opacity-100 grayscale-0 scale-[1.01] shadow-white/10'}`}
                 style={{
                     backgroundColor: color,
-                    borderColor: color
+                    borderColor: isLocked ? 'rgba(255,255,255,0.3)' : 'white',
+                    animation: !isLocked ? 'unlock-pulse 2s infinite ease-in-out' : 'none'
                 }}
                 onClick={onToggle}
             >
+                {!isLocked && (
+                    <style jsx="true">{`
+                        @keyframes unlock-pulse {
+                            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+                            70% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0); }
+                            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+                        }
+                    `}</style>
+                )}
             {/* Full Card Mosaic Pattern Overlay */}
             {image && (
                 <div className="absolute inset-0 w-full h-full opacity-100 pointer-events-none">
