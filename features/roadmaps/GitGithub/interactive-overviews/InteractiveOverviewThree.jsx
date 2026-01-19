@@ -62,7 +62,7 @@ export default function GitHubOverview() {
                     >
                         {/* Add your video source here */}
                         <source
-                            src="/videos/git-overview.mp4"
+                            src="videos/git-overview.mp4"
                             type="video/mp4"
                         />
                     </video>

@@ -47,7 +47,7 @@ export default function GitHubOverview() {
                             : "opacity-0 scale-95"
                     }`}
                     style={{
-                        aspectRatio: "16 / 9",
+                        aspectRatio: "1 / 1",
                         maxWidth: "730px",
                         margin: "0 auto",
                         border: "2px dashed rgba(26, 26, 46, 0.2)",
