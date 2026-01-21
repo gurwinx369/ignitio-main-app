@@ -1,4 +1,4 @@
-import { mongoose, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const RoadmapSchema = new Schema({
   name: {
@@ -6,20 +6,20 @@ const RoadmapSchema = new Schema({
     required: true,
     unique: true,
   },
-  phases: {
-    Beginner: {
+  phases: [{
+    Beginner: [{
       type: Schema.Types.ObjectId,
       ref: "Level",
-    },
-    Intermediate: {
+    }],
+    Intermediate: [{
       type: Schema.Types.ObjectId,
       ref: "Level",
-    },
-    Advanced: {
+    }],
+    Advanced: [{
       type: Schema.Types.ObjectId,
       ref: "Level",
-    },
-  },
+    }],
+  }],
 }, {timestamps: true});
 
 export const Roadmap =

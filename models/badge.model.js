@@ -1,14 +1,14 @@
-import {mongoose, Schema} from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const BadgeSchema = new Schema({
   name: {
     type: String,
-    required: true,
+    required: false,
   },
-  imageUrl: {
+  badgeUrl: {
     type: String,
     required: false,
   }
 }, {timestamps: true})
 
-export const Badge = mongoose.models.BadgeSchema || mongoose.model('Badge', BadgeSchema);
+export const Badge = mongoose.models.Badge || mongoose.model('Badge', BadgeSchema);

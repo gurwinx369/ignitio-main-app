@@ -1,46 +1,72 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-// Pseudo code for MongoDB/Mongoose integration:
-/*
-// models/OnboardingData.js
-const mongoose = require('mongoose');
+import React, {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
+import axios from "axios";
+import {useAuth} from "@/features/context/AuthContext";
 
-const onboardingSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  learningFields: [{ type: String }],
-  projectDescription: { type: String },
-  completedAt: { type: Date, default: Date.now }
-});
+// function to send the selected fields, project idea, username and email except the badge
 
-const OnboardingData = mongoose.model('OnboardingData', onboardingSchema);
-module.exports = OnboardingData;
-
-// API Route (Next.js): /api/onboarding/save
-export async function POST(req) {
-  const { userId, learningFields, projectDescription } = await req.json();
-
-  const onboardingData = new OnboardingData({
-    userId,
-    learningFields,
-    projectDescription
-  });
-
-  await onboardingData.save();
-  return Response.json({ success: true, data: onboardingData });
-}
-
-// In component:
 const saveToDatabase = async (data) => {
-  const response = await fetch('/api/onboarding/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  return response.json();
-};
-*/
+    try {
+        // Validate required fields
+        if (!data.email || !data.firebaseUID) {
+            throw new Error("Email and Firebase UID are required");
+        }
 
+        if (!data.selectedTechField || data.selectedTechField.length < 2) {
+            throw new Error("At least 2 learning fields must be selected");
+        }
+        //console.log(Selected tech fields: data?.selectedTechField);
+        // Prepare payload
+        const payload = {
+                email: data?.email || "email not found",
+                firebaseUID: data?.firebaseUID || "UID not found",
+                questions: {
+                    selectedTechField: data?.selectedTechField,
+                    selectedProject: data?.projectDescription || "", // Empty string if skipped
+                },
+                roadmaps: {
+                    name: "Git and Github" //for mvp only in next version it should be selected by the user to choose between the roadmaps
+                },
+                badge:
+                    data?.badge || {
+                        name: "Beginner",
+                        badgeUrl: "default badge"
+                    }
+            }
+        ;
+
+        // Make API call
+        const response = await axios.post("/api/v1/user", payload, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            timeout: 10000, // 10 second timeout
+        });
+
+        console.log("Data saved successfully:", response.data);
+        return response.data;
+
+    } catch (err) {
+        // Enhanced error handling
+        if (err.response) {
+            // Server responded with error status
+            console.error("Server Error:", err.response.status, err.response.data);
+            throw new Error(
+                err.response.data?.message ||
+                `Server error: ${err.response.status}`
+            );
+        } else if (err.request) {
+            // Request made but no response received
+            console.error("Network Error: No response from server");
+            throw new Error("Network error. Please check your connection.");
+        } else {
+            // Error in request setup or validation
+            console.error("Error:", err.message);
+            throw new Error(err.message);
+        }
+    }
+};
 const learningOptions = [
     "Ui/Ux",
     "backend development",
@@ -57,7 +83,10 @@ export default function OnboardingFlow() {
     const [selectedFields, setSelectedFields] = useState([]);
     const [projectDescription, setProjectDescription] = useState("");
     const [progressWidth, setProgressWidth] = useState(50);
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    //accessing user info from the context provider
+    const {user} = useAuth();
     // Load from localStorage on mount
     useEffect(() => {
         const saved = localStorage.getItem("onboarding_progress");
@@ -118,30 +147,53 @@ export default function OnboardingFlow() {
             setCurrentStep(2);
         }
     };
-
     const handleSkip = () => {
         handleComplete();
     };
 
     const handleComplete = async () => {
-        const finalData = {
-            learningFields: selectedFields,
-            projectDescription: projectDescription.trim(),
-        };
+        try {
+            setIsLoading(true);
 
-        // Save to localStorage
-        localStorage.setItem("onboarding_completed", JSON.stringify(finalData));
+            const finalData = {
+                selectedTechField: selectedFields,
+                selectedProject: projectDescription.trim(),
+            };
 
-        // Pseudo call to save to database
-        // await saveToDatabase({ userId: currentUser.id, ...finalData });
+            // Access email and uid from the user object
+            const {uid, email} = user;
 
-        console.log("Onboarding completed:", finalData);
-        alert("Onboarding completed! Check console for saved data.");
-        if (finalData){
-        router.push("/onboarding/welcome");
+            // Optional: Add badge data (you might get this from context or state)
+            const badge = {
+                name: "Onboarding Complete",
+                badgeUrl: "/badges/onboarding-badge.png"
+            };
+
+            // Call saveToDatabase with proper error handling
+            const result = await saveToDatabase({
+                firebaseUID: uid,
+                email: email,
+                selectedTechField: selectedFields,
+                selectedProject: projectDescription.trim(),
+                badge
+            });
+
+            // Save to localStorage only after successful DB save
+            localStorage.setItem("onboarding_completed", JSON.stringify(finalData));
+            // Navigate to welcome page
+            router.push("/onboarding/welcome");
+
+        } catch (error) {
+            // Handle errors gracefully
+            console.error("Failed to complete onboarding:", error);
+
+            // Show user-friendly error message
+            alert(`Failed to save your progress: ${error.message}. Please try again.`);
+
+        } finally {
+            setIsLoading(false);
         }
     };
-    
     return (
         <>
             <style>{`
@@ -167,6 +219,33 @@ export default function OnboardingFlow() {
           }
         }
         
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        
+        @keyframes bounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
         .chip {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -177,6 +256,22 @@ export default function OnboardingFlow() {
         
         .slide-in {
           animation: slideIn 0.5s ease-out;
+        }
+        
+        .loading-dot {
+          animation: bounce 1.4s ease-in-out infinite;
+        }
+        
+        .loading-dot:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        
+        .loading-dot:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+        
+        .spinner {
+          animation: spin 1s linear infinite;
         }
       `}</style>
 
@@ -213,6 +308,77 @@ export default function OnboardingFlow() {
                             </span>
                         </div>
                     </div>
+
+                    {/* Loading Overlay */}
+                    {isLoading && (
+                        <div
+                            className="fixed inset-0 flex items-center justify-center z-50"
+                            style={{
+                                backgroundColor: "rgba(245, 239, 231, 0.95)",
+                                animation: "fadeIn 0.3s ease-out"
+                            }}
+                        >
+                            <div
+                                className="p-12 rounded-3xl text-center"
+                                style={{
+                                    backgroundColor: "#FFFFFF",
+                                    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.1)",
+                                    border: "2px solid #E0E0E0"
+                                }}
+                            >
+                                <div className="flex justify-center mb-6">
+                                    <div
+                                        className="spinner"
+                                        style={{
+                                            width: "60px",
+                                            height: "60px",
+                                            border: "4px solid #E0E0E0",
+                                            borderTop: "4px solid #00A9FF",
+                                            borderRadius: "50%"
+                                        }}
+                                    />
+                                </div>
+                                <h2
+                                    className="text-2xl font-bold mb-3"
+                                    style={{
+                                        fontFamily: "'Inter', sans-serif",
+                                        color: "#1a1a2e"
+                                    }}
+                                >
+                                    Saving your progress
+                                </h2>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div
+                                        className="loading-dot"
+                                        style={{
+                                            width: "12px",
+                                            height: "12px",
+                                            borderRadius: "50%",
+                                            backgroundColor: "#00A9FF"
+                                        }}
+                                    />
+                                    <div
+                                        className="loading-dot"
+                                        style={{
+                                            width: "12px",
+                                            height: "12px",
+                                            borderRadius: "50%",
+                                            backgroundColor: "#00A9FF"
+                                        }}
+                                    />
+                                    <div
+                                        className="loading-dot"
+                                        style={{
+                                            width: "12px",
+                                            height: "12px",
+                                            borderRadius: "50%",
+                                            backgroundColor: "#00A9FF"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Step 1: Learning Fields */}
                     {currentStep === 1 && (
@@ -376,35 +542,45 @@ export default function OnboardingFlow() {
                                     (e.target.style.border =
                                         "2px solid #D4D4D4")
                                 }
+                                disabled={isLoading}
                             />
 
                             <div className="flex gap-4">
                                 <button
                                     onClick={handleSkip}
+                                    disabled={isLoading}
                                     className="px-12 py-5 rounded-full text-xl font-bold uppercase tracking-wider transition-all duration-200"
                                     style={{
                                         fontFamily: "'Inter', sans-serif",
-                                        backgroundColor: "#A0C4E8",
+                                        backgroundColor: isLoading ? "#D4D4D4" : "#A0C4E8",
                                         color: "#1a1a2e",
-                                        boxShadow: "0 6px 0 #7FA8CC",
+                                        boxShadow: isLoading ? "0 6px 0 #B8B8B8" : "0 6px 0 #7FA8CC",
+                                        cursor: isLoading ? "not-allowed" : "pointer",
+                                        opacity: isLoading ? 0.6 : 1
                                     }}
                                     onMouseDown={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(6px)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 0px 0 #7FA8CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(6px)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 0px 0 #7FA8CC";
+                                        }
                                     }}
                                     onMouseUp={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(0)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 6px 0 #7FA8CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(0)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 6px 0 #7FA8CC";
+                                        }
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(0)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 6px 0 #7FA8CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(0)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 6px 0 #7FA8CC";
+                                        }
                                     }}
                                 >
                                     SKIP
@@ -412,29 +588,38 @@ export default function OnboardingFlow() {
 
                                 <button
                                     onClick={handleComplete}
+                                    disabled={isLoading}
                                     className="flex-1 py-5 rounded-full text-white text-xl font-bold uppercase tracking-wider transition-all duration-200"
                                     style={{
                                         fontFamily: "'Inter', sans-serif",
-                                        backgroundColor: "#00A9FF",
-                                        boxShadow: "0 6px 0 #0088CC",
+                                        backgroundColor: isLoading ? "#A0D2E8" : "#00A9FF",
+                                        boxShadow: isLoading ? "0 6px 0 #7FB8D4" : "0 6px 0 #0088CC",
+                                        cursor: isLoading ? "not-allowed" : "pointer",
+                                        opacity: isLoading ? 0.6 : 1
                                     }}
                                     onMouseDown={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(6px)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 0px 0 #0088CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(6px)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 0px 0 #0088CC";
+                                        }
                                     }}
                                     onMouseUp={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(0)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 6px 0 #0088CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(0)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 6px 0 #0088CC";
+                                        }
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform =
-                                            "translateY(0)";
-                                        e.currentTarget.style.boxShadow =
-                                            "0 6px 0 #0088CC";
+                                        if (!isLoading) {
+                                            e.currentTarget.style.transform =
+                                                "translateY(0)";
+                                            e.currentTarget.style.boxShadow =
+                                                "0 6px 0 #0088CC";
+                                        }
                                     }}
                                 >
                                     CONTINUE

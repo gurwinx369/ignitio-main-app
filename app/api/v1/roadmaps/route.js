@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDB from "@/dbConfig/dbConnection";
 import { Level } from "@/models/level.model";
 
-export async function POST(request) {
+export async function POST(NextRequest) {
   try {
     await connectToDB();
-    const body = await request.json();
+    const body = await NextRequest.json();
     const { name, phases } = body;
 
     // Validation
