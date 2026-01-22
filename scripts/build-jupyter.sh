@@ -24,7 +24,7 @@ fi
 # Build JupyterLite
 echo "🏗️  Building JupyterLite..."
 jupyter lite build \
-  --contents notebooks \
+  --contents features/notebooks \
   --output-dir public/jupyter \
   --lite-dir public/jupyter
 
