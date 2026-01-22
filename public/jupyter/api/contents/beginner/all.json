@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "content": null,
+      "created": "2026-01-22T04:52:14.165286Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2026-01-22T03:54:25.359065Z",
+      "mimetype": null,
+      "name": "setup-sprint.ipynb",
+      "path": "beginner/setup-sprint.ipynb",
+      "size": 2325,
+      "type": "notebook",
+      "writable": true
+    }
+  ],
+  "created": "2026-01-22T04:52:14.164726Z",
+  "format": "json",
+  "hash": null,
+  "hash_algorithm": null,
+  "last_modified": "2026-01-22T04:52:14.164726Z",
+  "mimetype": null,
+  "name": "beginner",
+  "path": "beginner",
+  "size": null,
+  "type": "directory",
+  "writable": true
+}
