@@ -148,7 +148,7 @@ export default function OnboardingFlow() {
         }
     };
     const handleSkip = () => {
-        handleComplete();
+        handleComplete()
     };
 
     const handleComplete = async () => {
