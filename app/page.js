@@ -21,7 +21,7 @@ export default function Home() {
                 name="Intermediate - Merge Master"
                 color="#F5B700" 
                 image="/mosaic-locked-progress-card.svg" 
-                levels={4}
+                levels={3}
                 completedLevels={0}
                 isExpanded={false}
                 isLocked={!isMasterUnlocked}
