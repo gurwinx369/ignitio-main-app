@@ -61,7 +61,7 @@ const PracticePane = ({
                 </div>
             </div>
         )}
-
+        {/* TODO: Implement your jupyter url and change the folder structure for file allocation */}
         <iframe
             src={jupyterUrl}
             className="w-full h-full border-0"
