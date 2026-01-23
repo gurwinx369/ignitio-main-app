@@ -178,6 +178,7 @@ export default function PracticeTab({
 
     const currentLevel = notebookConfig[level] || notebookConfig.beginner;
     const currentSubLevel = currentLevel.subLevels[subLevel] || currentLevel.subLevels[1];
+    {/*TODO: start here to change the url - "http://localhost:8888/notebooks/beginner/A1-setup-sprint.ipynb"*/}
     const jupyterUrl = `/jupyter/lab/index.html?path=${currentSubLevel.file}`;
 
     const colorSchemes = {
