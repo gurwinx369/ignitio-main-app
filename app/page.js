@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import ExpandableProgressCard from '@/layout/ExpandableProgressCard';
-import {courseData} from '@/data/courseData';
+import {courseDataBeginner, courseDataIntermediate, courseDataAdvanced} from '@/data/courseData';
 import Profile from "@/layout/Profile"
 import LockedProgressCard from "@/layout/LockedProgressCard";
 
@@ -14,14 +14,11 @@ export default function Home() {
         <>
             <Profile/>
             <ExpandableProgressCard 
-                {...courseData} 
+                {...courseDataBeginner}
                 onProgressUpdate={(completed, total) => setProgress({ completed, total })}
             />
-            <LockedProgressCard 
-                name="Intermediate - Merge Master"
-                color="#F5B700" 
-                image="/mosaic-locked-progress-card.svg" 
-                levels={3}
+            <LockedProgressCard
+                {...courseDataIntermediate}
                 completedLevels={0}
                 isExpanded={false}
                 isLocked={!isMasterUnlocked}
