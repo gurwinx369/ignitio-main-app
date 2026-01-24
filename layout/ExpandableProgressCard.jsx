@@ -6,7 +6,7 @@ import LevelsList from './Card/LevelsList';
 import LevelContent from './LevelContent/LevelContent';
 
 const ExpandableProgressCard = ({
-                                    name, color, image, levels = [], onProgressUpdate
+                                    name, color, image, levels = [], onProgressUpdate, onLevelViewChange
                                 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null);
@@ -20,6 +20,12 @@ const ExpandableProgressCard = ({
             onProgressUpdate(completedCount, totalLevels);
         }
     }, [completedCount, totalLevels, onProgressUpdate]);
+
+    useEffect(() => {
+        if (onLevelViewChange) {
+            onLevelViewChange(selectedLevel !== null);
+        }
+    }, [selectedLevel, onLevelViewChange]);
 
     const handleLevelClick = (level) => {
         setSelectedLevel(level);
