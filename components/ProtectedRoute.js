@@ -28,6 +28,6 @@ export default function ProtectedRoute({ children }) {
         return null;
     }
 
-    // User is authenticated, show the protected content
+    // User is authenticated, show the home content
     return <>{children}</>;
 }
