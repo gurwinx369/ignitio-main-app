@@ -1,0 +1,118 @@
+# ============================================
+# Vercel Ignore Configuration
+# Files and folders to exclude from deployment
+# ============================================
+
+# Development Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python Environment & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Testing
+coverage/
+.nyc_output
+*.lcov
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Build artifacts (Next.js specific)
+.next/
+out/
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CONTRIBUTING.md
+LICENSE
+docs/
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+
+# Misc
+*.seed
+*.pid
+*.pid.lock
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development scripts
+scripts/test-*.sh
+scripts/dev-*.sh
+
+# ============================================
+# IMPORTANT: Files to INCLUDE in deployment
+# ============================================
+
+# Don't ignore JupyterLite build (override)
+!public/
+!public/jupyter/
+!public/jupyter/build/
+!public/jupyter/build/**
+
+# Don't ignore notebooks source (if needed for build)
+!features/
+!features/notebooks/
+!features/notebooks/**/*.ipynb

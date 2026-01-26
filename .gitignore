@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+# Keep JupyterLite build for deployment
+!public/jupyter/build/
+!public/jupyter/build/**
+
 # testing
 /coverage
 /postman
@@ -21,7 +25,11 @@
 
 # production
 /build
-
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.ipynb_checkpoints/
 # misc
 .DS_Store
 *.pem

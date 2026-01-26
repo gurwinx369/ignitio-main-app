@@ -1,46 +1,15 @@
 #!/bin/bash
-
-# Exit on any error
 set -e
 
-echo "🔨 Building JupyterLite for Next.js..."
-echo ""
+echo "🔍 Checking JupyterLite build status..."
 
-# Check if jupyter lite is installed
-if ! command -v jupyter &> /dev/null; then
-    echo "❌ JupyterLite not found!"
-    echo "📦 Installing JupyterLite..."
-    pip3 install jupyterlite-core jupyterlite-pyodide-kernel
-    echo "✅ Installation complete!"
-    echo ""
+# If build already exists, skip
+if [ -d "public/jupyter/build" ] && [ "$(ls -A public/jupyter/build)" ]; then
+    echo "✅ JupyterLite build already exists, skipping rebuild"
+    exit 0
 fi
 
-# Clean previous build
-if [ -d "public/jupyter" ]; then
-    echo "🧹 Cleaning previous build..."
-    rm -rf public/jupyter
-fi
-
-# Build JupyterLite
-echo "🏗️  Building JupyterLite..."
-jupyter lite build \
-  --contents features/notebooks \
-  --output-dir public/jupyter \
-  --lite-dir public/jupyter
-
-# Check if build was successful
-if [ -d "public/jupyter" ]; then
-    echo ""
-    echo "✅ JupyterLite built successfully!"
-    echo "📁 Output directory: public/jupyter"
-    echo "📝 Files:"
-    ls -lh public/jupyter/lab/
-    echo ""
-    echo "🎯 Next steps:"
-    echo "   1. Run 'npm run dev' to test locally"
-    echo "   2. Visit http://localhost:3000"
-    echo "   3. Navigate to your practice page"
-else
-    echo "❌ Build failed!"
-    exit 1
-fi
+echo "⚠️  No JupyterLite build found. Please build locally and commit."
+echo "   Run: pip install jupyterlab jupyterlite-core jupyterlite-pyodide-kernel"
+echo "   Then: jupyter lite build --contents features/notebooks --output-dir public/jupyter/build"
+exit 0

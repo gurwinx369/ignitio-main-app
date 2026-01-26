@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 5000 --webpack",
     "build": "next build",
+    "build:jupyter": "bash scripts/build-jupyter.sh || echo 'Jupyter build skipped'",
+    "prebuild": "npm run build:jupyter",
     "start": "next start -H 0.0.0.0 -p 5000",
-    "lint": "eslint"
+    "lint": "eslint",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
