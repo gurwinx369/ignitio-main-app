@@ -1,16 +1,45 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Play, Pause } from "lucide-react";
+
 export default function GitHubOverview() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [buttonPressed, setButtonPressed] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [showVideo, setShowVideo] = useState(false);
+    const videoRef = useRef(null);
     const router = useRouter();
+
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsLoaded(true);
         }, 1000);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        // Delay video start by 2 seconds
+        const videoTimer = setTimeout(() => {
+            setShowVideo(true);
+            if (videoRef.current) {
+                videoRef.current.play();
+                setIsPlaying(true);
+            }
+        }, 2000);
+        return () => clearTimeout(videoTimer);
+    }, []);
+
+    const togglePlayPause = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
 
     const handleContinue = () => {
         console.log("Continue clicked");
@@ -21,7 +50,7 @@ export default function GitHubOverview() {
 
     return (
         <div className="min-h-screen bg-[#F5EFE7] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16">
-            <div className="w-full max-w-[900px] flex flex-col">
+            <div className="w-full max-w-225 flex flex-col">
                 {/* Title */}
                 <h1
                     className={`text-[#1a1a2e] font-extrabold tracking-tight mb-6 sm:mb-8 md:mb-10 transition-all duration-700 ease-out ${
@@ -40,7 +69,7 @@ export default function GitHubOverview() {
 
                 {/* Video Container */}
                 <div
-                    className={`relative w-full rounded-2xl overflow-hidden mb-6 sm:mb-8 md:mb-10 transition-all duration-600 ease-out ${
+                    className={`relative w-full rounded-2xl overflow-hidden mb-8 sm:mb-10 md:mb-12 transition-all duration-600 ease-out ${
                         isLoaded
                             ? "opacity-100 scale-100"
                             : "opacity-0 scale-95"
@@ -49,34 +78,37 @@ export default function GitHubOverview() {
                         aspectRatio: "1 / 1",
                         maxWidth: "650px",
                         margin: "0 auto",
+                        marginBottom: "clamp(2rem, 4vw, 3rem)",
                         border: "2px dashed rgba(26, 26, 46, 0.2)",
                         backgroundColor: "rgba(245, 239, 231, 0.5)",
                         transitionDelay: "200ms",
                     }}
                 >
                     <video
-                        className="absolute inset-0 w-full h-full object-cover"
-                        controls
+                        ref={videoRef}
+                        className="w-full h-full object-cover"
+                        loop
+                        muted
                         playsInline
                         poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23F5EFE7'/%3E%3C/svg%3E"
                     >
                         <source src="/videos/github-overview.mp4" type="video/mp4"/>
                     </video>
-                    <div
-                        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                        style={{
-                            fontFamily: "inherit",
-                            fontSize: "clamp(0.875rem, 2vw, 1rem)",
-                            fontWeight: 500,
-                            color: "#999",
-                            letterSpacing: "0.5px",
-                            textTransform: "uppercase",
-                            textAlign: "center",
-                            padding: "1rem",
-                        }}
-                    >
-                        GitHub Explanation in Motion Graphics
-                    </div>
+
+                    {/* Play/Pause Button Overlay */}
+                    {showVideo && (
+                        <button
+                            onClick={togglePlayPause}
+                            className="absolute bottom-4 right-4 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full p-3 transition-all duration-200"
+                            aria-label={isPlaying ? "Pause video" : "Play video"}
+                        >
+                            {isPlaying ? (
+                                <Pause className="w-6 h-6" />
+                            ) : (
+                                <Play className="w-6 h-6" />
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 {/* Description Text */}
@@ -91,6 +123,7 @@ export default function GitHubOverview() {
                         lineHeight: "1.7",
                         maxWidth: "730px",
                         margin: "0 auto",
+                        marginBottom: "clamp(2rem, 4vw, 3rem)",
                         transitionDelay: "300ms",
                     }}
                 >

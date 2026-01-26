@@ -1,9 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ============================================================================
-  // Reverse Proxy Configuration for Jupyter
-  // This forwards ALL /jupyter/* requests to the Jupyter server
-  // ============================================================================
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+      }
+    ],
+  },
+
   async rewrites() {
     return [
       {
@@ -13,10 +22,6 @@ const nextConfig = {
     ];
   },
 
-  // ============================================================================
-  // Headers Configuration
-  // Required for iframe embedding and WebSocket connections
-  // ============================================================================
   async headers() {
     return [
       {
@@ -34,11 +39,11 @@ const nextConfig = {
             key: 'Access-Control-Allow-Headers',
             value: 'X-Requested-With, Content-Type, Authorization',
           },
-          // Don't set X-Frame-Options here - let Jupyter handle it
         ],
       },
     ];
   },
+
   reactCompiler: true,
   serverExternalPackages: ["mongoose"],
   onDemandEntries: {
