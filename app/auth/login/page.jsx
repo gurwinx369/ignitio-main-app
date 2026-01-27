@@ -21,7 +21,7 @@ export default function LoginPage() {
         const result = await login(form.email, form.password);
 
         if (result.success) {
-            router.push("/onboarding");
+            router.push("/home/onboarding");
         } else {
             setError(result.error || "Failed to login");
         }

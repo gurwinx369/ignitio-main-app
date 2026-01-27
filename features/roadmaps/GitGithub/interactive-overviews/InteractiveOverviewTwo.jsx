@@ -44,13 +44,13 @@ export default function GitHubOverview() {
     const handleContinue = () => {
         console.log("Continue clicked");
         router.push(
-            "/roadmaps/git-github/interactive-overviews/third-overview",
+            "/home/roadmaps/git-github/interactive-overviews/third-overview",
         );
     };
 
     return (
         <div className="min-h-screen bg-[#F5EFE7] flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 md:px-8 md:py-16">
-            <div className="w-full max-w-[900px] flex flex-col">
+            <div className="w-full max-w-225 flex flex-col">
                 {/* Title */}
                 <h1
                     className={`text-[#1a1a2e] font-extrabold tracking-tight mb-6 sm:mb-8 md:mb-10 transition-all duration-700 ease-out ${

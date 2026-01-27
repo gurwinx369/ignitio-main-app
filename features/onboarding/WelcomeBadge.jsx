@@ -20,7 +20,7 @@ export default function WelcomeBadgePage() {
             badgeType: 'priority_user'
         }));
 // Navigate to next page (e.g., roadmap or dashboard)
-        router.push('/roadmaps/git-github/interactive-overviews/first-overview');
+        router.push('/home/roadmaps/git-github/interactive-overviews/first-overview');
     };
 
     return (

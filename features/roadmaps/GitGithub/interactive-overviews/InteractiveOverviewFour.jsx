@@ -13,7 +13,7 @@ export default function WhyLearnGitFirst() {
     }, []);
 
     const handleContinue = () => {
-        router.push("/protected");
+        router.push("/home");
     };
 
     const features = [

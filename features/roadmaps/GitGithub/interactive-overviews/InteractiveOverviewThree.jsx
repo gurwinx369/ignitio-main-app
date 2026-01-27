@@ -44,7 +44,7 @@ export default function GitHubOverview() {
     const handleContinue = () => {
         console.log("Continue clicked");
         router.push(
-            "/roadmaps/git-github/interactive-overviews/fourth-overview",
+            "/home/roadmaps/git-github/interactive-overviews/fourth-overview",
         );
     };
 
