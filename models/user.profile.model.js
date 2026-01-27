@@ -25,7 +25,7 @@ const UserProfileSchema = new Schema(
         }],
         questions: {
             selectedTechField: {
-                type: Array,
+                type: String,
                 enum: [
                     "Ui/Ux",
                     "backend development",
