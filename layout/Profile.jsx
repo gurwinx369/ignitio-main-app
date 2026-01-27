@@ -22,8 +22,9 @@ const UserIcon = () => (
 
 export default function ProfileDropdown() {
     const [isOpen, setIsOpen] = useState(false);
-    const {user} = useAuth();
+    const {user, logout} = useAuth();
     const {photoURL, displayName} = user;
+
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
     };
@@ -32,9 +33,13 @@ export default function ProfileDropdown() {
         window.open('https://discord.gg/your-server', '_blank');
     };
 
-    const handleLogout = () => {
-        console.log('Logging out...');
-        // Add your logout logic here
+    const handleLogout = async () => {
+        try {
+            await logout();
+            setIsOpen(false); // Close dropdown after logout
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
     };
 
     return (<div className="bg-linear-to-br rounded-b-4xl from-orange-50 to-pink-50 p-4 sm:p-8">
