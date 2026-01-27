@@ -29,7 +29,7 @@ export const courseDataBeginner = {
 export const courseDataIntermediate = {
     name:"Intermediate - Branch Master",
     color:"#F5B700",
-    image:"/mosaic-locked-progress-card.svg",
+    image:"",
     levels: [
         {
             id: "B1",

@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import {ChevronDown, ChevronUp} from "lucide-react";
 import GitHubProgressGrid from "./GitHubProgressGrid";
 import Image from "next/image";
 
@@ -21,15 +21,15 @@ const CardHeader = ({
             {/* Background Image - Perfectly aligned to bottom right */}
             {image && (
                 <div className="absolute -bottom-2 -right-2 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 xl:w-64 xl:h-64 opacity-50 pointer-events-none">
-                    <Image
+                    {image ? (<Image
                         height={256}
                         width={256}
                         src={image}
+                        alt=""
                         loading="eager"
-                        alt="Card decoration"
                         className="w-full h-full object-contain object-bottom-right"
                         style={{ objectPosition: "bottom right" }}
-                    />
+                    />) : null}
                 </div>
             )}
 

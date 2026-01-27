@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from "@/features/context/AuthContext";
 import { useRouter } from 'next/navigation';
 import Image from "next/image"
+import Link from "next/link"
 
 export default function SignUpPage() {
     const [form, setForm] = useState({ email: "", password: "" });
@@ -239,6 +240,28 @@ export default function SignUpPage() {
                                     </svg>
                                     {loading ? 'Signing up...' : 'create account with google'}
                                 </button>
+
+                                {/* Already have an account - Login Link */}
+                                <div className="mt-6 text-center">
+                                    <p
+                                        className="text-base"
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            color: '#6b7280'
+                                        }}
+                                    >
+                                        Already have an account?{' '}
+                                        <Link
+                                            href="/auth/login"
+                                            className="font-semibold hover:underline transition-colors duration-200"
+                                            style={{
+                                                color: '#00A9FF'
+                                            }}
+                                        >
+                                            Login here
+                                        </Link>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
