@@ -1,27 +1,26 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import {ConfettiButton} from "@/components/ui/confetti"
 import Image from "next/image";
 
 export default function WelcomeBadgePage() {
     const router = useRouter();
     const [isLoaded, setIsLoaded] = useState(false);
-    const [buttonPressed, setButtonPressed] = useState(false);
 
     useEffect(() => {
-       // const timer = setTimeout(() => {})
-            setIsLoaded(true);
+        const timer = setTimeout(() => setIsLoaded(true), 1000)
+        return () => clearTimeout(timer);
     }, []);
 
     const handleCollect = () => {
         // Save badge collection to localStorage
-        const collectedBadge = localStorage.setItem('priority_badge_collected', JSON.stringify({
+        localStorage.setItem('priority_badge_collected', JSON.stringify({
             collectedAt: new Date().toISOString(),
             badgeType: 'priority_user'
         }));
-
-        // Navigate to next page (e.g., roadmap or dashboard) 
-        router.push('/roadmaps/git-github/interactive-overviews/first-overview');
+// Navigate to next page (e.g., roadmap or dashboard)
+        router.push('/home/roadmaps/git-github/interactive-overviews/first-overview');
     };
 
     return (
@@ -152,12 +151,14 @@ export default function WelcomeBadgePage() {
                         you have got the special priority badge
                     </p>
 
-                    {/* Badge Container */}
                     <div
                         className={`responsive-badge relative mb-16 ${isLoaded ? 'scale-in float-animation' : 'opacity-0'}`}
                         style={{
                             width: '380px',
                             height: '380px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            backgroundColor: 'transparent',
                             animationDelay: '0.3s'
                         }}
                     >
@@ -165,8 +166,7 @@ export default function WelcomeBadgePage() {
                         <div
                             className="absolute inset-0 shimmer-effect pointer-events-none"
                             style={{
-                                borderRadius: '50%',
-                                overflow: 'hidden'
+                                borderRadius: '50%'
                             }}
                         />
 
@@ -174,32 +174,29 @@ export default function WelcomeBadgePage() {
                         <Image
                             src="/badges/priority-badge.png"
                             alt="Priority Badge"
-                            height={100}
-                            width={100}
-                            className="w-full h-full object-contain"
+                            height={380}
+                            width={380}
+                            quality={100}
+                            className="w-full h-full object-cover" // changed to object-cover
                             style={{
-                                filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15))'
+                                filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15))',
+                                borderRadius: '50%',
+                                mixBlendMode: 'multiply'
                             }}
                         />
                     </div>
 
                     {/* Collect Button */}
-                    <button
-                        onClick={handleCollect}
-                        onMouseDown={() => setButtonPressed(true)}
-                        onMouseUp={() => setButtonPressed(false)}
-                        onMouseLeave={() => setButtonPressed(false)}
-                        className={`w-full max-w-md px-8 py-5 rounded-full text-white text-xl font-bold uppercase tracking-wider transition-all duration-150 ${isLoaded ? 'fade-in-up' : 'opacity-0'}`}
-                        style={{
-                            fontFamily: "'Inter', sans-serif",
-                            backgroundColor: '#0EA5E9',
-                            boxShadow: buttonPressed ? '0 2px 0 #0284C7' : '0 6px 0 #0284C7',
-                            transform: buttonPressed ? 'translateY(4px)' : 'translateY(0)',
-                            animationDelay: '0.5s'
+
+                    <ConfettiButton onClick={handleCollect}
+                        options={{
+                            particleCount: 200,
+                            spread: 100,
+                            origin: { y: 0.6 }
                         }}
                     >
                         COLLECT NOW
-                    </button>
+                    </ConfettiButton>
                 </div>
 
                 {/* Footer Text */}

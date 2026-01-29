@@ -23,7 +23,7 @@ export default function InteractiveOverviewOne() {
         }));
 
         // Navigate to next page (e.g., lessons)
-        router.push('/roadmaps/git-github/interactive-overviews/second-overview');
+        router.push('/home/roadmaps/git-github/interactive-overviews/second-overview');
     };
 
     const benefits = [
@@ -189,7 +189,7 @@ export default function InteractiveOverviewOne() {
                             >
                                 {/* Chevron Icon */}
                                 <div
-                                    className="flex-shrink-0 mt-1"
+                                    className="shrink-0 mt-1"
                                     style={{ width: '24px', height: '24px' }}
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">

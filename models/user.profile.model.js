@@ -24,8 +24,8 @@ const UserProfileSchema = new Schema(
             ref: "Badge",
         }],
         questions: {
-            selectedTechField: {
-                type: Array,
+            selectedTechField: [{
+                type: String,
                 enum: [
                     "Ui/Ux",
                     "backend development",
@@ -37,7 +37,7 @@ const UserProfileSchema = new Schema(
                     "Cybersecurity",
                 ],
                 required: true,
-            },
+            }],
             selectedProject: {
                 type: String,
                 required: false,

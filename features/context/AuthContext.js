@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => unsubscribe ();
     }, []);
 
     const signup = async (email, password) => {
@@ -109,11 +109,12 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log("Attempting Google login");
 
-            // Configure Google provider
+            // Configure Google provider with custom parameters
             googleProvider.setCustomParameters({
                 prompt: "select_account",
             });
 
+            // Use signInWithPopup with proper error handling
             const result = await signInWithPopup(auth, googleProvider);
             console.log("Google login successful:", result.user.email);
             return { success: true, user: result.user };
@@ -121,16 +122,21 @@ export const AuthProvider = ({ children }) => {
             console.error("Google login error:", error.code, error.message);
             let errorMessage = "Failed to sign in with Google";
 
-            if (error.code === "auth/popup-closed-by-user") {
+            // Handle the case where popup was cancelled by another popup request
+            if (error.code === "auth/cancelled-popup-request") {
+                console.log("Popup request was cancelled by a new request");
+                // Don't show error for cancelled requests, just return null
+                return { success: false, error: null };
+            } else if (error.code === "auth/popup-closed-by-user") {
                 errorMessage = "Sign-in cancelled";
             } else if (error.code === "auth/popup-blocked") {
                 errorMessage = "Popup blocked. Please allow popups for this site";
-            } else if (error.code === "auth/cancelled-popup-request") {
-                errorMessage = "Sign-in cancelled";
             } else if (error.code === "auth/network-request-failed") {
                 errorMessage = "Network error. Please check your connection";
             } else if (error.code === "auth/unauthorized-domain") {
                 errorMessage = "This domain is not authorized for OAuth operations";
+            } else if (error.code === "auth/internal-error") {
+                errorMessage = "Authentication error. Please try again";
             }
 
             return { success: false, error: errorMessage };

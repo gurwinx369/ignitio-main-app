@@ -1,10 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-
+import {useRouter} from "next/navigation"
 export default function WhyLearnGitFirst() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [buttonPressed, setButtonPressed] = useState(false);
-
+    const router = useRouter();
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsLoaded(true);
@@ -13,7 +13,7 @@ export default function WhyLearnGitFirst() {
     }, []);
 
     const handleContinue = () => {
-        console.log('Continue clicked');
+        router.push("/home");
     };
 
     const features = [

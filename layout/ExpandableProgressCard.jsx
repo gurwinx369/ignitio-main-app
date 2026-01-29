@@ -7,7 +7,7 @@ import LevelContent from './LevelContent/LevelContent';
 import { Lock } from "lucide-react";
 
 const ExpandableProgressCard = ({
-                                    id, name, color, image, levels = [], onProgressUpdate, onLevelViewChange, isLocked = false
+                                    id, name, color, image, levels = [], onProgressUpdate, onLevelViewChange, isLocked =
                                 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null);
@@ -15,11 +15,6 @@ const ExpandableProgressCard = ({
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        setIsMounted(true);
-        const saved = localStorage.getItem(`progress_${id}`);
-        if (saved) {
-            setCompletedLevels(JSON.parse(saved));
-        }
     }, [id]);
 
     const totalLevels = levels.length;
@@ -56,11 +51,11 @@ const ExpandableProgressCard = ({
 
     if (selectedLevel) {
         return (<LevelContent
-                level={selectedLevel}
-                onBack={handleBack}
-                onComplete={handleVideoComplete}
-                isCompleted={completedLevels.includes(selectedLevel.id)}
-            />);
+            level={selectedLevel}
+            onBack={handleBack}
+            onComplete={handleVideoComplete}
+            isCompleted={completedLevels.includes(selectedLevel.id)}
+        />);
     }
 
     if (!isMounted) return null;
