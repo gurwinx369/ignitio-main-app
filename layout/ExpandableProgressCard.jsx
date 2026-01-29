@@ -4,10 +4,17 @@ import CardContainer from './Card/CardContainer';
 import CardHeader from './Card/CardHeader';
 import LevelsList from './Card/LevelsList';
 import LevelContent from './LevelContent/LevelContent';
-import { Lock } from "lucide-react";
+import {Lock} from "lucide-react";
 
 const ExpandableProgressCard = ({
-                                    id, name, color, image, levels = [], onProgressUpdate, onLevelViewChange, isLocked =
+                                    id,
+                                    name,
+                                    color,
+                                    image,
+                                    levels = [],
+                                    onProgressUpdate,
+                                    onLevelViewChange,
+                                    isLocked = false
                                 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null);
@@ -15,6 +22,14 @@ const ExpandableProgressCard = ({
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsMounted(true);
+            const saved = localStorage.getItem(`progress_${id}`);
+            if (saved) {
+                setCompletedLevels(JSON.parse(saved));
+            }
+        }, 1000)
+        return () => clearTimeout(timer)
     }, [id]);
 
     const totalLevels = levels.length;
@@ -61,13 +76,15 @@ const ExpandableProgressCard = ({
     if (!isMounted) return null;
 
     return (
-        <div className={`relative transition-all duration-700 ${isLocked ? 'opacity-90 grayscale-[0.3]' : 'opacity-100 grayscale-0'}`}>
+        <div
+            className={`relative transition-all duration-700 ${isLocked ? 'opacity-90 grayscale-[0.3]' : 'opacity-100 grayscale-0'}`}>
             <CardContainer color={color}>
                 <div className="relative">
                     {isLocked && (
                         <div className="absolute top-4 right-4 z-30">
-                            <div className="bg-black/40 backdrop-blur-sm rounded-full p-2 border border-white/10 shadow-xl">
-                                <Lock className="w-5 h-5 text-white" strokeWidth={2.5} />
+                            <div
+                                className="bg-black/40 backdrop-blur-sm rounded-full p-2 border border-white/10 shadow-xl">
+                                <Lock className="w-5 h-5 text-white" strokeWidth={2.5}/>
                             </div>
                         </div>
                     )}
