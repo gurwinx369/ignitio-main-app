@@ -36,7 +36,7 @@ export default function LoginPage() {
         const result = await loginWithGoogle();
 
         if (result.success) {
-            router.push("/onboarding");
+            router.push("/home/onboarding");
         } else {
             setError(result.error || "Failed to sign in with Google");
         }
