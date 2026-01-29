@@ -50,7 +50,7 @@ export default function LoginPage() {
     };
 
     return (<>
-            <style>{`
+        <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
             `}</style>
 
@@ -317,8 +317,8 @@ export default function LoginPage() {
                             </div>
                         </div>
                     </div>
-                    </div>
                 </div>
             </div>
+        </div>
     </>);
 }

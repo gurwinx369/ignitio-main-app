@@ -1,7 +1,7 @@
 "use client"
-import React, { useState } from 'react';
-import { useAuth } from "@/features/context/AuthContext";
-import { useRouter } from 'next/navigation';
+import React, {useState} from 'react';
+import {useAuth} from "@/features/context/AuthContext";
+import {useRouter} from 'next/navigation';
 import Image from "next/image"
 import Link from "next/link"
 

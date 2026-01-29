@@ -37,14 +37,26 @@ const nextConfig = {
                 key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Authorization',
             },],
         }, {
-            // Required headers for WebAssembly and SharedArrayBuffer
-            source: '/:path*', headers: [{
+            // Headers for workspace pages that need WebAssembly and SharedArrayBuffer
+            // ONLY apply to workspace routes, NOT to auth pages
+            source: '/workspace/:path*', headers: [{
                 key: 'Cross-Origin-Embedder-Policy', value: 'credentialless',
             }, {
                 key: 'Cross-Origin-Opener-Policy', value: 'same-origin',
             },],
-        },];
-    }, // React Compiler
+        }, {
+            // Explicitly allow OAuth popups for authentication pages
+            // This ensures Firebase Google sign-in works properly
+            source: '/auth/:path*', headers: [{
+                key: 'Cross-Origin-Opener-Policy', value: 'unsafe-none',
+            },],
+        },
+            // REMOVED: The global '/:path*' headers that were breaking Firebase OAuth
+            // Those headers are now only applied to specific routes that actually need them
+        ];
+    },
+
+    // React Compiler
     reactCompiler: true,
 
     // External packages for server
