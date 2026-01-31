@@ -36,9 +36,13 @@ echo -e "${BLUE}⬆️  Upgrading pip...${NC}"
 pip install --upgrade pip --quiet
 echo -e "${GREEN}✓ pip upgraded${NC}"
 
-# Step 4: Install JupyterLite
+# Step 4: Install JupyterLite and dependencies
 echo -e "${BLUE}📥 Installing JupyterLite packages...${NC}"
-pip install jupyterlite-core jupyterlite-pyodide-kernel --quiet
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt --quiet
+else
+    pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server --quiet
+fi
 echo -e "${GREEN}✓ JupyterLite packages installed${NC}"
 
 # Step 5: Verify JupyterLite installation
