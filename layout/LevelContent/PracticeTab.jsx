@@ -114,7 +114,7 @@ c.ServerApp.allow_origin = '*'`}
     </div>
 );
 
-export default function PracticeTab({level, jupyterToken = ''}) {
+export default function PracticeTab({level}) {
     const [activeTab, setActiveTab] = useState('practice');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -214,9 +214,9 @@ export default function PracticeTab({level, jupyterToken = ''}) {
     const levelNumber = parseInt(level.id.charAt(1));
     const totalLevels = 3;
 
-    const tokenParam = jupyterToken ? `?token=${jupyterToken}` : '';
-    const jupyterUrl = `/jupyter/notebooks/${currentNotebook.file}${tokenParam}`;
-
+    // const tokenParam = jupyterToken ? `?token=${jupyterToken}` : '';
+    // const jupyterUrl = `/jupyter/notebooks/${currentNotebook.file}${tokenParam}`;
+    const jupyterUrl = `/jupyter/lab/index.html?path=${currentNotebook.file}`;
     const colorSchemes = {
         green: {
             gradient: 'from-green-500 to-emerald-600',
