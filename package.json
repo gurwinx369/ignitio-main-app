@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 5000 --webpack",
     "build": "next build",
-    "jupyter:build": "./scripts/build-jupyter.sh",
+    "jupyter:build": "chmod +x ./scripts/build-jupyter.sh && ./scripts/build-jupyter.sh",
     "jupyter:watch": "nodemon --watch notebooks --exec './scripts/build-jupyter.sh'",
     "prebuild": "npm run jupyter:build",
     "start": "next start -H 0.0.0.0 -p 5000",
