@@ -108,12 +108,10 @@ echo -e "${GREEN}✓ Generated ${CONVERTED_COUNT} static HTML notebooks${NC}"
 # ============================================
 # STEP 10: BUILD JUPYTERLITE (Interactive)
 # ============================================
-echo -e "${BLUE}🔨 Building JupyterLite (for interactive mode)...${NC}"
+echo -e "${BLUE}🔨 Building JupyterLite with Lab + Retro interfaces...${NC}"
 
-# Create jupyter-lite.json if it doesn't exist
-if [ ! -f "jupyter-lite.json" ]; then
-    echo -e "${YELLOW}⚠️  Creating jupyter-lite.json with RetroLab config${NC}"
-    cat > jupyter-lite.json << 'JSONEOF'
+# Create jupyter-lite.json config
+cat > jupyter-lite.json << 'JSONEOF'
 {
   "jupyter-lite-schema-version": 0,
   "jupyter-config-data": {
@@ -121,22 +119,19 @@ if [ ! -f "jupyter-lite.json" ]; then
     "appVersion": "0.1.0",
     "disabledExtensions": [],
     "settingsOverrides": {}
-  },
-  "jupyter-lite-applications": {
-    "lab": true,
-    "retro": true
   }
 }
 JSONEOF
-fi
 
+# Build with BOTH lab and retro apps
+echo -e "${BLUE}  Building Lab and Retro interfaces...${NC}"
 jupyter lite build \
   --apps lab retro \
   --contents features/notebooks/ \
   --output-dir public/jupyter \
   --config jupyter-lite.json
 
-echo -e "${GREEN}✓ JupyterLite build complete (with Lab + Retro)${NC}"
+echo -e "${GREEN}✓ JupyterLite build complete${NC}"
 
 # Step 11: Verify builds
 echo -e "${BLUE}🔍 Verifying outputs...${NC}"
@@ -145,12 +140,31 @@ echo -e "${BLUE}🔍 Verifying outputs...${NC}"
 STATIC_HTML_COUNT=$(find public/notebooks-static -name "*.html" 2>/dev/null | wc -l)
 echo -e "${GREEN}✓ Static HTML files: ${STATIC_HTML_COUNT}${NC}"
 
-# Check JupyterLite
+# Check JupyterLite Lab
 if [ ! -f "public/jupyter/lab/index.html" ]; then
     echo -e "${RED}❌ Missing JupyterLite lab/index.html${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ JupyterLite ready${NC}"
+echo -e "${GREEN}✓ JupyterLab interface ready${NC}"
+
+# Check JupyterLite Retro
+if [ -d "public/jupyter/retro" ]; then
+    echo -e "${GREEN}✓ Retro interface available at /jupyter/retro/${NC}"
+    RETRO_AVAILABLE=true
+
+    # List retro structure
+    echo -e "${BLUE}  Retro structure:${NC}"
+    ls -la public/jupyter/retro/ | head -n 10
+else
+    echo -e "${YELLOW}⚠️  Retro interface not built${NC}"
+    echo -e "${YELLOW}  Note: Retro requires jupyterlite-core >= 0.2.0${NC}"
+    echo -e "${YELLOW}  Falling back to Lab interface only${NC}"
+    RETRO_AVAILABLE=false
+fi
+
+# Check if notebooks were copied
+BUILT_NOTEBOOKS=$(find public/jupyter -name "*.ipynb" 2>/dev/null | wc -l)
+echo -e "${GREEN}✓ Built with ${BUILT_NOTEBOOKS} notebook(s)${NC}"
 
 # Step 12: Create index page for static notebooks
 echo -e "${BLUE}📋 Creating static notebook index...${NC}"
@@ -216,10 +230,10 @@ cat > public/notebooks-static/index.html << 'EOF'
 </head>
 <body>
     <div class="container">
-        <h1>Git & GitHub Learning Path</h1>
+        <h1>📚 Git & GitHub Learning Path</h1>
 
         <div class="category">
-            <h2>Beginner Level</h2>
+            <h2><span class="emoji">🌱</span> Beginner Level</h2>
             <ul>
                 <li><a href="beginner/A1-setup-sprint.html">A1: Setup Sprint - Install & Configure Git</a></li>
                 <li><a href="beginner/A2-first-repo-forge.html">A2: First Repo Forge - Create Your First Repository</a></li>
@@ -228,7 +242,7 @@ cat > public/notebooks-static/index.html << 'EOF'
         </div>
 
         <div class="category">
-            <h2>Intermediate Level</h2>
+            <h2><span class="emoji">📈</span> Intermediate Level</h2>
             <ul>
                 <li><a href="intermediate/B1-staging-strategist.html">B1: Staging Strategist - Advanced Staging</a></li>
                 <li><a href="intermediate/B2-branch-basics.html">B2: Branch Basics - Branching & Merging</a></li>
@@ -237,7 +251,7 @@ cat > public/notebooks-static/index.html << 'EOF'
         </div>
 
         <div class="category">
-            <h2>Advanced Level</h2>
+            <h2><span class="emoji">🚀</span> Advanced Level</h2>
             <ul>
                 <li><a href="advanced/C1-remote-rider.html">C1: Remote Rider - Working with Remotes</a></li>
                 <li><a href="advanced/C2-fork-and-pr-agent.html">C2: Fork and PR Agent - Collaboration Workflow</a></li>
@@ -252,7 +266,17 @@ echo -e "${GREEN}✓ Index page created${NC}"
 
 # Step 13: Display build structure
 echo -e "${BLUE}📂 Build structure:${NC}"
-echo -e "${GREEN}Static HTML:${NC}"
+echo -e "${GREEN}Public directories:${NC}"
+# shellcheck disable=SC2010
+ls -la public/ | grep -E "jupyter|notebooks-static"
+
+echo -e ""
+echo -e "${GREEN}JupyterLite apps:${NC}"
+# shellcheck disable=SC2010
+ls -la public/jupyter/ | grep -E "lab|retro|repl"
+
+echo -e ""
+echo -e "${GREEN}Static HTML preview:${NC}"
 if command -v tree &> /dev/null; then
     tree -L 2 public/notebooks-static
 else
@@ -264,10 +288,23 @@ fi
 deactivate
 echo -e "${GREEN}✓ Virtual environment deactivated${NC}"
 
+echo -e ""
 echo -e "${GREEN}✅ Hybrid build successful!${NC}"
 echo -e "${BLUE}📊 Summary:${NC}"
 echo -e "  - Notebooks found: ${NOTEBOOK_COUNT}"
 echo -e "  - Static HTML generated: ${STATIC_HTML_COUNT}"
-echo -e "  - JupyterLite ready: ✓"
-echo -e "  - Static output: public/notebooks-static/"
-echo -e "  - Interactive output: public/jupyter/"
+echo -e "  - Built notebooks: ${BUILT_NOTEBOOKS}"
+echo -e "  - JupyterLab: ✓ Available"
+if [ "$RETRO_AVAILABLE" = true ]; then
+    echo -e "  - Retro: ✓ Available (lightweight interface)"
+else
+    echo -e "  - Retro: ⚠️  Not available (using Lab only)"
+fi
+echo -e ""
+echo -e "${BLUE}📍 Output locations:${NC}"
+echo -e "  - Static HTML: public/notebooks-static/"
+echo -e "  - JupyterLite: public/jupyter/"
+if [ "$RETRO_AVAILABLE" = true ]; then
+    echo -e "  - Retro URL: /jupyter/retro/notebooks/<notebook-path>"
+fi
+echo -e "  - Lab URL: /jupyter/lab/index.html?path=<notebook-path>"

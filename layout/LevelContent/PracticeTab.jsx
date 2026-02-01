@@ -1,6 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {BookOpen, Maximize2, Minimize2, RotateCcw, Zap} from 'lucide-react';
 
+// ============================================
+// TABBAR COMPONENT
+// ============================================
 const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) => (
     <div
         className="flex items-center justify-between bg-white rounded-t-lg px-2 py-2 md:px-4 md:py-3 border-b border-gray-200">
@@ -57,16 +60,20 @@ const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) =>
         )}
         {mode === 'interactive' && (
             <div className="text-xs text-amber-600 hidden md:block">
-                ⚡ Interactive mode • May take 5-10s to load
+                ⚡ Interactive mode • First load takes 5-10s
             </div>
         )}
     </div>
 );
 
+// ============================================
+// PRACTICE PANE COMPONENT
+// ============================================
 const PracticePane = ({
                           mode,
                           staticUrl,
                           interactiveUrl,
+                          interactiveFallbackUrl,
                           currentNotebook,
                           isLoading,
                           setIsLoading,
@@ -75,9 +82,31 @@ const PracticePane = ({
                           error
                       }) => {
     const iframeRef = useRef(null);
+    const [usesFallback, setUsesFallback] = useState(false);
 
     // Use appropriate URL based on mode
-    const currentUrl = mode === 'static' ? staticUrl : interactiveUrl;
+    const currentUrl = mode === 'static'
+        ? staticUrl
+        : (usesFallback ? interactiveFallbackUrl : interactiveUrl);
+
+    const handleError = () => {
+        // If retro fails and we haven't tried fallback yet, try lab
+        if (!usesFallback && mode === 'interactive') {
+            console.log('Retro not available, falling back to Lab interface');
+            setUsesFallback(true);
+            setIsLoading(true);
+        } else {
+            handleIframeError();
+        }
+    };
+
+    // Reset fallback when mode or notebook changes
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setUsesFallback(false);
+            return () => clearTimeout(timer);
+        }, 1000)
+    }, [mode, currentNotebook.file]);
 
     return (
         <div className="relative bg-white h-full">
@@ -95,7 +124,9 @@ const PracticePane = ({
                             {mode === 'interactive' ? 'Initializing Environment...' : 'Loading Notebook...'}
                         </p>
                         <p className="text-gray-600 text-xs md:text-sm">
-                            {mode === 'interactive' ? 'This may take 5-10 seconds' : 'Almost there'}
+                            {mode === 'interactive'
+                                ? (usesFallback ? 'Loading Lab interface...' : 'Loading Retro interface...')
+                                : 'Almost there'}
                         </p>
                     </div>
                 </div>
@@ -116,7 +147,7 @@ const PracticePane = ({
                             <div className="flex-1">
                                 <h3 className="text-lg font-bold text-red-900 mb-2">Failed to Load</h3>
                                 <p className="text-red-800 mb-2">
-                                    The notebook could not be loaded. Please try refreshing.
+                                    The notebook could not be loaded. Please try refreshing the page.
                                 </p>
                                 <p className="text-xs text-gray-600">
                                     Notebook: <code className="bg-gray-100 px-1 rounded">{currentNotebook.file}</code>
@@ -133,7 +164,7 @@ const PracticePane = ({
                 src={currentUrl}
                 className="w-full h-full border-0"
                 onLoad={() => setIsLoading(false)}
-                onError={handleIframeError}
+                onError={handleError}
                 title={currentNotebook.title}
                 allow="cross-origin-isolated"
                 sandbox="allow-same-origin allow-scripts allow-forms allow-downloads allow-modals allow-popups"
@@ -142,6 +173,9 @@ const PracticePane = ({
     );
 };
 
+// ============================================
+// MAIN PRACTICE TAB COMPONENT
+// ============================================
 export default function PracticeTab({level}) {
     const [mode, setMode] = useState('static'); // 'static' or 'interactive'
     const [isLoading, setIsLoading] = useState(true);
@@ -161,9 +195,10 @@ export default function PracticeTab({level}) {
         const timer = setTimeout(() => {
             setIsLoading(true);
             setError(null);
+            return () => clearTimeout(timer);
         }, 1000)
-        return () => clearTimeout(timer)
     }, [level.id, mode]);
+
     // Notebook mapping
     const notebookMapping = {
         'A1': {
@@ -235,9 +270,10 @@ export default function PracticeTab({level}) {
     const levelNumber = parseInt(level.id.charAt(1));
     const totalLevels = 3;
 
-    // TWO URLs: one for static HTML (fast), one for JupyterLite (slow but interactive)
+    // THREE URLs: static HTML, retro interface, and lab fallback
     const staticUrl = `/notebooks-static/${currentNotebook.file.replace('.ipynb', '.html')}`;
     const interactiveUrl = `/jupyter/retro/notebooks/${currentNotebook.file}`;
+    const interactiveFallbackUrl = `/jupyter/lab/index.html?path=${currentNotebook.file}`;
 
     const colorSchemes = {
         green: {
@@ -368,6 +404,7 @@ export default function PracticeTab({level}) {
                         mode={mode}
                         staticUrl={staticUrl}
                         interactiveUrl={interactiveUrl}
+                        interactiveFallbackUrl={interactiveFallbackUrl}
                         currentNotebook={currentNotebook}
                         isLoading={isLoading}
                         setIsLoading={setIsLoading}
