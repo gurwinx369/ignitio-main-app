@@ -26,9 +26,6 @@ const TabBar = ({handleReset, toggleFullscreen, isFullscreen}) => (
                 <RotateCcw className="w-4 h-4"/>
             </button>
         </div>
-        <div className="mt-2 text-xs text-gray-600">
-            📖 Read-only view • Fast loading
-        </div>
     </div>
 );
 
@@ -88,7 +85,6 @@ const PracticePane = ({
 };
 
 export default function PracticeTab({level}) {
-    // Removed mode state - only static mode now
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -101,13 +97,10 @@ export default function PracticeTab({level}) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Reset loading when level changes
+    // Reset loading when level changes (not on initial mount)
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(true);
-            setError(null);
-        }, 1000);
-        return () => clearTimeout(timer);
+        setIsLoading(true);
+        setError(null);
     }, [level.id]);
 
     // Notebook mapping
@@ -181,7 +174,6 @@ export default function PracticeTab({level}) {
     const levelNumber = parseInt(level.id.charAt(1));
     const totalLevels = 3;
 
-    // Only static URL now - removed interactiveUrl
     const staticUrl = `/notebooks-static/${currentNotebook.file.replace('.ipynb', '.html')}`;
 
     const colorSchemes = {
@@ -325,7 +317,6 @@ export default function PracticeTab({level}) {
                 )}
             </div>
 
-            {/* Removed interactive mode info cards, kept only static view info */}
             {!isFullscreen && !isMobile && (
                 <div className="mt-6 grid md:grid-cols-2 gap-4">
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
