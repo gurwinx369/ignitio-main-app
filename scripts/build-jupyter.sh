@@ -108,29 +108,18 @@ echo -e "${GREEN}✓ Generated ${CONVERTED_COUNT} static HTML notebooks${NC}"
 # ============================================
 # STEP 10: BUILD JUPYTERLITE (Interactive)
 # ============================================
-echo -e "${BLUE}🔨 Building JupyterLite with Lab + Retro interfaces...${NC}"
-
-# Create jupyter-lite.json config
-cat > jupyter-lite.json << 'JSONEOF'
-{
-  "jupyter-lite-schema-version": 0,
-  "jupyter-config-data": {
-    "appName": "Git & GitHub Learning",
-    "appVersion": "0.1.0",
-    "disabledExtensions": [],
-    "settingsOverrides": {}
-  }
-}
-JSONEOF
-
-# Build with BOTH lab and retro apps
-echo -e "${BLUE}  Building Lab and Retro interfaces...${NC}"
-jupyter lite build \
-  --apps lab retro \
-  --contents features/notebooks/ \
-  --output-dir public/jupyter \
-  --config jupyter-lite.json
-
+echo -e "${BLUE}🔨 Building JupyterLite (for interactive mode)...${NC}"
+if [ -f "jupyter-lite.json" ]; then
+    jupyter lite build \
+      --contents features/notebooks/ \
+      --output-dir public/jupyter \
+      --config jupyter-lite.json
+else
+    echo -e "${YELLOW}⚠️  jupyter-lite.json not found, building without config${NC}"
+    jupyter lite build \
+      --contents features/notebooks/ \
+      --output-dir public/jupyter
+fi
 echo -e "${GREEN}✓ JupyterLite build complete${NC}"
 
 # Step 11: Verify builds
@@ -140,31 +129,12 @@ echo -e "${BLUE}🔍 Verifying outputs...${NC}"
 STATIC_HTML_COUNT=$(find public/notebooks-static -name "*.html" 2>/dev/null | wc -l)
 echo -e "${GREEN}✓ Static HTML files: ${STATIC_HTML_COUNT}${NC}"
 
-# Check JupyterLite Lab
+# Check JupyterLite
 if [ ! -f "public/jupyter/lab/index.html" ]; then
     echo -e "${RED}❌ Missing JupyterLite lab/index.html${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ JupyterLab interface ready${NC}"
-
-# Check JupyterLite Retro
-if [ -d "public/jupyter/retro" ]; then
-    echo -e "${GREEN}✓ Retro interface available at /jupyter/retro/${NC}"
-    RETRO_AVAILABLE=true
-
-    # List retro structure
-    echo -e "${BLUE}  Retro structure:${NC}"
-    ls -la public/jupyter/retro/ | head -n 10
-else
-    echo -e "${YELLOW}⚠️  Retro interface not built${NC}"
-    echo -e "${YELLOW}  Note: Retro requires jupyterlite-core >= 0.2.0${NC}"
-    echo -e "${YELLOW}  Falling back to Lab interface only${NC}"
-    RETRO_AVAILABLE=false
-fi
-
-# Check if notebooks were copied
-BUILT_NOTEBOOKS=$(find public/jupyter -name "*.ipynb" 2>/dev/null | wc -l)
-echo -e "${GREEN}✓ Built with ${BUILT_NOTEBOOKS} notebook(s)${NC}"
+echo -e "${GREEN}✓ JupyterLite ready${NC}"
 
 # Step 12: Create index page for static notebooks
 echo -e "${BLUE}📋 Creating static notebook index...${NC}"
@@ -266,17 +236,7 @@ echo -e "${GREEN}✓ Index page created${NC}"
 
 # Step 13: Display build structure
 echo -e "${BLUE}📂 Build structure:${NC}"
-echo -e "${GREEN}Public directories:${NC}"
-# shellcheck disable=SC2010
-ls -la public/ | grep -E "jupyter|notebooks-static"
-
-echo -e ""
-echo -e "${GREEN}JupyterLite apps:${NC}"
-# shellcheck disable=SC2010
-ls -la public/jupyter/ | grep -E "lab|retro|repl"
-
-echo -e ""
-echo -e "${GREEN}Static HTML preview:${NC}"
+echo -e "${GREEN}Static HTML:${NC}"
 if command -v tree &> /dev/null; then
     tree -L 2 public/notebooks-static
 else
@@ -288,23 +248,10 @@ fi
 deactivate
 echo -e "${GREEN}✓ Virtual environment deactivated${NC}"
 
-echo -e ""
 echo -e "${GREEN}✅ Hybrid build successful!${NC}"
 echo -e "${BLUE}📊 Summary:${NC}"
 echo -e "  - Notebooks found: ${NOTEBOOK_COUNT}"
 echo -e "  - Static HTML generated: ${STATIC_HTML_COUNT}"
-echo -e "  - Built notebooks: ${BUILT_NOTEBOOKS}"
-echo -e "  - JupyterLab: ✓ Available"
-if [ "$RETRO_AVAILABLE" = true ]; then
-    echo -e "  - Retro: ✓ Available (lightweight interface)"
-else
-    echo -e "  - Retro: ⚠️  Not available (using Lab only)"
-fi
-echo -e ""
-echo -e "${BLUE}📍 Output locations:${NC}"
-echo -e "  - Static HTML: public/notebooks-static/"
-echo -e "  - JupyterLite: public/jupyter/"
-if [ "$RETRO_AVAILABLE" = true ]; then
-    echo -e "  - Retro URL: /jupyter/retro/notebooks/<notebook-path>"
-fi
-echo -e "  - Lab URL: /jupyter/lab/index.html?path=<notebook-path>"
+echo -e "  - JupyterLite ready: ✓"
+echo -e "  - Static output: public/notebooks-static/"
+echo -e "  - Interactive output: public/jupyter/"
