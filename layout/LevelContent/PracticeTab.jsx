@@ -1,11 +1,12 @@
-import React, {useEffect, useState, useRef} from 'react';
-import {Maximize2, Minimize2, RotateCcw } from 'lucide-react';
-//Zap, BookOpen
+import React, {useEffect, useRef, useState} from 'react';
+import {BookOpen, Maximize2, Minimize2, RotateCcw, Zap} from 'lucide-react';
+
 const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) => (
-    <div className="flex items-center justify-between bg-white rounded-t-lg px-2 py-2 md:px-4 md:py-3 border-b border-gray-200">
+    <div
+        className="flex items-center justify-between bg-white rounded-t-lg px-2 py-2 md:px-4 md:py-3 border-b border-gray-200">
         <div className="flex items-center gap-2">
-            {/* Mode Toggle - COMMENTED OUT FOR STATIC ONLY */}
-            {/* <div className="inline-flex bg-gray-100 rounded-lg p-1">
+            {/* Mode Toggle */}
+            <div className="inline-flex bg-gray-100 rounded-lg p-1">
                 <button
                     onClick={() => setMode('static')}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -15,7 +16,7 @@ const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) =>
                     }`}
                     title="Fast loading, read-only"
                 >
-                    <BookOpen className="w-3.5 h-3.5 inline mr-1" />
+                    <BookOpen className="w-3.5 h-3.5 inline mr-1"/>
                     View
                 </button>
                 <button
@@ -27,10 +28,10 @@ const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) =>
                     }`}
                     title="Run code interactively"
                 >
-                    <Zap className="w-3.5 h-3.5 inline mr-1" />
+                    <Zap className="w-3.5 h-3.5 inline mr-1"/>
                     Run
                 </button>
-            </div> */}
+            </div>
 
             <button onClick={handleReset} title="Reset" className="p-1.5 rounded hover:bg-gray-100">
                 <RotateCcw className="w-4 h-4 text-gray-600"/>
@@ -49,29 +50,23 @@ const TabBar = ({handleReset, mode, setMode, toggleFullscreen, isFullscreen}) =>
             </button>
         </div>
 
-        {/* Static mode info - always shown now */}
-        <div className="text-xs text-gray-500 hidden md:block">
-            📄 Static view • Read-only notebook
-        </div>
-
-        {/* COMMENTED OUT - Interactive mode info */}
-        {/* {mode === 'static' && (
+        {mode === 'static' && (
             <div className="text-xs text-gray-500 hidden md:block">
-                📄 Static view • Switch to "Run" for interactive mode
+                📄 Static view • Switch to &#34;Run&#34; for interactive mode
             </div>
         )}
         {mode === 'interactive' && (
             <div className="text-xs text-amber-600 hidden md:block">
                 ⚡ Interactive mode • May take 5-10s to load
             </div>
-        )} */}
+        )}
     </div>
 );
 
 const PracticePane = ({
                           mode,
                           staticUrl,
-                          // interactiveUrl, // COMMENTED OUT
+                          interactiveUrl,
                           currentNotebook,
                           isLoading,
                           setIsLoading,
@@ -81,9 +76,8 @@ const PracticePane = ({
                       }) => {
     const iframeRef = useRef(null);
 
-    // STATIC ONLY - no mode switching
-    const currentUrl = staticUrl;
-    // const currentUrl = mode === 'static' ? staticUrl : interactiveUrl; // COMMENTED OUT
+    // Use appropriate URL based on mode
+    const currentUrl = mode === 'static' ? staticUrl : interactiveUrl;
 
     return (
         <div className="relative bg-white h-full">
@@ -98,18 +92,11 @@ const PracticePane = ({
                             />
                         </div>
                         <p className="text-gray-900 font-medium mb-1 text-sm md:text-base">
-                            Loading Notebook...
-                        </p>
-                        <p className="text-gray-600 text-xs md:text-sm">
-                            Almost there
-                        </p>
-                        {/* COMMENTED OUT - Interactive mode loading */}
-                        {/* <p className="text-gray-900 font-medium mb-1 text-sm md:text-base">
                             {mode === 'interactive' ? 'Initializing Environment...' : 'Loading Notebook...'}
                         </p>
                         <p className="text-gray-600 text-xs md:text-sm">
                             {mode === 'interactive' ? 'This may take 5-10 seconds' : 'Almost there'}
-                        </p> */}
+                        </p>
                     </div>
                 </div>
             )}
@@ -118,8 +105,10 @@ const PracticePane = ({
                 <div className="absolute inset-0 flex items-center justify-center bg-red-50 z-10 p-8">
                     <div className="max-w-md bg-white rounded-lg shadow-lg p-6 border-2 border-red-200">
                         <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shrink-0">
-                                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div
+                                className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shrink-0">
+                                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24"
+                                     stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
@@ -154,10 +143,7 @@ const PracticePane = ({
 };
 
 export default function PracticeTab({level}) {
-    // STATIC ONLY - mode always set to 'static'
-    const [mode, setMode] = useState('static');
-    // const [mode, setMode] = useState('static'); // 'static' or 'interactive' // COMMENTED OUT
-
+    const [mode, setMode] = useState('static'); // 'static' or 'interactive'
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -170,16 +156,14 @@ export default function PracticeTab({level}) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Reset loading when level changes (mode no longer triggers reset)
+    // Reset loading when level OR mode changes
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsLoading(true);
             setError(null);
-            return () => clearTimeout(timer);
         }, 1000)
-    }, [level.id]); // removed 'mode' dependency
-    // }, [level.id, mode]); // COMMENTED OUT
-
+        return () => clearTimeout(timer)
+    }, [level.id, mode]);
     // Notebook mapping
     const notebookMapping = {
         'A1': {
@@ -251,13 +235,9 @@ export default function PracticeTab({level}) {
     const levelNumber = parseInt(level.id.charAt(1));
     const totalLevels = 3;
 
-    // STATIC ONLY - only need static URL
+    // TWO URLs: one for static HTML (fast), one for JupyterLite (slow but interactive)
     const staticUrl = `/notebooks-static/${currentNotebook.file.replace('.ipynb', '.html')}`;
-    // const interactiveUrl = `/jupyter/retro/notebooks/${currentNotebook.file}`; // COMMENTED OUT
-
-    // COMMENTED OUT - Two URLs for different modes
-    // const staticUrl = `/notebooks-static/${currentNotebook.file.replace('.ipynb', '.html')}`;
-    // const interactiveUrl = `/jupyter/retro/notebooks/${currentNotebook.file}`;
+    const interactiveUrl = `/jupyter/retro/notebooks/${currentNotebook.file}`;
 
     const colorSchemes = {
         green: {
@@ -306,7 +286,8 @@ export default function PracticeTab({level}) {
             {isFullscreen ? (
                 <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 bg-linear-to-br ${colors.gradient} rounded-lg flex items-center justify-center`}>
+                        <div
+                            className={`w-8 h-8 bg-linear-to-br ${colors.gradient} rounded-lg flex items-center justify-center`}>
                             <span className="text-white font-bold text-sm">{levelNumber}</span>
                         </div>
                         <div>
@@ -340,7 +321,8 @@ export default function PracticeTab({level}) {
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className={`w-10 h-10 md:w-12 md:h-12 bg-linear-to-br ${colors.gradient} rounded-xl flex items-center justify-center shadow-lg`}>
+                                    <div
+                                        className={`w-10 h-10 md:w-12 md:h-12 bg-linear-to-br ${colors.gradient} rounded-xl flex items-center justify-center shadow-lg`}>
                                         <span className="text-white font-bold text-lg md:text-xl">{levelNumber}</span>
                                     </div>
                                     <div className="flex-1">
@@ -352,7 +334,8 @@ export default function PracticeTab({level}) {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    <span className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
+                                    <span
+                                        className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
                                         ⏱️ {currentNotebook.duration}
                                     </span>
                                     {currentNotebook.topics.map((topic, i) => (
@@ -370,7 +353,8 @@ export default function PracticeTab({level}) {
                 </>
             )}
 
-            <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
+            <div
+                className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
                 <TabBar
                     handleReset={handleReset}
                     mode={mode}
@@ -383,7 +367,7 @@ export default function PracticeTab({level}) {
                     <PracticePane
                         mode={mode}
                         staticUrl={staticUrl}
-                        // interactiveUrl={interactiveUrl} // COMMENTED OUT
+                        interactiveUrl={interactiveUrl}
                         currentNotebook={currentNotebook}
                         isLoading={isLoading}
                         setIsLoading={setIsLoading}
@@ -396,45 +380,41 @@ export default function PracticeTab({level}) {
                 {!isFullscreen && (
                     <div className="bg-gray-50 px-3 md:px-6 py-2 md:py-3 border-t border-gray-200">
                         <div className="flex items-center justify-between flex-wrap gap-2 md:gap-4">
-                            {/* COMMENTED OUT - Interactive mode keyboard shortcuts */}
-                            {/* <div className="flex items-center gap-3 md:gap-6 text-xs md:text-sm">
+                            <div className="flex items-center gap-3 md:gap-6 text-xs md:text-sm">
                                 {mode === 'interactive' && (
                                     <>
                                         <div className="flex items-center gap-1.5 md:gap-2 text-gray-600">
-                                            <kbd className="px-1.5 md:px-2 py-0.5 md:py-1 bg-white border border-gray-300 rounded font-mono text-xs shadow-sm">
+                                            <kbd
+                                                className="px-1.5 md:px-2 py-0.5 md:py-1 bg-white border border-gray-300 rounded font-mono text-xs shadow-sm">
                                                 Shift+Enter
                                             </kbd>
                                             <span className="hidden sm:inline text-xs">Run</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 md:gap-2 text-gray-600">
-                                            <kbd className="px-1.5 md:px-2 py-0.5 md:py-1 bg-white border border-gray-300 rounded font-mono text-xs shadow-sm">
+                                            <kbd
+                                                className="px-1.5 md:px-2 py-0.5 md:py-1 bg-white border border-gray-300 rounded font-mono text-xs shadow-sm">
                                                 Esc
                                             </kbd>
                                             <span className="hidden sm:inline text-xs">Cmd</span>
                                         </div>
                                     </>
                                 )}
-                            </div> */}
+                            </div>
 
-                            <span className="text-xs text-gray-500">
-                                📖 Read-only view
-                            </span>
-                            {/* COMMENTED OUT - Mode-specific footer text */}
-                            {/* <span className="text-xs text-gray-500 hidden md:inline">
+                            <span className="text-xs text-gray-500 hidden md:inline">
                                 {mode === 'static' ? '📖 Read-only view' : '💾 Auto-saved in browser'}
-                            </span> */}
+                            </span>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* COMMENTED OUT - Mode explanation cards */}
-            {/* {!isFullscreen && !isMobile && (
+            {!isFullscreen && !isMobile && (
                 <div className="mt-6 grid md:grid-cols-3 gap-4">
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                         <div className="flex items-start gap-2">
                             <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shrink-0">
-                                <BookOpen className="w-4 h-4 text-white" />
+                                <BookOpen className="w-4 h-4 text-white"/>
                             </div>
                             <div>
                                 <h4 className="font-semibold text-amber-900 text-xs mb-1">View Mode</h4>
@@ -448,7 +428,7 @@ export default function PracticeTab({level}) {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-start gap-2">
                             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
-                                <Zap className="w-4 h-4 text-white" />
+                                <Zap className="w-4 h-4 text-white"/>
                             </div>
                             <div>
                                 <h4 className="font-semibold text-blue-900 text-xs mb-1">Run Mode</h4>
@@ -462,8 +442,10 @@ export default function PracticeTab({level}) {
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <div className="flex items-start gap-2">
                             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shrink-0">
-                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M9 12l2 2 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor">
+                                    <path d="M9 12l2 2 4-4" strokeWidth="2" strokeLinecap="round"
+                                          strokeLinejoin="round"/>
                                 </svg>
                             </div>
                             <div>
@@ -475,7 +457,7 @@ export default function PracticeTab({level}) {
                         </div>
                     </div>
                 </div>
-            )} */}
+            )}
         </div>
     );
 }

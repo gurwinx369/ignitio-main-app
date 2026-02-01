@@ -200,10 +200,10 @@ cat > public/notebooks-static/index.html << 'EOF'
 </head>
 <body>
     <div class="container">
-        <h1>📚 Git & GitHub Learning Path</h1>
+        <h1>Git & GitHub Learning Path</h1>
 
         <div class="category">
-            <h2><span class="emoji">🌱</span> Beginner Level</h2>
+            <h2>Beginner Level</h2>
             <ul>
                 <li><a href="beginner/A1-setup-sprint.html">A1: Setup Sprint - Install & Configure Git</a></li>
                 <li><a href="beginner/A2-first-repo-forge.html">A2: First Repo Forge - Create Your First Repository</a></li>
@@ -212,7 +212,7 @@ cat > public/notebooks-static/index.html << 'EOF'
         </div>
 
         <div class="category">
-            <h2><span class="emoji">📈</span> Intermediate Level</h2>
+            <h2>Intermediate Level</h2>
             <ul>
                 <li><a href="intermediate/B1-staging-strategist.html">B1: Staging Strategist - Advanced Staging</a></li>
                 <li><a href="intermediate/B2-branch-basics.html">B2: Branch Basics - Branching & Merging</a></li>
@@ -221,7 +221,7 @@ cat > public/notebooks-static/index.html << 'EOF'
         </div>
 
         <div class="category">
-            <h2><span class="emoji">🚀</span> Advanced Level</h2>
+            <h2>Advanced Level</h2>
             <ul>
                 <li><a href="advanced/C1-remote-rider.html">C1: Remote Rider - Working with Remotes</a></li>
                 <li><a href="advanced/C2-fork-and-pr-agent.html">C2: Fork and PR Agent - Collaboration Workflow</a></li>
