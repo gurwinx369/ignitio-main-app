@@ -109,18 +109,34 @@ echo -e "${GREEN}✓ Generated ${CONVERTED_COUNT} static HTML notebooks${NC}"
 # STEP 10: BUILD JUPYTERLITE (Interactive)
 # ============================================
 echo -e "${BLUE}🔨 Building JupyterLite (for interactive mode)...${NC}"
-if [ -f "jupyter-lite.json" ]; then
-    jupyter lite build \
-      --contents features/notebooks/ \
-      --output-dir public/jupyter \
-      --config jupyter-lite.json
-else
-    echo -e "${YELLOW}⚠️  jupyter-lite.json not found, building without config${NC}"
-    jupyter lite build \
-      --contents features/notebooks/ \
-      --output-dir public/jupyter
+
+# Create jupyter-lite.json if it doesn't exist
+if [ ! -f "jupyter-lite.json" ]; then
+    echo -e "${YELLOW}⚠️  Creating jupyter-lite.json with RetroLab config${NC}"
+    cat > jupyter-lite.json << 'JSONEOF'
+{
+  "jupyter-lite-schema-version": 0,
+  "jupyter-config-data": {
+    "appName": "Git & GitHub Learning",
+    "appVersion": "0.1.0",
+    "disabledExtensions": [],
+    "settingsOverrides": {}
+  },
+  "jupyter-lite-applications": {
+    "lab": true,
+    "retro": true
+  }
+}
+JSONEOF
 fi
-echo -e "${GREEN}✓ JupyterLite build complete${NC}"
+
+jupyter lite build \
+  --apps lab retro \
+  --contents features/notebooks/ \
+  --output-dir public/jupyter \
+  --config jupyter-lite.json
+
+echo -e "${GREEN}✓ JupyterLite build complete (with Lab + Retro)${NC}"
 
 # Step 11: Verify builds
 echo -e "${BLUE}🔍 Verifying outputs...${NC}"
