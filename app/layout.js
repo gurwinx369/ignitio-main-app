@@ -6,6 +6,7 @@ import { SmoothCursor } from "@/components/ui/smooth-cursor"
 import { useState, useEffect } from 'react';
 import Loader from '@/layout/Loader';
 import {AuthProvider} from "@/features/context/AuthContext";
+import { PostHogProvider } from './providers'
 
 const inter = Inter({
     variable: "--font-inter",
@@ -45,7 +46,7 @@ export default function RootLayout({ children }) {
         <html lang="en">
         <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
         <SmoothCursor />
-       <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><PostHogProvider>{children}</PostHogProvider></AuthProvider>
         </body>
         </html>
     );
