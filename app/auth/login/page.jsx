@@ -22,7 +22,7 @@ export default function LoginPage() {
         const result = await login(form.email, form.password);
 
         if (result.success) {
-            router.push("/home/onboarding");
+            router.push("/home/");
         } else {
             setError(result.error || "Failed to login");
         }
@@ -36,7 +36,7 @@ export default function LoginPage() {
         const result = await loginWithGoogle();
 
         if (result.success) {
-            router.push("/onboarding");
+            router.push("/home/");
         } else {
             setError(result.error || "Failed to sign in with Google");
         }

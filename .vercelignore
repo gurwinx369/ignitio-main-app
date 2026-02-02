@@ -7,6 +7,10 @@
 node_modules/
 .pnp
 .pnp.js
+.venv
+__pycache__
+*.pyc
+.git
 
 # Python Environment & Cache
 __pycache__/

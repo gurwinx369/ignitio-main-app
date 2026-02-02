@@ -1,12 +1,37 @@
 {
   "jupyter-config-data": {
-    "appName": "JupyterLite",
-    "appUrl": "./lab",
-    "appVersion": "0.7.1",
+    "appName": "Ignitio Jupyter",
+    "appUrl": "/jupyter",
+    "appVersion": "1.0.0",
     "baseUrl": "./",
+    "contentsStorageName": "ignitio-jupyter-storage",
     "defaultKernelName": "python",
+    "disabledExtensions": [],
     "faviconUrl": "./lab/favicon.ico",
-    "federated_extensions": [],
+    "federated_extensions": [
+      {
+        "extension": "./extension",
+        "load": "static/remoteEntry.fc1011a4f389fd607c52.js",
+        "name": "@jupyter-notebook/lab-extension",
+        "style": "./style"
+      },
+      {
+        "extension": "./extension",
+        "load": "static/remoteEntry.9077b3d2deaffb329dfc.js",
+        "name": "@jupyter-widgets/jupyterlab-manager"
+      },
+      {
+        "extension": "./extension",
+        "load": "static/remoteEntry.a117bd216cefa0b341fe.js",
+        "name": "@jupyterlite/pyodide-kernel-extension"
+      },
+      {
+        "extension": "./extension",
+        "load": "static/remoteEntry.5cbb9d2323598fbda535.js",
+        "name": "jupyterlab_pygments",
+        "style": "./style"
+      }
+    ],
     "fileTypes": {
       "avi": {
         "extensions": [
@@ -382,7 +407,19 @@
     },
     "fullLabextensionsUrl": "./extensions",
     "fullStaticUrl": "./build",
-    "licensesUrl": "./lab/api/licenses"
+    "licensesUrl": "./lab/api/licenses",
+    "litePluginSettings": {
+      "@jupyterlite/pyodide-kernel-extension:kernel": {
+        "pipliteUrls": [
+          "./extensions/@jupyterlite/pyodide-kernel-extension/static/pypi/all.json?sha256=783d01f64a330ecbbd82318ba2fde8842bc8eece502b821b8c0f57cacdde5cdc"
+        ]
+      }
+    },
+    "settingsStorageDrivers": [
+      "localStorage"
+    ]
   },
-  "jupyter-lite-schema-version": 0
+  "jupyter-lite-dir": "./jupyter-lite-files",
+  "jupyter-lite-schema-version": 0,
+  "output-dir": "./public/jupyter"
 }
