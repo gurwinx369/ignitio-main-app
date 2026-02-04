@@ -76,9 +76,11 @@ const ExpandableProgressCard = ({
     if (!isMounted) return null;
 
     return (
+
         <div
             className={`relative transition-all duration-700 ${isLocked ? 'opacity-90 grayscale-[0.3]' : 'opacity-100 grayscale-0'}`}>
-            <CardContainer color={color}>
+
+        <CardContainer color={color}>
                 <div className="relative">
                     {isLocked && (
                         <div className="absolute top-4 right-4 z-30">
@@ -109,7 +111,9 @@ const ExpandableProgressCard = ({
                 </div>
             </CardContainer>
         </div>
+
     );
+
 };
 
 export default ExpandableProgressCard;
