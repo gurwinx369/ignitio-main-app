@@ -30,7 +30,7 @@ export default function ProfileDropdown() {
     };
 
     const handleDiscordClick = () => {
-        window.open('https://discord.gg/your-server', '_blank');
+        window.open('https://discord.com/invite/vaEFpQnFRs', '_blank');
     };
 
     const handleLogout = async () => {
