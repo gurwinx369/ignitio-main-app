@@ -8,7 +8,7 @@ export const courseDataBeginner = {
             name: "A1 - Setup Sprint",
             title: "A1 — Setup Sprint",
             description: "Install & verify Git, create a GitHub account and configure user identity.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/c7UOp6JpR5M?rel=0"
         },
         {
             id: "A2",
