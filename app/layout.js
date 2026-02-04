@@ -1,12 +1,12 @@
 'use client';
 
-import { Inter, Pixelify_Sans } from "next/font/google";
+import {Inter, Pixelify_Sans} from "next/font/google";
 import "./globals.css";
-import { SmoothCursor } from "@/components/ui/smooth-cursor"
-import { useState, useEffect } from 'react';
+import {SmoothCursor} from "@/components/ui/smooth-cursor"
+import {useEffect, useState} from 'react';
 import Loader from '@/layout/Loader';
 import {AuthProvider} from "@/features/context/AuthContext";
-import { PostHogProvider } from './providers'
+import {PostHogProvider} from './providers'
 
 const inter = Inter({
     variable: "--font-inter",
@@ -35,6 +35,14 @@ export default function RootLayout({ children }) {
     if (isLoading) {
         return (
             <html lang="en">
+            <head>
+                {/* Preconnect to common video domains */}
+                <link rel="preconnect" href="https://www.youtube.com"/>
+                <link rel="preconnect" href="https://www.youtube-nocookie.com"/>
+                <link rel="preconnect" href="https://i.ytimg.com"/>
+                <link rel="dns-prefetch" href="https://www.youtube.com"/>
+                <title></title>
+            </head>
             <body className={`${inter.variable} ${pixelifySans.variable} antialiased`}>
             <Loader />
             </body>
