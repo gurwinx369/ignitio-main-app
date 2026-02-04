@@ -15,14 +15,14 @@ export const courseDataBeginner = {
             name: "A2 - First Repo Forge",
             title: "A2 — First Repo Forge",
             description: "Initialize a local repo, inspect the .git folder, add files and make your first commit.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/Qlp-OCPDfks?rel=0"
         },
         {
             id: "A3",
             name: "A3 - Stage & Ship",
             title: "A3 — Stage & Ship",
             description: "Stage changes, unstage when needed, craft clear commit messages and view commit history.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/4Ow_vpouHIU?rel=0"
         },
     ]
 };
@@ -36,21 +36,21 @@ export const courseDataIntermediate = {
             name: "B1 - Staging Strategist",
             title: "B1 — Staging Strategist",
             description: "Create and maintain a .gitignore, practice atomic commits and master staged workflows.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/GWfxH_Kr4ok?rel=0"
         },
         {
             id: "B2",
             name: "B2 - Branch Basics",
             title: "B2 — Branch Basics",
             description: "Create and switch branches, inspect HEAD, merge safely and resolve simple conflicts.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/fZ8wbYcrUeo?rel=0"
         },
         {
             id: "B3",
             name: "B3 - History Hacker",
             title: "B3 — History Hacker",
             description: "Visualize commit history, use interactive rebase, reflog and recover safely from mistakes.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/nExoRL_R1Jo?rel=0"
         }
     ]
 };
