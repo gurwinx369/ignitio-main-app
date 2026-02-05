@@ -65,21 +65,21 @@ export const courseDataAdvanced = {
             name: "C1 - Remote Rider",
             title: "C1 — Remote Rider",
             description: "Create GitHub repositories, add remotes, push initial commits and configure SSH authentication.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/bdKPwbclYMw?rel=0"
         },
         {
             id: "C2",
             name: "C2 - Fork & PR Agent",
             title: "C2 — Fork & PR Agent",
             description: "Fork repositories, clone locally, work on feature branches and submit clean Pull Requests.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/_YCtBI4CJ20?rel=0"
         },
         {
             id: "C3",
             name: "C3 - Collab Captain",
             title: "C3 — Collab Captain",
             description: "Apply PR quality checks, tag releases and follow maintainer best-practices for collaboration.",
-            videoUrl: ""
+            videoUrl: "https://www.youtube.com/embed/5PRkhZTbvU4?rel=0"
         }
     ]
 };
