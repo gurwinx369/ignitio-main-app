@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
+import React, {useState} from 'react';
+import {CheckCircle, ThumbsDown, ThumbsUp} from 'lucide-react';
 
-const VideoTab = ({ level, hasWatched, onMarkComplete, feedback, setFeedback }) => {
+const VideoTab = ({ level, hasWatched, onMarkComplete, feedback, setFeedback, canMarkComplete }) => {
     const [isLoaded, setIsLoaded] = useState(false);
 
     return (
@@ -53,7 +53,7 @@ const VideoTab = ({ level, hasWatched, onMarkComplete, feedback, setFeedback }) 
                         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
                             {level.title || 'Video Title'}
                         </h1>
-                        {!hasWatched && (
+                        {!hasWatched && canMarkComplete && (
                             <button
                                 onClick={onMarkComplete}
                                 className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 hover:shadow-md active:scale-95 text-sm sm:text-base font-medium"

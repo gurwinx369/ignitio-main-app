@@ -1,16 +1,69 @@
-import React, {useState} from 'react';
-import {ArrowLeft} from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
 
-const LevelContent = ({level, onBack, onComplete, isCompleted}) => {
+// Function to calculate the 80% time duration of any video
+function eightyPercentOfVideo(durationInMinutes, levelId, onTimerComplete) {
+    const durationInMilliseconds = durationInMinutes * 60 * 1000;
+    const eightyPercentDuration = durationInMilliseconds * 0.8;
+
+    const storageKey = `video_timer_${levelId}`;
+    const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
+
+    const remainingTime = Math.max(0, eightyPercentDuration - storedElapsed);
+
+   // console.log(`Total duration: ${durationInMilliseconds}ms, 80%: ${eightyPercentDuration}ms, Elapsed: ${storedElapsed}ms, Remaining: ${remainingTime}ms`);
+
+    if (remainingTime === 0) {
+        onTimerComplete();
+        return null;
+    }
+
+    const startTime = Date.now();
+
+    const timer = setTimeout(() => {
+       // console.log("80% of video completed!");
+        localStorage.removeItem(storageKey);
+        onTimerComplete();
+    }, remainingTime);
+
+    return () => {
+        clearTimeout(timer);
+        const additionalElapsed = Date.now() - startTime;
+        const totalElapsed = storedElapsed + additionalElapsed;
+        localStorage.setItem(storageKey, totalElapsed.toString());
+       // console.log(`Saved progress: ${totalElapsed}ms`);
+    };
+}
+
+const LevelContent = ({ level, onBack, onComplete, isCompleted }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
+    const [canMarkComplete, setCanMarkComplete] = useState(isCompleted); // Initialize with isCompleted
+    const cleanupRef = useRef(null);
+
+    useEffect(() => {
+        if (level.durationInMinutes && !isCompleted) {
+            cleanupRef.current = eightyPercentOfVideo(
+                level.durationInMinutes,
+                level.id,
+                () => setCanMarkComplete(true)
+            );
+        }
+
+        return () => {
+            if (cleanupRef.current) {
+                cleanupRef.current();
+            }
+        };
+    }, [level.id, level.durationInMinutes, isCompleted]);
 
     const handleMarkComplete = () => {
         setHasWatched(true);
         onComplete(level.id);
+        localStorage.removeItem(`video_timer_${level.id}`);
     };
 
     return (
@@ -23,7 +76,7 @@ const LevelContent = ({level, onBack, onComplete, isCompleted}) => {
                         onClick={onBack}
                         className="inline-flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-blue-400 hover:bg-blue-500 text-white rounded-full transition-all duration-200 hover:shadow-lg active:scale-95 text-sm sm:text-base font-medium mb-6"
                     >
-                        <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5"/>
+                        <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
 
                     {/* Video/Practice Switcher */}
@@ -62,9 +115,10 @@ const LevelContent = ({level, onBack, onComplete, isCompleted}) => {
                     onMarkComplete={handleMarkComplete}
                     feedback={feedback}
                     setFeedback={setFeedback}
+                    canMarkComplete={canMarkComplete}
                 />
             ) : (
-                <PracticeTab level={level}/>
+                <PracticeTab level={level} />
             )}
         </div>
     );
