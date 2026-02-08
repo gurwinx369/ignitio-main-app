@@ -22,6 +22,25 @@ const nextConfig = {
 
     async headers() {
         return [
+            // including service worker for notification
+            {
+                // Apply headers to service worker file
+                source: '/firebase-messaging-sw.js',
+                headers: [
+                    {
+                        key: 'Service-Worker-Allowed',
+                        value: '/',
+                    },
+                    {
+                        key: 'Content-Type',
+                        value: 'application/javascript; charset=utf-8',
+                    },
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-cache, no-store, must-revalidate',
+                    },
+                ],
+            },
             {
                 // Headers for JupyterLite static files
                 // These apply ONLY to the iframe content itself

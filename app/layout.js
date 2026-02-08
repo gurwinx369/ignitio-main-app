@@ -7,21 +7,17 @@ import {useEffect, useState} from 'react';
 import Loader from '@/layout/Loader';
 import {AuthProvider} from "@/features/context/AuthContext";
 import {PostHogProvider} from './providers'
+import {NotificationProvider} from "@/features/notifications/context/NotificationContext"
 
 const inter = Inter({
-    variable: "--font-inter",
-    display: "swap",
-    subsets: ["latin"],
+    variable: "--font-inter", display: "swap", subsets: ["latin"],
 });
 
 const pixelifySans = Pixelify_Sans({
-    variable: "--font-pixelify",
-    display: "swap",
-    subsets: ["latin"],
-    weight: ["400", "500", "600", "700"], // Multiple weights available
+    variable: "--font-pixelify", display: "swap", subsets: ["latin"], weight: ["400", "500", "600", "700"], // Multiple weights available
 });
 
-export default function RootLayout({ children }) {
+export default function RootLayout({children}) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -33,8 +29,7 @@ export default function RootLayout({ children }) {
     }, []);
 
     if (isLoading) {
-        return (
-            <html lang="en">
+        return (<html lang="en">
             <head>
                 {/* Preconnect to common video domains */}
                 <link rel="preconnect" href="https://www.youtube.com"/>
@@ -44,18 +39,19 @@ export default function RootLayout({ children }) {
                 <title></title>
             </head>
             <body className={`${inter.variable} ${pixelifySans.variable} antialiased`}>
-            <Loader />
+            <Loader/>
             </body>
-            </html>
-        );
+            </html>);
     }
 
-    return (
-        <html lang="en">
+    return (<html lang="en">
         <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
-        <SmoothCursor />
-        <AuthProvider><PostHogProvider>{children}</PostHogProvider></AuthProvider>
+        <SmoothCursor/>
+        <NotificationProvider>
+            <AuthProvider>
+                <PostHogProvider>{children}</PostHogProvider>
+            </AuthProvider>
+        </NotificationProvider>
         </body>
-        </html>
-    );
+        </html>);
 }
