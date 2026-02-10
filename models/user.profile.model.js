@@ -6,6 +6,10 @@ const UserProfileSchema = new Schema(
             type: String,
             required: true,
         },
+        notification: {
+            type: Schema.Types.ObjectId,
+            ref: "Notification",
+        },
         email: {
             type: String,
             validate: {

@@ -1,13 +1,10 @@
 // app/api/notifications/save-token/route.js
-import { NextResponse } from "next/server";
-
-// In production, save this to your database
-// For now, we'll just log it
-const tokens = new Set();
+import {NextResponse} from "next/server";
+import {User} from "@/models/user.profile.model";
 
 export async function POST(request) {
     try {
-        const { token } = await request.json();
+        const {token, email} = await request.json();
 
         if (!token) {
             return NextResponse.json(
@@ -16,28 +13,37 @@ export async function POST(request) {
             );
         }
 
-        // Add token to set (in production, save to database)
-        tokens.add(token);
-
         console.log("FCM Token saved:", token);
-        console.log("Total tokens:", tokens.size);
-
-        // TODO: Save to your database
-        // Example:
-        // await db.fcmTokens.create({
-        //   data: {
-        //     token,
-        //     userId: session.user.id, // from auth session
-        //     createdAt: new Date(),
-        //   },
-        // });
-
+        const user = await User.findOne({email})
+        if (!user) {
+            NextResponse.json({
+                    error: "User does not exists",
+                }
+            )
+        }
+        const addNotification = await Notification.create({
+            userID: user._id,
+            fcmToken: token,
+        })
+        const saveToDb = await addNotification.save();
+        if (!saveToDb) {
+            NextResponse.json({
+                error: "Failed to create notification",
+            })
+        }
+        const saveNotificationInUserSchema = await User.update({
+            notificationID: saveToDb._id,
+        })
         return NextResponse.json(
             {
                 success: true,
-                message: "Token saved successfully"
+                message: "Token saved successfully",
+                data: {
+                    notificationInUserSchema: saveNotificationInUserSchema,
+                    notificationSaved: saveToDb,
+                },
+                status: 200
             },
-            { status: 200 }
         );
     } catch (error) {
         console.error("Error saving token:", error);
@@ -46,15 +52,4 @@ export async function POST(request) {
             { status: 500 }
         );
     }
-}
-
-// Get all tokens (for testing)
-export async function GET() {
-    return NextResponse.json(
-        {
-            tokens: Array.from(tokens),
-            count: tokens.size
-        },
-        { status: 200 }
-    );
 }

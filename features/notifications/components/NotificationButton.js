@@ -3,11 +3,13 @@
 
 import { useState } from "react";
 import { useNotification } from "../context/NotificationContext";
+import {useAuth} from "../context/AuthContext";
 import axios from "axios"
 
 export default function NotificationButton() {
     const { permission, requestPermission, token } = useNotification();
-    console.log("token: ", token)
+    const { user } = useAuth();
+    console.log("USER :", user)
     const [loading, setLoading] = useState(false);
 
     const handleEnableNotifications = async () => {
