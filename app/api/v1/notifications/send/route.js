@@ -1,4 +1,3 @@
-// app/api/notifications/send/route.js
 import {NextResponse} from "next/server";
 import admin from "firebase-admin";
 
@@ -8,7 +7,7 @@ if (!admin.apps.length) {
         const serviceAccount = require('@/features/notifications/credentials/serviceAccountKey.json');
         await admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
-         });
+        });
     } catch (error) {
         console.error("Firebase admin initialization error:", error);
     }
