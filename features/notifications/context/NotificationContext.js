@@ -1,7 +1,6 @@
-// app/features/notifications/context/NotificationContext.js
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {createContext, useContext, useEffect, useState} from "react";
 import {
     requestNotificationPermission,
     onForegroundMessage,
@@ -18,21 +17,23 @@ export const useNotification = () => {
     return context;
 };
 
-export const NotificationProvider = ({ children }) => {
+export const NotificationProvider = ({children}) => {
     const [token, setToken] = useState(null);
     const [notification, setNotification] = useState(null);
     const [permission, setPermission] = useState("default");
 
+    // ✅ FIX: Split into two separate effects so SW registration is never skipped
     useEffect(() => {
-        // Check initial permission status
         if (typeof window !== "undefined" && "Notification" in window) {
             const timer = setTimeout(() => {
-                setPermission(Notification.permission)
-            }, 100)
-            return () => clearTimeout(timer)
+                setPermission(Notification.permission);
+            }, 100);
+            return () => clearTimeout(timer);
         }
+    }, []);
 
-        // Register service worker
+    useEffect(() => {
+        // ✅ FIX: SW registration now lives in its own effect — always runs
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker
                 .register("/firebase-messaging-sw.js")
@@ -50,10 +51,8 @@ export const NotificationProvider = ({ children }) => {
         if (permission === "granted") {
             const unsubscribe = onForegroundMessage((payload) => {
                 console.log("Foreground notification:", payload);
-
                 setNotification(payload);
 
-                // Display notification
                 const title = payload.notification?.title || "New Notification";
                 const options = {
                     body: payload.notification?.body || "",
@@ -62,7 +61,6 @@ export const NotificationProvider = ({ children }) => {
                     tag: payload.data?.tag || "notification",
                     data: payload.data,
                 };
-
                 displayNotification(title, options);
             });
 
@@ -72,41 +70,29 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [permission]);
 
-    // Request permission and get token
     const requestPermission = async () => {
         const fcmToken = await requestNotificationPermission();
         if (fcmToken) {
             setToken(fcmToken);
             setPermission("granted");
-
-            // Save token to your backend
             await saveTokenToBackend(fcmToken);
         }
         return fcmToken;
     };
 
-    // Save token to backend (implement your API endpoint)
     const saveTokenToBackend = async (fcmToken) => {
         try {
-            // Replace with your API endpoint
             await fetch("/api/v1/notifications/save-token", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ token: fcmToken }),
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({token: fcmToken}),
             });
         } catch (error) {
             console.error("Error saving token:", error);
         }
     };
 
-    const value = {
-        token,
-        notification,
-        permission,
-        requestPermission,
-    };
+    const value = {token, notification, permission, requestPermission};
 
     return (
         <NotificationContext.Provider value={value}>
