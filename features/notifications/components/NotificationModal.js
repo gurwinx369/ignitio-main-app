@@ -45,7 +45,7 @@ export default function NotificationModal() {
             }
 
             const alreadySentWelcome = localStorage.getItem("welcome_notification_sent");
-            if (!alreadySentWelcome) {
+            if (alreadySentWelcome) {
                 const response = await axios({
                     method: "POST",
                     url: "/api/v1/notifications/welcome",

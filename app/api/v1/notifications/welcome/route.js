@@ -6,13 +6,21 @@ import admin from "firebase-admin";
 if (!admin.apps.length) {
     try {
         const serviceAccount = require('@/features/notifications/credentials/serviceAccountKey.json');
-        await admin.initializeApp({
+        admin.initializeApp({  // ✅ removed incorrect `await` — initializeApp is synchronous
             credential: admin.credential.cert(serviceAccount)
         });
     } catch (error) {
         console.error("Firebase admin initialization error:", error);
     }
 }
+
+// ✅ Determine base URL based on environment
+const getAppUrl = () => {
+    if (process.env.NODE_ENV === "production") {
+        return process.env.NEXT_PUBLIC_APP_URL;
+    }
+    return process.env.NEXT_PUBLIC_DEV_URL || "http://localhost:5000";
+};
 
 // Passive-aggressive welcome messages (rotated randomly)
 const welcomeMessages = [
@@ -49,12 +57,24 @@ const welcomeMessages = [
 export async function POST(request) {
     try {
         const {token} = await request.json();
+        const appUrl = getAppUrl(); // ✅ Resolved dynamically per environment
 
         if (!token) {
             return NextResponse.json(
                 {
                     error: "Token is required",
                     status: 400
+                }
+            );
+        }
+
+        // ✅ Guard against missing appUrl in production
+        if (!appUrl) {
+            console.error("NEXT_PUBLIC_APP_URL is not set in production environment");
+            return NextResponse.json(
+                {
+                    error: "Server misconfiguration: App URL is not defined",
+                    status: 500
                 }
             );
         }
@@ -68,25 +88,25 @@ export async function POST(request) {
             notification: {
                 title: selectedMessage.title,
                 body: selectedMessage.body,
-                imageUrl: "/welcome-notification.png", // Add your gamified welcome image
+                imageUrl: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL required by FCM
             },
             data: {
                 type: "welcome",
-                url: "/dashboard",
+                url: "/home/",
                 isFirstNotification: "true",
                 timestamp: new Date().toISOString(),
             },
             webpush: {
                 fcmOptions: {
-                    link: "/dashboard",
+                    link: `${appUrl}/home/`, // ✅ Absolute URL
                 },
                 notification: {
-                    icon: "/logo.png",
-                    badge: "/badge.png",
-                    requireInteraction: true, // Make them interact with the welcome notification
+                    icon: `${appUrl}/ignitio-logo.png`,  // ✅ Absolute URL
+                    badge: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL
+                    requireInteraction: true,
                     tag: "welcome-notification",
                     renotify: false,
-                    vibrate: [200, 100, 200], // Gamified vibration pattern
+                    vibrate: [200, 100, 200],
                 },
             },
         };
