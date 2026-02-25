@@ -1,8 +1,8 @@
 // app/api/notifications/save-token/route.js
 import { NextResponse } from "next/server";
 import { UserProfile } from "@/models/user.profile.model";
-import { Notification } from "@/models/notification.model"; // ✅ was missing
-import connectDB from "@/dbConfig/connectDB";                    // ✅ was missing
+import  UserNotification from "@/models/notification.model";
+import connectDB from "@/dbConfig/dbConnection";
 
 export async function POST(request) {
     try {
@@ -25,7 +25,7 @@ export async function POST(request) {
             });
         }
 
-        const addNotification = await Notification.create({
+        const addNotification = await UserNotification.create({
             userID: user._id,
             fcmToken: token,
         });
