@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import admin from "firebase-admin";
-
+import connectDB from "@/dbConfig/dbConnection"
 // Initialize Firebase Admin SDK (server-side only)
 if (!admin.apps.length) {
     try {
@@ -15,6 +15,7 @@ if (!admin.apps.length) {
 
 export async function POST(request) {
     try {
+        await connectDB()
         const {token, title, body, data, imageUrl} = await request.json();
 
         if (!token) {
@@ -75,6 +76,7 @@ export async function POST(request) {
 // Send to multiple tokens
 export async function PUT(request) {
     try {
+        await connectDB()
         const {tokens, title, body, data, imageUrl} = await request.json();
 
         if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {

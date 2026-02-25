@@ -1,7 +1,7 @@
 // app/api/notifications/welcome/route.js
 import {NextResponse} from "next/server";
 import admin from "firebase-admin";
-
+import connectDB from "@/dbConfig/dbConnection"
 // Initialize Firebase Admin SDK (server-side only)
 if (!admin.apps.length) {
     try {
@@ -56,6 +56,7 @@ const welcomeMessages = [
 
 export async function POST(request) {
     try {
+        await connectDB();
         const {token} = await request.json();
         const appUrl = getAppUrl(); // ✅ Resolved dynamically per environment
 

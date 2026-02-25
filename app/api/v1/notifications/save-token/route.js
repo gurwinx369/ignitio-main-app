@@ -1,9 +1,10 @@
 // app/api/notifications/save-token/route.js
 import {NextResponse} from "next/server";
 import {UserProfile} from "@/models/user.profile.model";
-
+import connectDB from "@/dbConfig/dbConnection";
 export async function POST(request) {
     try {
+        await connectDB();
         const {token, email} = await request.json();
 
         if (!token) {
