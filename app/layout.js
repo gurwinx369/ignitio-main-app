@@ -1,59 +1,23 @@
-'use client';
-
-import {Inter, Pixelify_Sans} from "next/font/google";
 import "./globals.css";
-import {SmoothCursor} from "@/components/ui/smooth-cursor"
-import {useEffect, useState} from 'react';
-import Loader from '@/layout/Loader';
-import {AuthProvider} from "@/features/context/AuthContext";
-import {PostHogProvider} from './providers'
-import {NotificationProvider} from "@/features/notifications/context/NotificationContext"
-import NotificationModal from "@/features/notifications/components/NotificationModal";
+import ClientLayout from "./ClientLayout";
 
-const inter = Inter({
-    variable: "--font-inter", display: "swap", subsets: ["latin"],
-});
+export const metadata = {
+  title: "Ignitio",
+  manifest: "/manifest.json",
+};
 
-const pixelifySans = Pixelify_Sans({
-    variable: "--font-pixelify", display: "swap", subsets: ["latin"], weight: ["400", "500", "600", "700"], // Multiple weights available
-});
-
-export default function RootLayout({children}) {
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 3000);
-
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (isLoading) {
-        return (<html lang="en">
-            <head>
-                {/* Preconnect to common video domains */}
-                <link rel="preconnect" href="https://www.youtube.com"/>
-                <link rel="preconnect" href="https://www.youtube-nocookie.com"/>
-                <link rel="preconnect" href="https://i.ytimg.com"/>
-                <link rel="dns-prefetch" href="https://www.youtube.com"/>
-                <title></title>
-            </head>
-            <body className={`${inter.variable} ${pixelifySans.variable} antialiased`}>
-            <Loader/>
-            </body>
-            </html>);
-    }
-
-    return (<html lang="en">
-        <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
-        <SmoothCursor/>
-        <NotificationProvider>
-            <NotificationModal />
-            <AuthProvider>
-                <PostHogProvider>{children}</PostHogProvider>
-            </AuthProvider>
-        </NotificationProvider>
-        </body>
-        </html>);
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="dns-prefetch" href="https://www.youtube.com" />
+      </head>
+      <ClientLayout>
+        {children}
+      </ClientLayout>
+    </html>
+  );
 }
