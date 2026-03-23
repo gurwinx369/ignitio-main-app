@@ -10,16 +10,6 @@ const nextConfig = {
         }],
     },
 
-    async rewrites() {
-        if (process.env.NODE_ENV === 'development') {
-            return [{
-                source: '/jupyter/:path*',
-                destination: 'http://localhost:8888/jupyter/:path*',
-            }];
-        }
-        return [];
-    },
-
     async headers() {
         return [
             // including service worker for notification
@@ -38,25 +28,6 @@ const nextConfig = {
                     {
                         key: 'Cache-Control',
                         value: 'no-cache, no-store, must-revalidate',
-                    },
-                ],
-            },
-            {
-                // Headers for JupyterLite static files
-                // These apply ONLY to the iframe content itself
-                source: '/jupyter/build/:path*',
-                headers: [
-                    {
-                        key: 'Cross-Origin-Embedder-Policy',
-                        value: 'require-corp',
-                    },
-                    {
-                        key: 'Cross-Origin-Opener-Policy',
-                        value: 'same-origin',
-                    },
-                    {
-                        key: 'Cross-Origin-Resource-Policy',
-                        value: 'cross-origin',
                     },
                 ],
             },
