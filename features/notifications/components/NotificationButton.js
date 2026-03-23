@@ -8,22 +8,31 @@ import NotificationModal from "./NotificationModal";
 
 export default function NotificationButton() {
     const { permission, requestPermission } = useNotification();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
 
     const handleEnableNotifications = async () => {
+        // Check if user is logged in
+        if (!user?.email) {
+            alert("Please log in to enable notifications.");
+            return;
+        }
+
         setLoading(true);
         try {
-            const fcmToken = await requestPermission();
+            const fcmToken = await requestPermission(user.email);
             if (fcmToken) {
-                setShowModal(false); // Close modal on success
+                setShowModal(false);
                 alert("Notifications enabled successfully!");
             } else {
                 alert("Failed to enable notifications. Please check your browser settings.");
             }
         } catch (error) {
             console.error("Error enabling notifications:", error);
-            alert("An error occurred while enabling notifications.");
+            // Show the actual error message if available
+            const errorMessage = error?.message || "An error occurred while enabling notifications.";
+            alert(errorMessage);
         } finally {
             setLoading(false);
         }

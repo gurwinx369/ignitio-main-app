@@ -56,8 +56,8 @@ export const NotificationProvider = ({children}) => {
                 const title = payload.notification?.title || "New Notification";
                 const options = {
                     body: payload.notification?.body || "",
-                    icon: payload.notification?.icon || "/logo.png",
-                    badge: "/badge.png",
+                    icon: payload.notification?.icon || "/ignitio-logo.png",
+                    badge: "/ignitio-logo.png",
                     tag: payload.data?.tag || "notification",
                     data: payload.data,
                 };
@@ -70,23 +70,33 @@ export const NotificationProvider = ({children}) => {
         }
     }, [permission]);
 
-    const requestPermission = async () => {
+    const requestPermission = async (email) => {
+        // Check if email is provided for token saving
+        if (!email) {
+            console.error("Email is required to save notification token");
+            return null;
+        }
+
         const fcmToken = await requestNotificationPermission();
         if (fcmToken) {
             setToken(fcmToken);
             setPermission("granted");
-            await saveTokenToBackend(fcmToken);
+            await saveTokenToBackend(fcmToken, email);
         }
         return fcmToken;
     };
 
-    const saveTokenToBackend = async (fcmToken) => {
+    const saveTokenToBackend = async (fcmToken, email) => {
         try {
-            await fetch("/api/v1/notifications/save-token", {
+            const response = await fetch("/api/v1/notifications/save-token", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({token: fcmToken}),
+                body: JSON.stringify({token: fcmToken, email: email}),
             });
+            const data = await response.json();
+            if (!response.ok) {
+                console.error("Failed to save token:", data.error || data.message);
+            }
         } catch (error) {
             console.error("Error saving token:", error);
         }

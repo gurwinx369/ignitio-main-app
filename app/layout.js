@@ -48,12 +48,12 @@ export default function RootLayout({children}) {
     return (<html lang="en">
         <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
         <SmoothCursor/>
-        <NotificationProvider>
-            <NotificationModal />
-            <AuthProvider>
+        <AuthProvider>
+            <NotificationProvider>
+                <NotificationModal />
                 <PostHogProvider>{children}</PostHogProvider>
-            </AuthProvider>
-        </NotificationProvider>
+            </NotificationProvider>
+        </AuthProvider>
         </body>
         </html>);
 }

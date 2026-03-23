@@ -2,10 +2,12 @@
 
 import {useEffect, useState} from "react";
 import {useNotification} from "../context/NotificationContext";
+import {useAuth} from "@/features/context/AuthContext";
 import axios from "axios";
 
 export default function NotificationModal() {
     const {permission, requestPermission} = useNotification();
+    const {user} = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -34,9 +36,15 @@ export default function NotificationModal() {
     };
 
     const handleAccept = async () => {
+        // Check if user is logged in
+        if (!user?.email) {
+            alert("Please log in to enable notifications.");
+            return;
+        }
+
         setLoading(true);
         try {
-            const fcmToken = await requestPermission();
+            const fcmToken = await requestPermission(user.email);
 
             if (!fcmToken) {
                 setLoading(false);
@@ -61,9 +69,11 @@ export default function NotificationModal() {
             setLoading(false);
             handleClose();
         } catch (error) {
-            setLoading(false); // ✅ FIX 3: Always reset loading on error too
+            setLoading(false);
             console.error("Error enabling notifications:", error);
-            alert("An error occurred while enabling notifications.");
+            // Show the actual error message if available
+            const errorMessage = error?.message || "An error occurred while enabling notifications.";
+            alert(errorMessage);
         }
     };
 
