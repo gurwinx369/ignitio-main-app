@@ -228,6 +228,7 @@ function GitVerticalCanvas() {
 }
 
 // ── Card ─────────────────────────────────────────────────────────
+
 export default function GitCourseCard({
                                           onClick,
                                           status         = 'Not Started',
@@ -235,7 +236,14 @@ export default function GitCourseCard({
                                           totalLevels    = 9,
                                       }) {
     const [hovered, setHovered] = useState(false);
-
+    useEffect(() => {
+        const savedLevels = localStorage.getItem("completedLevels");
+        if (!savedLevels) {
+            console.log("Failed to fetch savedLevels");
+        } else {
+            console.log("savedLevels:", savedLevels);
+        }
+    }, []);
     return (
         <div
             onClick={onClick}

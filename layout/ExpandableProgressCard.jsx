@@ -34,11 +34,11 @@ const ExpandableProgressCard = ({
 
     const totalLevels = levels.length;
     const completedCount = completedLevels.length;
-
     useEffect(() => {
         if (onProgressUpdate) {
             onProgressUpdate(completedCount, totalLevels);
         }
+        localStorage.setItem("completedLevels", JSON.stringify(completedCount));
     }, [completedCount, totalLevels, onProgressUpdate]);
 
     useEffect(() => {

@@ -18,7 +18,7 @@ export default function NotificationModal() {
             const timer = setTimeout(() => {
                 setIsOpen(true);
                 setIsVisible(true);
-            }, 800);
+            }, 100);
             return () => clearTimeout(timer);
         }
     }, [permission]);
@@ -52,8 +52,8 @@ export default function NotificationModal() {
                 return;
             }
 
-            // ✅ FIX 1: Logic was inverted — send welcome only when NOT already sent (first time)
             const alreadySentWelcome = localStorage.getItem("welcome_notification_sent");
+            console.log("Already sent: ", alreadySentWelcome)
             if (!alreadySentWelcome) {
                 const response = await axios({
                     method: "POST",

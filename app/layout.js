@@ -7,8 +7,6 @@ import {useEffect, useState} from 'react';
 import Loader from '@/layout/Loader';
 import {AuthProvider} from "@/features/context/AuthContext";
 import {PostHogProvider} from './providers'
-import {NotificationProvider} from "@/features/notifications/context/NotificationContext"
-import NotificationModal from "@/features/notifications/components/NotificationModal";
 
 const inter = Inter({
     variable: "--font-inter", display: "swap", subsets: ["latin"],
@@ -49,10 +47,7 @@ export default function RootLayout({children}) {
         <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
         <SmoothCursor/>
         <AuthProvider>
-            <NotificationProvider>
-                <NotificationModal />
                 <PostHogProvider>{children}</PostHogProvider>
-            </NotificationProvider>
         </AuthProvider>
         </body>
         </html>);
