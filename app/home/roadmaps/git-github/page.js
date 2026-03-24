@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import ExpandableProgressCard from '@/layout/ExpandableProgressCard';
-import {courseDataBeginner, courseDataIntermediate, courseDataAdvanced} from '@/data/courseData';
+import {courseDataBeginner, courseDataIntermediate, courseDataAdvanced} from '@/data/gitGithubCourseData';
 import Profile from "@/layout/Profile"
 
 export default function GitGithub() {
