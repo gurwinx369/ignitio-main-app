@@ -1,5 +1,5 @@
 export const cppCourseDataBeginner = {
-    name: "Beginner — CPP",
+    name: "Beginner — Boot up your C++ brain from zero",
     color: "#10b981",
     image: "/github-progress-card.svg", //image to display on the carousel card
     levels: [
@@ -14,7 +14,7 @@ export const cppCourseDataBeginner = {
     ]
 };
 export const cppCourseDataIntermediate = {
-    name:"Intermediate - gamified_cpp_title",
+    name:"Intermediate - Conquer arrays, pointers & memory",
     color:"#F5B700",
     image:"",
     levels: [
@@ -29,7 +29,7 @@ export const cppCourseDataIntermediate = {
     ]
 };
 export const cppCourseDataAdvanced = {
-    name: "Cpp — Advanced",
+    name: "Advanced — Master OOP, recursion & dynamic power",
     color: "#8b5cf6",
     image: "/github-progress-card.svg",
     levels: [
