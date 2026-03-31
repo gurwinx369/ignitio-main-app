@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(find . -name *practiceTab* -o -name *PracticeTab*)",
+      "Bash(find . -name *.jsx -path */LevelContent/*)",
+      "Bash(find . -name *CourseData* -o -name *courseData* -o -name *roadmap*)",
+      "Bash(grep -r LevelContent --include=*.jsx --include=*.js)",
+      "Bash(find app/home -name *.jsx -o -name *.js)",
+      "Bash(npm run:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 19232 -Force\")"
     ]
   }
 }

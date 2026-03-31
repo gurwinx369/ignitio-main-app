@@ -7,7 +7,7 @@ import {cppCourseDataBeginner,
 import Profile from "@/layout/Profile"
 
 export default function CPP() {
-    const [beginnerProgress, setBeginnerProgress] = useState({ completed: 0, total: 0});
+    const [beginnerProgress, setBeginnerProgress] = useState({ completed: 0, total: 31});
     const [intermediateProgress, setIntermediateProgress] = useState({ completed: 0, total: 0 });
     const [isViewingLevel, setIsViewingLevel] = useState(false);
     const [activeCard, setActiveCard] = useState(null); // Track which card is showing level content
@@ -35,6 +35,7 @@ export default function CPP() {
                 <ExpandableProgressCard
                     id="beginner"
                     {...cppCourseDataBeginner}
+                    roadmapType="cpp"
                     onProgressUpdate={(completed, total) => setBeginnerProgress({ completed, total })}
                     onLevelViewChange={handleLevelViewChange('beginner')}
                 />
@@ -45,6 +46,7 @@ export default function CPP() {
                 <ExpandableProgressCard
                     id="intermediate"
                     {...cppCourseDataIntermediate}
+                    roadmapType="cpp"
                     isLocked={!isIntermediateUnlocked}
                     onProgressUpdate={(completed, total) => setIntermediateProgress({ completed, total })}
                     onLevelViewChange={handleLevelViewChange('intermediate')}
@@ -56,6 +58,7 @@ export default function CPP() {
                 <ExpandableProgressCard
                     id="advanced"
                     {...cppCourseDataAdvanced}
+                    roadmapType="cpp"
                     isLocked={!isAdvancedUnlocked}
                     onLevelViewChange={handleLevelViewChange('advanced')}
                 />

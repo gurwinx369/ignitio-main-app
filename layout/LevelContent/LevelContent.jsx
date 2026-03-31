@@ -37,7 +37,7 @@ function eightyPercentOfVideo(durationInMinutes, levelId, onTimerComplete) {
     };
 }
 
-const LevelContent = ({ level, onBack, onComplete, isCompleted }) => {
+const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github' }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
@@ -118,7 +118,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted }) => {
                     canMarkComplete={canMarkComplete}
                 />
             ) : (
-                <PracticeTab level={level} />
+                <PracticeTab level={level} roadmapType={roadmapType} />
             )}
         </div>
     );

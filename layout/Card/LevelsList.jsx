@@ -5,7 +5,7 @@ const LevelsList = ({
                         levels, color, isExpanded, completedLevels, onLevelClick
                     }) => {
     return (<div
-            className="overflow-hidden transition-all duration-500 ease-in-out"
+            className="overflow-y-scroll transition-all duration-500 ease-in-out"
             style={{
                 maxHeight: isExpanded ? '2000px' : '0px', opacity: isExpanded ? 1 : 0
             }}

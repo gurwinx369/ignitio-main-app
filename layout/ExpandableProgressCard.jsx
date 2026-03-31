@@ -14,7 +14,8 @@ const ExpandableProgressCard = ({
                                     levels = [],
                                     onProgressUpdate,
                                     onLevelViewChange,
-                                    isLocked = false
+                                    isLocked = false,
+                                    roadmapType = 'git-github'
                                 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null);
@@ -24,13 +25,14 @@ const ExpandableProgressCard = ({
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsMounted(true);
-            const saved = localStorage.getItem(`progress_${id}`);
+            const storageKey = `progress_${roadmapType}_${id}`;
+            const saved = localStorage.getItem(storageKey);
             if (saved) {
                 setCompletedLevels(JSON.parse(saved));
             }
         }, 1000)
         return () => clearTimeout(timer)
-    }, [id]);
+    }, [id, roadmapType]);
 
     const totalLevels = levels.length;
     const completedCount = completedLevels.length;
@@ -56,7 +58,7 @@ const ExpandableProgressCard = ({
         if (!completedLevels.includes(levelId)) {
             const newCompleted = [...completedLevels, levelId];
             setCompletedLevels(newCompleted);
-            localStorage.setItem(`progress_${id}`, JSON.stringify(newCompleted));
+            localStorage.setItem(`progress_${roadmapType}_${id}`, JSON.stringify(newCompleted));
         }
     };
 
@@ -70,6 +72,7 @@ const ExpandableProgressCard = ({
             onBack={handleBack}
             onComplete={handleVideoComplete}
             isCompleted={completedLevels.includes(selectedLevel.id)}
+            roadmapType={roadmapType}
         />);
     }
 
