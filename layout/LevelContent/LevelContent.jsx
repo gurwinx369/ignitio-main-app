@@ -4,11 +4,11 @@ import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
 
 // Function to calculate the 80% time duration of any video
-function eightyPercentOfVideo(durationInMinutes, levelId, onTimerComplete) {
+function eightyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
     const durationInMilliseconds = durationInMinutes * 60 * 1000;
     const eightyPercentDuration = durationInMilliseconds * 0.8;
 
-    const storageKey = `video_timer_${levelId}`;
+    const storageKey = `video_timer_${roadmapType}_${levelId}`;
     const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
 
     const remainingTime = Math.max(0, eightyPercentDuration - storedElapsed);
@@ -49,6 +49,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
             cleanupRef.current = eightyPercentOfVideo(
                 level.durationInMinutes,
                 level.id,
+                roadmapType,
                 () => setCanMarkComplete(true)
             );
         }
@@ -58,12 +59,12 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                 cleanupRef.current();
             }
         };
-    }, [level.id, level.durationInMinutes, isCompleted]);
+    }, [level.id, level.durationInMinutes, isCompleted, roadmapType]);
 
     const handleMarkComplete = () => {
         setHasWatched(true);
         onComplete(level.id);
-        localStorage.removeItem(`video_timer_${level.id}`);
+        localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);
     };
 
     return (

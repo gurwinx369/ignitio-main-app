@@ -8,7 +8,7 @@ export const cppCourseDataBeginner = {
             name: "A1 - C++ tutorial for beginners", //name of the course
             title: "A1 - C++ tutorial for beginners", //title of the course
             description: "Install the compiler, run your first 'Hello World', and master C++ syntax from scratch.",//description of the course
-            videoUrl: "", //iframe embedded link
+            videoUrl: "https://www.youtube.com/embed/gLzUhpFGzN4?rel=0", //iframe embedded link
             durationInMinutes: 13, //duration of the video in integer, string is used to handle the empty place
         },
         {
@@ -16,7 +16,7 @@ export const cppCourseDataBeginner = {
             name: "A2 - Variables and basic data types",
             title: "A2 - Variables and basic data types",
             description: "Unlock how C++ stores information: from integers and floats to characters and booleans",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/BYaQmOVYWso?rel=0",
             durationInMinutes: 11,
         },
         {
@@ -24,7 +24,7 @@ export const cppCourseDataBeginner = {
             name: "A3 - Const",
             title: "A3 - Const",
             description: "Protect your data, prevent accidental changes, and write safer, read-only code.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/Tku0lpDLy68?rel=0",
             durationInMinutes: 3,
         },
         {
@@ -32,7 +32,7 @@ export const cppCourseDataBeginner = {
             name: "A4 - Namespaces",
             title: "A4 - Namespaces",
             description: "Organize your code: Prevent naming conflicts in large-scale projects.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/68fgEzjUzGE?rel=0",
             durationInMinutes: 4,
         },
         {
