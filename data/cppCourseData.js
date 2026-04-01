@@ -48,7 +48,7 @@ export const cppCourseDataBeginner = {
             name: "A6 - Arithmetic Operators",
             title: "A6 - Arithmetic Operators",
             description: "Level up your logic: Add, subtract, and calculate with precision.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/VI_yLIUQU88",
             durationInMinutes: 5,
         },
         {
@@ -64,7 +64,7 @@ export const cppCourseDataBeginner = {
             name: "A8 - User Input",
             title: "A8 - User Input",
             description: "Make it interactive: Capture data directly from the keyboard.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/-PZIs7LXsvE",
             durationInMinutes: 5,
         },
         {
@@ -80,7 +80,7 @@ export const cppCourseDataBeginner = {
             name: "A10 - Hypotenuse Calculator",
             title: "A10 - Hypotenuse Calculator",
             description: "Build it: Apply your math skills to create a real-world geometry tool.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/Oqer_wFaGow",
             durationInMinutes: 2,
         },
         {
@@ -88,7 +88,7 @@ export const cppCourseDataBeginner = {
             name: "A11 - If Statements",
             title: "A11 - If Statements",
             description: "Control the flow: Teach your program to make smart decisions.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/XMRPE2N03jI",
             durationInMinutes: 5,
         },
         {
@@ -96,7 +96,7 @@ export const cppCourseDataBeginner = {
             name: "A12 - Switches",
             title: "A12 - Switches",
             description: "Clean logic: Replace messy 'if' chains with efficient switch cases.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/ot0Blv0agjA",
             durationInMinutes: 6,
         },
         {
@@ -104,7 +104,7 @@ export const cppCourseDataBeginner = {
             name: "A13 - Console Calculator",
             title: "A13 - Console Calculator",
             description: "Project time: Build a fully functional, multi-operation calculator.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/fJbrlND_B-w",
             durationInMinutes: 4,
         },
         {
@@ -120,7 +120,7 @@ export const cppCourseDataBeginner = {
             name: "A15 - Logical Operators",
             title: "A15 - Logical Operators",
             description: "Advanced conditions: Use AND, OR, and NOT to handle complex logic.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/JhOuBEQUatM",
             durationInMinutes: 5,
         },
         {
@@ -136,7 +136,7 @@ export const cppCourseDataBeginner = {
             name: "A17 - Useful String Methods",
             title: "A17 - Useful String Methods",
             description: "Text mastery: Manipulate, search, and edit strings like a pro.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/rmWlCOCvGA8",
             durationInMinutes: 6,
         },
         {
@@ -160,7 +160,7 @@ export const cppCourseDataBeginner = {
             name: "A20 - Break & Continue",
             title: "A20 - Break & Continue",
             description: "Loop control: Jump out of loops or skip steps on command.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/SxE5X9IUIRU",
             durationInMinutes: 1,
         },
         {
