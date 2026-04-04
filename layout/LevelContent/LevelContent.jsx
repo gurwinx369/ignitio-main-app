@@ -44,22 +44,30 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const [canMarkComplete, setCanMarkComplete] = useState(isCompleted); // Initialize with isCompleted
     const cleanupRef = useRef(null);
 
+    // TEMPORARILY DISABLED: Video duration algorithm (50% threshold)
+    // This was causing issues with 2x playback speed - button wouldn't appear
+    // even after watching entire video at increased speed
     useEffect(() => {
-        if (level.durationInMinutes && !isCompleted) {
-            cleanupRef.current = eightyPercentOfVideo(
-                level.durationInMinutes,
-                level.id,
-                roadmapType,
-                () => setCanMarkComplete(true)
-            );
+        // Always enable the Continue button without waiting for timer
+        if (!isCompleted) {
+            // Use queueMicrotask to avoid cascading render warning
+            queueMicrotask(() => setCanMarkComplete(true));
         }
+        // if (level.durationInMinutes && !isCompleted) {
+        //     cleanupRef.current = eightyPercentOfVideo(
+        //         level.durationInMinutes,
+        //         level.id,
+        //         roadmapType,
+        //         () => setCanMarkComplete(true)
+        //     );
+        // }
 
-        return () => {
-            if (cleanupRef.current) {
-                cleanupRef.current();
-            }
-        };
-    }, [level.id, level.durationInMinutes, isCompleted, roadmapType]);
+        // return () => {
+        //     if (cleanupRef.current) {
+        //         cleanupRef.current();
+        //     }
+        // };
+    }, [isCompleted]);
 
     const handleMarkComplete = () => {
         setHasWatched(true);
