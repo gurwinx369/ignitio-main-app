@@ -6,7 +6,7 @@ import PracticeTab from './PracticeTab';
 // Function to calculate the 80% time duration of any video
 function eightyPercentOfVideo(durationInMinutes, levelId, onTimerComplete) {
     const durationInMilliseconds = durationInMinutes * 60 * 1000;
-    const eightyPercentDuration = durationInMilliseconds * 0.8;
+    const eightyPercentDuration = durationInMilliseconds * 0.5;
 
     const storageKey = `video_timer_${levelId}`;
     const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
