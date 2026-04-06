@@ -4,6 +4,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import CodeEditor from './CodeEditor';
 import CodeOutput from './CodeOutput';
 import ExecutionMetrics from './ExecutionMetrics';
+import StdinInput from './StdinInput';
 import { executeCode, getRateLimitRemaining, ERROR_TYPES } from '../services/jdoodleApi';
 
 /**
@@ -20,7 +21,20 @@ int main() {
 /**
  * Rate limit duration in seconds
  */
-const RATE_LIMIT_SECONDS = 30;
+const RATE_LIMIT_SECONDS = 10;
+
+/**
+ * Check if code uses cin for input
+ */
+function hasCinInput(code) {
+  // Match common cin patterns: cin >>, cin.getline, cin.get
+  const cinPatterns = [
+    /\bcin\s*>>/,           // cin >>
+    /\bcin\.get\s*\(/,      // cin.get(
+    /\bcin\.getline\s*\(/,  // cin.getline(
+  ];
+  return cinPatterns.some(pattern => pattern.test(code));
+}
 
 /**
  * CompilerPage Component
@@ -29,12 +43,14 @@ const RATE_LIMIT_SECONDS = 30;
  */
 export default function CompilerPage() {
   const [code, setCode] = useState(DEFAULT_CODE);
+  const [stdin, setStdin] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [executionTime, setExecutionTime] = useState(0);
   const [memoryUsage, setMemoryUsage] = useState(0);
   const [status, setStatus] = useState('idle');
+  const [showCinWarning, setShowCinWarning] = useState(false);
 
   // Rate limiting state
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
@@ -88,7 +104,22 @@ export default function CompilerPage() {
       setOutput('');
       setError('');
     }
-  }, [status]);
+    // Check if code has cin and stdin is empty
+    setShowCinWarning(hasCinInput(newCode) && !stdin.trim());
+  }, [status, stdin]);
+
+  /**
+   * Handle stdin changes
+   */
+  const handleStdinChange = useCallback((newStdin) => {
+    setStdin(newStdin);
+    // Hide warning if stdin is now provided
+    if (newStdin.trim()) {
+      setShowCinWarning(false);
+    } else if (hasCinInput(code)) {
+      setShowCinWarning(true);
+    }
+  }, [code]);
 
   /**
    * Get user-friendly error message based on error type
@@ -129,13 +160,20 @@ export default function CompilerPage() {
       return;
     }
 
+    // Check if code has cin but no input provided
+    if (hasCinInput(code) && !stdin.trim()) {
+      setError('⚠️ Your code requires input but none was provided.\n\nEnter values in the Input panel below (one per line).');
+      setStatus('error');
+      return;
+    }
+
     setIsLoading(true);
     setStatus('running');
     setError('');
     setOutput('');
 
     try {
-      const result = await executeCode(code, 'cpp');
+      const result = await executeCode(code, 'cpp', stdin);
 
       if (result.success) {
         setOutput(result.output);
@@ -165,18 +203,20 @@ export default function CompilerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [code, isRateLimited, rateLimitCountdown, getErrorMessage, startRateLimitCountdown]);
+  }, [code, stdin, isRateLimited, rateLimitCountdown, getErrorMessage, startRateLimitCountdown]);
 
   /**
    * Reset the editor to default code
    */
   const handleReset = useCallback(() => {
     setCode(DEFAULT_CODE);
+    setStdin('');
     setOutput('');
     setError('');
     setExecutionTime(0);
     setMemoryUsage(0);
     setStatus('idle');
+    setShowCinWarning(false);
   }, []);
 
   // Determine if run button should be disabled
@@ -348,6 +388,43 @@ export default function CompilerPage() {
               <CodeEditor
                 value={code}
                 onChange={handleCodeChange}
+              />
+            </div>
+
+            {/* Cin Warning Banner */}
+            {showCinWarning && (
+              <div className="flex-shrink-0 p-2 sm:p-3 rounded-lg bg-[#fef3c7] border border-[#f59e0b] flex items-start gap-2 shadow-md">
+                <svg
+                  className="h-4 w-4 sm:h-5 sm:w-5 text-[#f59e0b] flex-shrink-0 mt-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm text-[#92400e] font-medium">
+                    Your code uses <code className="px-1 bg-[#fde68a] rounded">cin</code> for input but no input provided.
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-[#a16207] mt-0.5">
+                    Enter values in the Input panel below (one per line).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Stdin Input - Collapsible */}
+            <div className="flex-shrink-0 shadow-md">
+              <StdinInput
+                value={stdin}
+                onChange={handleStdinChange}
+                disabled={isLoading}
+                hasCinWarning={showCinWarning}
               />
             </div>
 
