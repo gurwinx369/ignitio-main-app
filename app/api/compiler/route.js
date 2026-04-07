@@ -17,7 +17,7 @@ const JDOODLE_CONFIG = {
 // Rate limiting store (in-memory, resets on server restart)
 // For production, use Redis or a database
 const rateLimitStore = new Map();
-const RATE_LIMIT_MS = 30000; // 30 seconds
+const RATE_LIMIT_MS = 10000; // 10 seconds
 
 /**
  * Get client IP for rate limiting

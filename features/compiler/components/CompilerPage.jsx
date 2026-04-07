@@ -20,7 +20,7 @@ int main() {
 /**
  * Rate limit duration in seconds
  */
-const RATE_LIMIT_SECONDS = 30;
+const RATE_LIMIT_SECONDS = 10;
 
 /**
  * CompilerPage Component
