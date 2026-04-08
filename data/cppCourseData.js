@@ -40,7 +40,7 @@ export const cppCourseDataBeginner = {
             name: "A5 - Typedef & Type Aliases",
             title: "A5 - Typedef & Type Aliases",
             description: "Simplify syntax: Create readable nicknames for complex data types.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/m7u4So0LLF8",
             durationInMinutes: 5,
         },
         {
@@ -56,7 +56,7 @@ export const cppCourseDataBeginner = {
             name: "A7 - Type Conversion",
             title: "A7 - Type Conversion",
             description: "Bridge the gap: Learn to safely switch data between different types.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/x1OzUJdECVs",
             durationInMinutes: 3,
         },
         {
@@ -72,7 +72,7 @@ export const cppCourseDataBeginner = {
             name: "A9 - Useful Math Functions",
             title: "A9 - Useful Math Functions",
             description: "Power up: Solve complex equations using built-in C++ math tools.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/mv4rn2A_F2s",
             durationInMinutes: 3,
         },
         {
@@ -128,7 +128,7 @@ export const cppCourseDataBeginner = {
             name: "A16 - Temp Conversion Program",
             title: "A16 - Temp Conversion Program",
             description: "Practical C++: Create a tool to swap between Celsius and Fahrenheit.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/LvQJ5JqbK30",
             durationInMinutes: 5,
         },
         {
@@ -168,7 +168,7 @@ export const cppCourseDataBeginner = {
             name: "A21 - Nested Loops",
             title: "A21 - Nested Loops",
             description: "Deep logic: Run loops inside loops for grids and complex data.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/7PC99tZreds",
             durationInMinutes: 4,
         },
         {
@@ -184,7 +184,7 @@ export const cppCourseDataBeginner = {
             name: "A23 - Random Event Gen",
             title: "A23 - Random Event Gen",
             description: "Game logic: Trigger different outcomes based on random chance.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/j1BZDeHfJ34",
             durationInMinutes: 3,
         },
         {
@@ -200,7 +200,7 @@ export const cppCourseDataBeginner = {
             name: "A25 - User Defined Functions",
             title: "A25 - User Defined Functions",
             description: "Modular code: Build your own reusable blocks of logic.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/rQx9Dqj_W6Q",
             durationInMinutes: 7,
         },
         {
@@ -208,7 +208,7 @@ export const cppCourseDataBeginner = {
             name: "A26 - Return Keyword",
             title: "A26 - Return Keyword",
             description: "Data flow: Get information back out of your custom functions.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/-IVff_rR7RU",
             durationInMinutes: 6,
         },
         {
@@ -216,7 +216,7 @@ export const cppCourseDataBeginner = {
             name: "A27 - Overloaded Functions",
             title: "A27 - Overloaded Functions",
             description: "Versatile code: Use the same function name for different data.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/QjijsUWe7Vo",
             durationInMinutes: 3,
         },
         {

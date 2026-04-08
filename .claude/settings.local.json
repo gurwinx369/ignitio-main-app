@@ -14,5 +14,10 @@
       "Bash(taskkill:*)",
       "Bash(powershell -Command \"Stop-Process -Id 19232 -Force\")"
     ]
+  },
+  "model": "glm-5:cloud",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
   }
 }
