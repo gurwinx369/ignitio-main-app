@@ -235,3 +235,44 @@ body {
         @apply bg-background text-foreground;
     }
 }
+
+/* Progress Squares Horizontal Scroll */
+.progress-squares-container {
+    display: flex;
+    gap: 0.375rem;
+    overflow-x: auto;
+    max-width: 350px;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+}
+
+@media (min-width: 640px) {
+    .progress-squares-container {
+        gap: 0.5rem;
+        max-width: 450px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .progress-squares-container {
+        max-width: 600px;
+    }
+}
+
+.progress-squares-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.progress-squares-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.progress-squares-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+}
+
+.progress-squares-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
