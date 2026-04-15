@@ -176,7 +176,7 @@ export const cppCourseDataBeginner = {
             name: "A22 - Random Number Gen",
             title: "A22 - Random Number Gen",
             description: "Add some luck: Generate unpredictable values for games.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/j1BZDeHfJ34",
             durationInMinutes: 3,
         },
         {
@@ -192,7 +192,7 @@ export const cppCourseDataBeginner = {
             name: "A24 - Number Guessing Game",
             title: "A24 - Number Guessing Game",
             description: "Build a game: Combine loops and logic into a playable challenge.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/inTbtjpvh-Y",
             durationInMinutes: 4,
         },
         {
@@ -264,7 +264,7 @@ export const cppCourseDataIntermediate = {
             name: "B2 - Sizeof() Operator",
             title: "B2 - Sizeof() Operator",
             description: "Memory check: Measure exactly how much space your data takes.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/vuH2RJ3p5vQ",
             durationInMinutes: 5,
         },
         {
@@ -296,7 +296,7 @@ export const cppCourseDataIntermediate = {
             name: "B6 - Search an Array",
             title: "B6 - Search an Array",
             description: "Find it fast: Implement logic to locate specific data points.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/H-KSlzllNYo",
             durationInMinutes: 7,
         },
         {
@@ -336,7 +336,7 @@ export const cppCourseDataIntermediate = {
             name: "B11 - Quiz Game",
             title: "B11 - Quiz Game",
             description: "Challenge build: Create an interactive, array-based quiz engine.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/1hNks46Qbdg",
             durationInMinutes: 11,
         },
         {
@@ -360,7 +360,7 @@ export const cppCourseDataIntermediate = {
             name: "B14 - Const Parameters",
             title: "B14 - Const Parameters",
             description: "Secure functions: Protect your inputs from being modified.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/Tku0lpDLy68",
             durationInMinutes: 3,
         },
         {
@@ -376,7 +376,7 @@ export const cppCourseDataIntermediate = {
             name: "B16 - Pointers",
             title: "B16 - Pointers",
             description: "Ultimate power: Manage memory directly for high performance.",
-            videoUrl: "",
+            videoUrl: "https://www.youtube.com/embed/P0fcd0nu_pA",
             durationInMinutes: 5,
         },
         {
