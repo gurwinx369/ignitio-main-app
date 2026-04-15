@@ -1,7 +1,7 @@
 export const cppCourseDataBeginner = {
     name: "Beginner — Boot up your C++ brain from zero",
     color: "#06b6d4", // Vibrant cyan - welcoming, energetic, invites new learners
-    image: "/github-progress-card.svg", //image to display on the carousel card
+    image: "/cpp-1.svg", //image to display on the carousel card
     levels: [
         {
             id: "A1", //id of the course followed by other levels ids ie A2, A3 etc
@@ -249,7 +249,7 @@ export const cppCourseDataBeginner = {
 export const cppCourseDataIntermediate = {
     name:"Intermediate - Conquer arrays, pointers & memory",
     color:"#f97316", // Vibrant orange - energetic, shows progression and challenge
-    image:"",
+    image:"/cpp-2.svg",
     levels: [
         {
             id: "B1",
@@ -400,7 +400,7 @@ export const cppCourseDataIntermediate = {
 export const cppCourseDataAdvanced = {
     name: "Advanced — Master OOP, recursion & dynamic power",
     color: "#4f46e5", // Deep indigo - power, mastery, connects to C++ blue branding
-    image: "/github-progress-card.svg",
+    image: "/cpp-3.svg",
     levels: [
         {
             id: "C1",
