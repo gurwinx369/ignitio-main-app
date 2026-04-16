@@ -1,24 +1,20 @@
-import { NextResponse } from 'next/server'
+import { postHogMiddleware } from '@posthog/next'
 
-export function proxy(request) {
-    const url = request.nextUrl.clone()
-    const hostname = url.pathname.startsWith('/ph/static/')
-        ? 'us-assets.i.posthog.com'
-        : 'us.i.posthog.com'
+const posthogProxy = postHogMiddleware({
+  projectId: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+  host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  proxy: true
+})
 
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('host', hostname)
-
-    url.protocol = 'https'
-    url.hostname = hostname
-    url.port = '443'
-    url.pathname = url.pathname.replace(/^\/ph/, '')
-
-    return NextResponse.rewrite(url, {
-        headers: requestHeaders,
-    })
+export async function proxy(request) {
+  return posthogProxy(request)
 }
 
 export const config = {
-    matcher: '/ph/:path*',
+  matcher: [
+    '/_next/static/:path*',
+    '/_next/image/:path*',
+    '/favicon.ico',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }
