@@ -8,7 +8,9 @@ export const courseDataBeginner = {
             name: "A1 - Setup Sprint",
             title: "A1 — Setup Sprint",
             description: "Install & verify Git, create a GitHub account and configure user identity.",
-            videoUrl: "https://www.youtube.com/embed/c7UOp6JpR5M?rel=0",
+            videoId: "q8EevlEpQ2A",
+            startSec: 520,
+            endSec: 1660,
             durationInMinutes: 19,
         },
         {
@@ -16,7 +18,9 @@ export const courseDataBeginner = {
             name: "A2 - First Repo Forge",
             title: "A2 — First Repo Forge",
             description: "Initialize a local repo, inspect the .git folder, add files and make your first commit.",
-            videoUrl: "https://www.youtube.com/embed/Qlp-OCPDfks?rel=0",
+            videoId: "q8EevlEpQ2A",
+            startSec: 1660,
+            endSec: 3610,
             durationInMinutes: 27,
         },
         {

@@ -27,6 +27,17 @@ export default function RootLayout({children}) {
         return () => clearTimeout(timer);
     }, []);
 
+    // Preload YouTube IFrame API on app mount to eliminate cold-start latency
+    useEffect(() => {
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            tag.async = true;
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+    }, []);
+
     if (isLoading) {
         return (<html lang="en">
             <head>

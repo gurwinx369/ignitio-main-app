@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
 
-// Function to calculate the 80% time duration of any video
-function eightyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
+// Function to calculate the 50% time duration for legacy full-video levels
+function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
     const durationInMilliseconds = durationInMinutes * 60 * 1000;
-    const eightyPercentDuration = durationInMilliseconds * 0.5;
+    const fiftyPercentDuration = durationInMilliseconds * 0.5;
 
     const storageKey = `video_timer_${roadmapType}_${levelId}`;
     const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
 
-    const remainingTime = Math.max(0, eightyPercentDuration - storedElapsed);
-
-   // console.log(`Total duration: ${durationInMilliseconds}ms, 80%: ${eightyPercentDuration}ms, Elapsed: ${storedElapsed}ms, Remaining: ${remainingTime}ms`);
+    const remainingTime = Math.max(0, fiftyPercentDuration - storedElapsed);
 
     if (remainingTime === 0) {
         onTimerComplete();
@@ -23,7 +21,6 @@ function eightyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCo
     const startTime = Date.now();
 
     const timer = setTimeout(() => {
-       // console.log("80% of video completed!");
         localStorage.removeItem(storageKey);
         onTimerComplete();
     }, remainingTime);
@@ -33,7 +30,6 @@ function eightyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCo
         const additionalElapsed = Date.now() - startTime;
         const totalElapsed = storedElapsed + additionalElapsed;
         localStorage.setItem(storageKey, totalElapsed.toString());
-       // console.log(`Saved progress: ${totalElapsed}ms`);
     };
 }
 
@@ -41,12 +37,37 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
-    const [canMarkComplete, setCanMarkComplete] = useState(isCompleted); // Initialize with isCompleted
     const cleanupRef = useRef(null);
 
+    // Check if level is segment-based
+    const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
+
+    // Lazy initialization: check if threshold already met from previous session
+    const [canMarkComplete, setCanMarkComplete] = useState(() => {
+        if (isCompleted) {
+            return true;
+        }
+        if (isSegmentBased) {
+            const segmentDuration = level.endSec - level.startSec;
+            const thresholdSeconds = segmentDuration * 0.5;
+            const storageKey = `segment_watch_${roadmapType}_${level.id}`;
+            const storedWatched = parseFloat(localStorage.getItem(storageKey) || '0');
+            return storedWatched >= thresholdSeconds;
+        }
+        // For legacy levels, check if timer already completed
+        if (level.durationInMinutes) {
+            const storageKey = `video_timer_${roadmapType}_${level.id}`;
+            const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
+            const fiftyPercentDuration = level.durationInMinutes * 60 * 1000 * 0.5;
+            return storedElapsed >= fiftyPercentDuration;
+        }
+        return false;
+    });
+
+    // Legacy levels: start timer only if not already completed
     useEffect(() => {
-        if (level.durationInMinutes && !isCompleted) {
-            cleanupRef.current = eightyPercentOfVideo(
+        if (!isSegmentBased && level.durationInMinutes && !isCompleted && !canMarkComplete) {
+            cleanupRef.current = fiftyPercentOfVideo(
                 level.durationInMinutes,
                 level.id,
                 roadmapType,
@@ -59,13 +80,25 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                 cleanupRef.current();
             }
         };
-    }, [level.id, level.durationInMinutes, isCompleted, roadmapType]);
+    }, [isSegmentBased, level.durationInMinutes, level.id, isCompleted, roadmapType, canMarkComplete]);
 
-    const handleMarkComplete = () => {
+    // Called when 50% watch threshold is met
+    const handleThresholdMet = useCallback(() => {
+        setCanMarkComplete(true);
+    }, []);
+
+    // Called when user clicks the Complete button
+    const handleMarkComplete = useCallback(() => {
         setHasWatched(true);
         onComplete(level.id);
-        localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);
-    };
+        // Clean up watch time storage for segment levels
+        if (isSegmentBased) {
+            localStorage.removeItem(`segment_watch_${roadmapType}_${level.id}`);
+        } else {
+            // Clean up timer storage for legacy levels
+            localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);
+        }
+    }, [level.id, roadmapType, isSegmentBased, onComplete]);
 
     return (
         <div className="w-full min-h-screen bg-linear-to-br from-gray-50 via-amber-50 to-gray-100">
@@ -108,19 +141,21 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                 </div>
             </div>
 
-            {/* Content */}
-            {activeTab === 'video' ? (
+            {/* Content - VideoTab always mounted to keep player warm, PracticeTab conditionally rendered */}
+            <div className={activeTab === 'video' ? 'block' : 'hidden'}>
                 <VideoTab
                     level={level}
                     hasWatched={hasWatched}
+                    onThresholdMet={handleThresholdMet}
                     onMarkComplete={handleMarkComplete}
                     feedback={feedback}
                     setFeedback={setFeedback}
                     canMarkComplete={canMarkComplete}
+                    roadmapType={roadmapType}
+                    isVisible={activeTab === 'video'}
                 />
-            ) : (
-                <PracticeTab level={level} roadmapType={roadmapType} />
-            )}
+            </div>
+            {activeTab === 'practice' && <PracticeTab level={level} roadmapType={roadmapType} />}
         </div>
     );
 };
