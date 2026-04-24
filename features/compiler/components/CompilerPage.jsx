@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import CodeEditor from './CodeEditor';
 import CodeOutput from './CodeOutput';
 import ExecutionMetrics from './ExecutionMetrics';
-import { executeCode, getRateLimitRemaining, ERROR_TYPES } from '../services/jdoodleApi';
+import { executeCode, getRateLimitRemaining, ERROR_TYPES } from '@/features/compiler';
 
 /**
  * Default C++ 17 template code
@@ -186,10 +186,10 @@ export default function CompilerPage() {
       // FIX 1: was `h-screen overflow-hidden` — that hard-clips everything on mobile.
       // Now: mobile scrolls naturally (min-h-screen, no overflow clip),
       // desktop locks to viewport and lets children scroll (lg:h-screen lg:overflow-hidden).
-      <div className="min-h-screen lg:h-screen bg-[#fefcf9] flex flex-col lg:overflow-hidden">
+      <div className="min-h-screen lg:h-screen bg-[#fefcf9] flex flex-col md:overflow-y-scroll lg:overflow-hidden">
 
         {/* Main Container */}
-        <div className="flex-1 flex flex-col min-h-0 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+        <div className="flex-1 flex flex-col min-h-0 w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
 
           {/* Header */}
           <div className="shrink-0 mb-3 sm:mb-4">
@@ -203,9 +203,9 @@ export default function CompilerPage() {
 
           {/* Rate Limit Banner */}
           {isRateLimited && (
-              <div className="flex-shrink-0 mb-3 p-2 sm:p-3 rounded-lg bg-[#fef3c7] border border-[#f59e0b] flex items-center gap-2">
+              <div className="shrink-0 mb-3 p-2 sm:p-3 rounded-lg bg-[#fef3c7] border border-[#f59e0b] flex items-center gap-2">
                 <svg
-                    className="h-4 w-4 sm:h-5 sm:w-5 text-[#f59e0b] flex-shrink-0"
+                    className="h-4 w-4 sm:h-5 sm:w-5 text-[#f59e0b] shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -224,7 +224,7 @@ export default function CompilerPage() {
           )}
 
           {/* Toolbar */}
-          <div className="flex-shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <button
                 onClick={handleExecute}
                 disabled={isRunDisabled}
@@ -350,6 +350,11 @@ export default function CompilerPage() {
             {/* Editor and Output Column */}
             <div className="min-h-0 flex flex-col gap-3 sm:gap-4">
 
+              {/* Code Editor
+                FIX 2: Added min-h-[300px] so on mobile (where flex-1 has no bounded
+                parent height) the editor doesn't collapse to 0.
+                lg:min-h-0 resets that floor on desktop so flex-1 takes over cleanly.
+                overflow-hidden is correct — CodeEditor manages its own internal scroll. */}
               <div className="flex-1 min-h-75 lg:min-h-0 rounded-lg overflow-hidden shadow-md">
                 <CodeEditor
                     value={code}
@@ -357,6 +362,11 @@ export default function CompilerPage() {
                 />
               </div>
 
+              {/* Output
+                FIX 3: Added overflow-hidden to the wrapper so the fixed heights
+                (h-[30vh] / h-[25vh]) form a hard boundary.
+                CodeOutput already has overflow-auto on its inner content div,
+                so long output scrolls inside that boundary correctly. */}
               <div className="shrink-0 h-[30vh] sm:h-[25vh] lg:flex-1 lg:min-h-0 overflow-hidden shadow-md">
                 <CodeOutput
                     output={output}
@@ -366,7 +376,15 @@ export default function CompilerPage() {
               </div>
             </div>
 
+            {/* Execution Metrics Sidebar
+              FIX 4: Added overflow-y-auto to the column wrapper on desktop so that
+              if the metrics content ever grows (many metrics, long labels), it scrolls
+              rather than overflowing into sibling elements. */}
             <div className="shrink-0 lg:min-h-0 lg:overflow-y-auto">
+
+              {/* Mobile: horizontal metrics layout
+                FIX 5: Added overflow-auto so horizontal metric rows scroll on very
+                small screens rather than being clipped. */}
               <div className="lg:hidden h-full overflow-auto shadow-md">
                 <ExecutionMetrics
                     executionTime={executionTime}
@@ -375,6 +393,7 @@ export default function CompilerPage() {
                     layout="horizontal"
                 />
               </div>
+
               {/* Desktop: vertical metrics layout
                 overflow-auto here handles the case where ExecutionMetrics renders
                 more content than the sidebar column height allows. */}

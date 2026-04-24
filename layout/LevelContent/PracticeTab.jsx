@@ -225,8 +225,11 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
 
     // Reset loading when level changes (not on initial mount)
     useEffect(() => {
-        setIsLoading(true);
-        setError(null);
+        const timer = setTimeout(() => {
+            setIsLoading(true);
+            setError(null);
+        }, 50)
+        return () => { clearTimeout(timer); }
     }, [level.id]);
 
     // Determine if this is C++ roadmap
@@ -341,7 +344,7 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                         isCompiler={true}
                     />
 
-                    <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-hidden">
+                    <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
                         <CompilerPage key={compilerKey} />
                     </div>
 
