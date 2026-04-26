@@ -38,31 +38,32 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
     const cleanupRef = useRef(null);
+    const prevLevelIdRef = useRef(null);
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
 
-    // Lazy initialization: check if threshold already met from previous session
-    const [canMarkComplete, setCanMarkComplete] = useState(() => {
-        if (isCompleted) {
-            return true;
-        }
-        if (isSegmentBased) {
-            const segmentDuration = level.endSec - level.startSec;
-            const thresholdSeconds = segmentDuration * 0.5;
-            const storageKey = `segment_watch_${roadmapType}_${level.id}`;
-            const storedWatched = parseFloat(localStorage.getItem(storageKey) || '0');
-            return storedWatched >= thresholdSeconds;
-        }
-        // For legacy levels, check if timer already completed
-        if (level.durationInMinutes) {
-            const storageKey = `video_timer_${roadmapType}_${level.id}`;
-            const storedElapsed = parseInt(localStorage.getItem(storageKey) || '0', 10);
-            const fiftyPercentDuration = level.durationInMinutes * 60 * 1000 * 0.5;
-            return storedElapsed >= fiftyPercentDuration;
-        }
-        return false;
-    });
+    // Compute canMarkComplete from localStorage - recomputes when level changes
+    const storedWatchTime = isSegmentBased
+        ? parseFloat(localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || '0')
+        : 0;
+    const segmentDuration = isSegmentBased ? (level.endSec - level.startSec) : 0;
+    const thresholdSeconds = segmentDuration * 0.5;
+    const storedWatchTimeForLegacy = level.durationInMinutes
+        ? parseInt(localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || '0', 10)
+        : 0;
+    const fiftyPercentDurationLegacy = level.durationInMinutes
+        ? level.durationInMinutes * 60 * 1000 * 0.5
+        : 0;
+
+    // Derived canMarkComplete - recomputes on every render based on localStorage
+    const canMarkComplete = isCompleted
+        ? true
+        : isSegmentBased
+            ? storedWatchTime >= thresholdSeconds
+            : level.durationInMinutes
+                ? storedWatchTimeForLegacy >= fiftyPercentDurationLegacy
+                : false;
 
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
@@ -94,6 +95,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
         // Clean up watch time storage for segment levels
         if (isSegmentBased) {
             localStorage.removeItem(`segment_watch_${roadmapType}_${level.id}`);
+            localStorage.removeItem(`segment_intervals_${roadmapType}_${level.id}`);
         } else {
             // Clean up timer storage for legacy levels
             localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);

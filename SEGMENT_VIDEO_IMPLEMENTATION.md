@@ -21,6 +21,14 @@ This document describes the segment-based video level implementation for Ignitio
 - **Persistent progress** - Watch time saved in localStorage across sessions
 - **Backward compatible** - Legacy full-video levels still work
 
+### Latest Improvements (2026-04-26)
+- **Unique watched time tracking** - Progress only increases from actual forward playback, not scrubbing
+- **Interval-based storage** - Tracks watched ranges like `[{start: 102, end: 118}]` to prevent double-counting
+- **Skip protection** - Large jumps in playhead position (>1.5s) are ignored as seeks
+- **Rewatch protection** - Rewinding and rewatching the same content doesn't inflate progress
+- **Preloaded YouTube API** - API loads at app startup for faster first-open latency
+- **Warm player caching** - Player stays mounted when switching tabs for instant switching
+
 ---
 
 ## Files Modified
@@ -73,15 +81,43 @@ This document describes the segment-based video level implementation for Ignitio
 
 ---
 
-### 2. `layout/LevelContent/YouTubeSegmentPlayer.jsx` (NEW FILE)
+### 2. `app/layout.js`
 
-**Purpose:** Reusable YouTube player component that enforces segment boundaries
+**Purpose:** Root layout component - loads YouTube IFrame API on app mount
+
+**Changes:**
+- Added `useEffect` to preload YouTube IFrame API when app starts
+
+**Code:**
+```javascript
+// Preload YouTube IFrame API on app mount to eliminate cold-start latency
+useEffect(() => {
+    if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+}, []);
+```
+
+**Impact on Codebase:**
+- First-time Video tab opens faster (API already loaded)
+- No waiting for API script to fetch on-demand
+
+---
+
+### 3. `layout/LevelContent/YouTubeSegmentPlayer.jsx`
+
+**Purpose:** Reusable YouTube player component that enforces segment boundaries and tracks UNIQUE watched time
 
 **Key Features:**
-- Loads YouTube IFrame API dynamically
+- Loads YouTube IFrame API dynamically (or uses preloaded API)
 - Plays only within `[startSec, endSec]` range
-- Tracks watch time for 50% gating
+- Tracks UNIQUE watch time via interval-based tracking
 - Enforces hard boundaries via 3-layer protection
+- Detects skip vs. normal playback via delta analysis
 
 **Boundary Enforcement Layers:**
 
@@ -89,21 +125,23 @@ This document describes the segment-based video level implementation for Ignitio
    ```javascript
    if (currentTime < startSec) {
        playerRef.current.seekTo(startSec, true);
+       lastCurrentTimeRef.current = startSec;
        return;
    }
    if (currentTime >= endSec) {
        playerRef.current.pauseVideo();
+       stopMonitoring();
        return;
    }
    ```
 
 2. **State Change Handler** - On play/pause events:
    ```javascript
-   if (event.data === YT.PlayerState.PAUSED) {
-       // Still check boundaries when paused (user scrubbing)
-       if (currentTime < startSec) {
-           playerRef.current.seekTo(startSec, true);
-       }
+   if (event.data === YT.PlayerState.PLAYING) {
+       lastCurrentTimeRef.current = currentTime;
+       startMonitoring();
+   } else if (event.data === YT.PlayerState.PAUSED) {
+       stopMonitoring();
    }
    ```
 
@@ -117,26 +155,45 @@ This document describes the segment-based video level implementation for Ignitio
    }
    ```
 
+**Unique Watched Time Tracking:**
+```javascript
+// Calculate delta from last known position
+if (lastCurrentTimeRef.current !== null) {
+    const delta = currentTime - lastCurrentTimeRef.current;
+
+    // Only count when:
+    // 1. Player is actually playing (isPlayingRef.current)
+    // 2. Time moves forward (delta > 0)
+    // 3. Delta is small (<= 1.5s = normal playback, not a skip)
+    if (isPlayingRef.current && delta > 0 && delta <= 1.5) {
+        // Report both current position and delta
+        onWatchTimeUpdate?.({ currentTime, delta });
+    }
+}
+lastCurrentTimeRef.current = currentTime;
+```
+
 **Props:**
 | Prop | Type | Description |
 |------|------|-------------|
 | `videoId` | string | YouTube video ID |
 | `startSec` | number | Segment start time in seconds |
 | `endSec` | number | Segment end time in seconds |
-| `onWatchTimeUpdate` | function | Callback with accumulated watch time |
+| `onWatchTimeUpdate` | function | Callback with `{ currentTime, delta }` |
 | `onReady` | function | Callback when player is ready |
 | `autoplay` | boolean | Whether to autoplay (default: true) |
+| `isVisible` | boolean | Whether tab is visible (pauses when hidden) |
 
 **Impact on Codebase:**
 - Replaced `YouTubeChunkPlayer.jsx` (deleted)
 - Single source of truth for segment playback
-- Any component using this player gets automatic boundary enforcement
+- Any component using this player gets automatic boundary enforcement AND skip protection
 
 ---
 
-### 3. `layout/LevelContent/VideoTab.jsx`
+### 4. `layout/LevelContent/VideoTab.jsx`
 
-**Purpose:** Video tab UI and watch time tracking logic
+**Purpose:** Video tab UI and watch time tracking logic with interval-based storage
 
 **Changes:**
 
@@ -162,69 +219,147 @@ This document describes the segment-based video level implementation for Ignitio
    </div>
    ```
 
-4. **Monotonic watch time accumulation:**
+4. **Interval-based unique watched time tracking:**
    ```javascript
-   const handleWatchTimeUpdate = (seconds) => {
-       // Only accumulate - never decrease due to scrubbing
-       setWatchedSeconds(prev => Math.max(prev, seconds));
+   // Helper: merge overlapping/adjacent intervals
+   const mergeIntervals = (intervals) => {
+       if (intervals.length === 0) return [];
+       const sorted = [...intervals].sort((a, b) => a.start - b.start);
+       const merged = [sorted[0]];
+       for (let i = 1; i < sorted.length; i++) {
+           const last = merged[merged.length - 1];
+           const curr = sorted[i];
+           // Merge if overlapping or adjacent (within 0.5s)
+           if (curr.start <= last.end + 0.5) {
+               last.end = Math.max(last.end, curr.end);
+           } else {
+               merged.push(curr);
+           }
+       }
+       return merged;
    };
+
+   // Track intervals like [{start: 102, end: 118}, {start: 130, end: 145}]
+   const [watchedIntervals, setWatchedIntervals] = useState(() => {
+       const stored = localStorage.getItem(watchIntervalsKey);
+       return stored ? mergeIntervals(JSON.parse(stored)) : [];
+   });
+
+   // Derived: total seconds from merged intervals
+   const watchedSeconds = watchedIntervals.reduce(
+       (total, interval) => total + (interval.end - interval.start), 0
+   );
    ```
 
-5. **Threshold detection with localStorage persistence:**
+5. **Handle watch time update with interval creation:**
+   ```javascript
+   const handleWatchTimeUpdate = useCallback((data) => {
+       const { currentTime, delta } = typeof data === 'object'
+           ? data
+           : { currentTime: null, delta: data };
+
+       if (currentTime === null) {
+           // Fallback: append delta to end of last interval
+           const currentEnd = prev.length > 0 ? prev[prev.length - 1].end : level.startSec;
+           const newInterval = { start: currentEnd, end: currentEnd + delta };
+           return mergeIntervals([...prev, newInterval]);
+       }
+
+       // Create interval from (currentTime - delta) to currentTime
+       const intervalStart = Math.max(level.startSec, currentTime - delta);
+       const intervalEnd = Math.min(level.endSec, currentTime);
+
+       if (intervalEnd > intervalStart) {
+           setWatchedIntervals(prev => mergeIntervals([...prev, { start: intervalStart, end: intervalEnd }]));
+       }
+   }, [isSegmentBased, level.startSec, level.endSec, mergeIntervals]);
+   ```
+
+6. **Threshold detection with localStorage persistence:**
    ```javascript
    useEffect(() => {
-       if (isSegmentBased && watchedSeconds > 0) {
+       if (isSegmentBased && watchedIntervals.length > 0) {
+           localStorage.setItem(watchIntervalsKey, JSON.stringify(watchedIntervals));
            localStorage.setItem(watchTimeKey, watchedSeconds.toString());
-           if (watchedSeconds >= watchThreshold && !thresholdReached && !hasWatched) {
-               setThresholdReached(true);
+
+           if (watchedSeconds >= watchThreshold && !thresholdCalledRef.current && !hasWatched) {
+               thresholdCalledRef.current = true;
                onThresholdMet?.();
            }
        }
-   }, [watchedSeconds, watchThreshold, thresholdReached, hasWatched, onThresholdMet]);
+   }, [watchedIntervals, watchedSeconds, watchThreshold, isSegmentBased, watchIntervalsKey, watchTimeKey, hasWatched, onThresholdMet]);
    ```
 
 **Impact on Codebase:**
 - Complete button only appears after 50% watch threshold is met
-- Progress is visible to user with percentage and remaining seconds
+- Progress bar reflects UNIQUE watched time (cannot be exploited by scrubbing)
 - Watch time persists across page refreshes/sessions
 - Separated `onThresholdMet` (automatic) from `onMarkComplete` (user action)
 
 ---
 
-### 4. `layout/LevelContent/LevelContent.jsx`
+### 5. `layout/LevelContent/LevelContent.jsx`
 
 **Purpose:** Main level content wrapper with tab switching
 
 **Changes:**
 
-1. **Segment-based threshold check on mount:**
+1. **Warm player caching - keep VideoTab mounted when switching tabs:**
    ```javascript
-   useEffect(() => {
-       if (isSegmentBased) {
-           const segmentDuration = level.endSec - level.startSec;
-           const thresholdSeconds = segmentDuration * 0.5;
-           const storedWatched = parseFloat(localStorage.getItem(storageKey) || '0');
-           if (storedWatched >= thresholdSeconds) {
-               setCanMarkComplete(true);
-           }
-       }
-   }, [level.id, level.startSec, level.endSec, isCompleted, roadmapType, isSegmentBased]);
+   {/* VideoTab always mounted to keep player warm, PracticeTab conditionally rendered */}
+   <div className={activeTab === 'video' ? 'block' : 'hidden'}>
+       <VideoTab
+           level={level}
+           hasWatched={hasWatched}
+           onThresholdMet={handleThresholdMet}
+           onMarkComplete={handleMarkComplete}
+           feedback={feedback}
+           setFeedback={setFeedback}
+           canMarkComplete={canMarkComplete}
+           roadmapType={roadmapType}
+           isVisible={activeTab === 'video'}
+       />
+   </div>
+   {activeTab === 'practice' && <PracticeTab level={level} roadmapType={roadmapType} />}
    ```
 
-2. **Separated threshold vs completion handlers:**
+2. **Derived canMarkComplete from localStorage (no setState in useEffect):**
    ```javascript
-   const handleThresholdMet = () => {
-       setCanMarkComplete(true);  // Enable button
-   };
+   const storedWatchTime = isSegmentBased
+       ? parseFloat(localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || '0')
+       : 0;
+   const segmentDuration = isSegmentBased ? (level.endSec - level.startSec) : 0;
+   const thresholdSeconds = segmentDuration * 0.5;
 
-   const handleMarkComplete = () => {
+   const canMarkComplete = isCompleted
+       ? true
+       : isSegmentBased
+           ? storedWatchTime >= thresholdSeconds
+           : level.durationInMinutes
+               ? storedWatchTimeForLegacy >= fiftyPercentDurationLegacy
+               : false;
+   ```
+
+3. **Separated threshold vs completion handlers:**
+   ```javascript
+   const handleThresholdMet = useCallback(() => {
+       setCanMarkComplete(true);  // Enable button
+   }, []);
+
+   const handleMarkComplete = useCallback(() => {
        setHasWatched(true);
        onComplete(level.id);  // Actual completion
-       localStorage.removeItem(`segment_watch_${roadmapType}_${level.id}`);
-   };
+       // Clean up both watch time and intervals storage
+       if (isSegmentBased) {
+           localStorage.removeItem(`segment_watch_${roadmapType}_${level.id}`);
+           localStorage.removeItem(`segment_intervals_${roadmapType}_${level.id}`);
+       } else {
+           localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);
+       }
+   }, [level.id, roadmapType, isSegmentBased, onComplete]);
    ```
 
-3. **Backward compatibility for legacy levels:**
+4. **Backward compatibility for legacy levels:**
    ```javascript
    if (isSegmentBased) {
        // Segment logic
@@ -237,11 +372,12 @@ This document describes the segment-based video level implementation for Ignitio
 **Impact on Codebase:**
 - Single source of truth for completion eligibility
 - Clean separation between threshold detection and user completion
+- Video tab switches instantly (player stays mounted and warm)
 - Legacy levels (A1, A2, A3, B1, B2, etc.) still work with timer-based completion
 
 ---
 
-### 5. `layout/LevelContent/YouTubeChunkPlayer.jsx` (DELETED)
+### 6. `layout/LevelContent/YouTubeChunkPlayer.jsx` (DELETED)
 
 **Reason:** Replaced by `YouTubeSegmentPlayer.jsx`
 
@@ -264,6 +400,7 @@ This document describes the segment-based video level implementation for Ignitio
 │  - Detects segment-based level (startSec/endSec present)        │
 │  - Checks localStorage for previously watched time              │
 │  - Sets canMarkComplete if threshold already met                │
+│  - VideoTab stays mounted even when switching to Practice       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -271,26 +408,34 @@ This document describes the segment-based video level implementation for Ignitio
 │  VideoTab.jsx                                                    │
 │  - Calculates: segmentDuration = endSec - startSec              │
 │  - Calculates: watchThreshold = segmentDuration * 0.5           │
+│  - Initializes watchedIntervals from localStorage               │
 │  - Renders YouTubeSegmentPlayer with level props                │
-│  - Shows progress bar and remaining seconds                     │
+│  - Shows progress bar based on UNIQUE watched time              │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  YouTubeSegmentPlayer.jsx                                        │
-│  - Loads YouTube IFrame API                                     │
+│  - Uses preloaded YouTube IFrame API (from layout.js)           │
 │  - Initializes player at startSec                               │
 │  - Monitors currentTime every 250ms                             │
+│  - Calculates delta = currentTime - lastCurrentTime             │
+│  - Only reports watch time when:                                │
+│    * delta > 0 (moving forward)                                 │
+│    * delta <= 1.5 (not a skip)                                  │
+│    * isPlayingRef.current === true                              │
 │  - Enforces boundaries: seek back if < startSec                 │
 │  - Pauses at endSec                                             │
-│  - Calls onWatchTimeUpdate with valid watched seconds           │
+│  - Calls onWatchTimeUpdate({ currentTime, delta })              │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  VideoTab.jsx receives watch time update                        │
-│  - Accumulates: watchedSeconds = max(prev, current)             │
-│  - Saves to localStorage                                        │
+│  - Creates interval: { start: currentTime - delta, end: currentTime }
+│  - Merges with existing intervals (deduplication)               │
+│  - watchedSeconds = sum of merged interval durations            │
+│  - Saves intervals + seconds to localStorage                    │
 │  - Checks: if watchedSeconds >= watchThreshold                  │
 │  - Calls onThresholdMet() ONCE                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -298,7 +443,7 @@ This document describes the segment-based video level implementation for Ignitio
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  LevelContent.jsx receives threshold met signal                 │
-│  - Sets canMarkComplete = true                                  │
+│  - canMarkComplete becomes true                                 │
 │  - Complete button becomes visible                              │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -308,7 +453,7 @@ This document describes the segment-based video level implementation for Ignitio
 │  - handleMarkComplete() called                                  │
 │  - Sets hasWatched = true                                       │
 │  - Calls onComplete(level.id) - unlocks next level              │
-│  - Cleans up localStorage                                       │
+│  - Cleans up localStorage (watch + intervals)                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -318,8 +463,8 @@ This document describes the segment-based video level implementation for Ignitio
 
 ### 1. Segment Detection
 ```javascript
-const isSegmentBased = level.startSec !== undefined && 
-                       level.endSec !== undefined && 
+const isSegmentBased = level.startSec !== undefined &&
+                       level.endSec !== undefined &&
                        level.videoId;
 ```
 
@@ -330,15 +475,36 @@ const watchThreshold = segmentDuration * 0.5;
 ```
 
 ### 3. LocalStorage Keys
-- Segment levels: `segment_watch_git-github_A5`
+- Segment watch time: `segment_watch_git-github_A5`
+- Segment intervals: `segment_intervals_git-github_A5`
 - Legacy levels: `video_timer_git-github_A1`
 
-### 4. Completion Flow
-1. User watches segment → watch time accumulates
+### 4. Unique Watched Time Calculation
+```javascript
+// Example: User watches 100-120, skips to 150, watches 150-160, rewinds to 110, watches 110-125
+// Intervals: [{start: 100, end: 120}, {start: 150, end: 160}, {start: 110, end: 125}]
+// After merge: [{start: 100, end: 125}, {start: 150, end: 160}]
+// watchedSeconds = (125 - 100) + (160 - 150) = 25 + 10 = 35s
+```
+
+### 5. Skip Detection Logic
+```javascript
+const delta = currentTime - lastCurrentTimeRef.current;
+
+if (isPlayingRef.current && delta > 0 && delta <= 1.5) {
+    // Normal playback - count this time
+    onWatchTimeUpdate?.({ currentTime, delta });
+}
+// If delta > 1.5, user skipped - don't count the gap
+// If delta <= 0, user scrubbed backward - don't count
+```
+
+### 6. Completion Flow
+1. User watches segment → unique watch time accumulates via intervals
 2. Reaches 50% → `onThresholdMet()` called → button enabled
 3. User clicks Complete → `onMarkComplete()` called → next level unlocks
 
-### 5. Boundary Enforcement
+### 7. Boundary Enforcement
 - **Below startSec:** Immediately seek back to startSec
 - **Above endSec:** Pause video at endSec
 - **Works during:** Playing, paused, scrubbing
@@ -372,9 +538,10 @@ The roadmap will automatically unlock A8 after A7 is marked complete.
 1. Open level A8
 2. Verify video starts at correct timestamp
 3. Try scrubbing backward - should snap back to startSec
-4. Watch until 50% progress bar
-5. Verify Complete button appears
-6. Click Complete - next level should unlock
+4. Try scrubbing forward instantly - progress should NOT jump
+5. Watch until 50% progress bar
+6. Verify Complete button appears
+7. Click Complete - next level should unlock
 
 ---
 
@@ -402,13 +569,17 @@ Legacy levels (A1, A2, A3, B1, B2, etc.) continue to work:
 - [ ] Segment pauses at endSec
 - [ ] Cannot scrub below startSec
 - [ ] Cannot scrub above endSec
-- [ ] Progress bar shows correct percentage
+- [ ] Scrubbing forward does NOT increase progress
+- [ ] Rewatching same content does NOT double-count progress
+- [ ] Progress bar shows correct percentage based on UNIQUE time
 - [ ] "X more seconds to unlock" message is accurate
-- [ ] Complete button appears at 50%
+- [ ] Complete button appears at 50% UNIQUE watch time
 - [ ] Complete button stays hidden before 50%
 - [ ] Progress persists after page refresh
 - [ ] Next level unlocks after clicking Complete
 - [ ] Legacy levels still work with timer
+- [ ] Switching to Practice tab and back is instant (player warm)
+- [ ] First-time Video tab open is fast (API preloaded)
 
 ---
 
@@ -431,13 +602,14 @@ Legacy levels (A1, A2, A3, B1, B2, etc.) continue to work:
 **Fix:** Clear localStorage or open in incognito:
 ```javascript
 localStorage.removeItem('segment_watch_git-github_A5');
+localStorage.removeItem('segment_intervals_git-github_A5');
 ```
 
 ### Issue: Video doesn't start at segment
 
 **Cause:** YouTube API `start` parameter may have slight delay
 
-**Fix:** The `useEffect` on line 160-170 forces seekTo on mount
+**Fix:** The `useEffect` forces seekTo on mount
 
 ### Issue: Progress doesn't save
 
@@ -451,19 +623,27 @@ localStorage.removeItem('segment_watch_git-github_A5');
 
 **Fix:** Already set to 200ms - check YouTube IFrame API is responding
 
+### Issue: Progress increases when skipping forward
+
+**Cause:** Delta threshold too high or not checking delta
+
+**Fix:** Verify `delta <= 1.5` check is active in monitoring interval
+
 ---
 
 ## Related Files
 
 | File | Purpose |
 |------|---------|
+| `app/layout.js` | Root layout, preloads YouTube IFrame API |
 | `data/gitGithubCourseData.js` | Course content with segment definitions |
-| `layout/LevelContent/LevelContent.jsx` | Main wrapper, threshold detection |
-| `layout/LevelContent/VideoTab.jsx` | Video UI, progress tracking |
-| `layout/LevelContent/YouTubeSegmentPlayer.jsx` | Segment playback, boundary enforcement |
+| `layout/LevelContent/LevelContent.jsx` | Main wrapper, threshold detection, warm player caching |
+| `layout/LevelContent/VideoTab.jsx` | Video UI, interval-based progress tracking |
+| `layout/LevelContent/YouTubeSegmentPlayer.jsx` | Segment playback, boundary enforcement, unique time tracking |
 | `layout/LevelContent/PracticeTab.jsx` | Practice exercises (unchanged) |
 
 ---
 
 **Implementation Date:** 2026-04-15  
+**Latest Update:** 2026-04-26 (Unique watched time tracking, warm player caching, API preloading)  
 **Branch:** feature/videos-newplayer

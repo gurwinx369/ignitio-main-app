@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
  * YouTubeSegmentPlayer - A reusable player for YouTube video segments
  *
  * Plays a specific segment of a YouTube video from startSec to endSec
- * and tracks watch time for the 50% completion gating.
+ * and tracks UNIQUE watched time for the 50% completion gating.
+ * Uses interval-based tracking to prevent skip/scrub exploitation.
  *
  * @param {string} videoId - YouTube video ID
  * @param {number} startSec - Start time in seconds
@@ -24,29 +25,36 @@ const YouTubeSegmentPlayer = ({
 }) => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef(null);
-  const intervalRef = useRef(null);
+  const monitoringIntervalRef = useRef(null);
   const containerRef = useRef(null);
-  const lastReportedTimeRef = useRef(0);
+
+  // Track last known position for delta calculation
+  const lastCurrentTimeRef = useRef(null);
+  // Track whether we're currently playing (for detecting forward playback)
+  const isPlayingRef = useRef(false);
 
   // Stop monitoring - stable ref-based function
   const stopMonitoring = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (monitoringIntervalRef.current) {
+      clearInterval(monitoringIntervalRef.current);
+      monitoringIntervalRef.current = null;
     }
+    isPlayingRef.current = false;
   }, []);
 
-  // Start monitoring - depends on stopMonitoring, startSec, endSec, onWatchTimeUpdate
+  // Start monitoring - tracks UNIQUE watched time via interval accumulation
   const startMonitoring = useCallback(() => {
     stopMonitoring();
+    isPlayingRef.current = true;
 
-    intervalRef.current = setInterval(() => {
+    monitoringIntervalRef.current = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime();
 
         // HARD BOUNDARY: If user scrubs below startSec, force back to startSec
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
+          lastCurrentTimeRef.current = startSec;
           return;
         }
 
@@ -57,16 +65,23 @@ const YouTubeSegmentPlayer = ({
           return;
         }
 
-        // Track watch time relative to segment start (only valid time counts)
-        const watchedTime = currentTime - startSec;
+        // Calculate delta from last known position
+        if (lastCurrentTimeRef.current !== null) {
+          const delta = currentTime - lastCurrentTimeRef.current;
 
-        // Report watch time every second
-        if (watchedTime - lastReportedTimeRef.current >= 1) {
-          lastReportedTimeRef.current = watchedTime;
-          onWatchTimeUpdate?.(watchedTime);
+          // Only count time when:
+          // 1. Player is actually playing (per our state tracking)
+          // 2. Time moves forward (delta > 0)
+          // 3. Delta is small enough to be normal playback (<= 1.5s = not a skip)
+          if (isPlayingRef.current && delta > 0 && delta <= 1.5) {
+            // Report both current position and delta for accurate interval tracking
+            onWatchTimeUpdate?.({ currentTime, delta });
+          }
         }
+
+        lastCurrentTimeRef.current = currentTime;
       }
-    }, 250); // Poll more frequently for tighter boundary enforcement
+    }, 250); // Poll frequently for accurate tracking
   }, [stopMonitoring, startSec, endSec, onWatchTimeUpdate]);
 
   // Handle player state changes
@@ -78,8 +93,11 @@ const YouTubeSegmentPlayer = ({
         // If somehow playing below startSec, seek back immediately
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
+          lastCurrentTimeRef.current = startSec;
           return;
         }
+        // Initialize tracking at current position
+        lastCurrentTimeRef.current = currentTime;
       }
       startMonitoring();
     } else if (event.data === window.YT.PlayerState.PAUSED) {
@@ -88,12 +106,17 @@ const YouTubeSegmentPlayer = ({
         const currentTime = playerRef.current.getCurrentTime();
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
+          lastCurrentTimeRef.current = startSec;
         } else if (currentTime > endSec) {
           playerRef.current.seekTo(endSec, true);
+          lastCurrentTimeRef.current = endSec;
         }
       }
       stopMonitoring();
+    } else if (event.data === window.YT.PlayerState.ENDED) {
+      stopMonitoring();
     } else {
+      // BUFFERING, UNSTARTED, etc. - pause tracking
       stopMonitoring();
     }
   }, [startMonitoring, stopMonitoring, startSec, endSec]);
@@ -114,8 +137,8 @@ const YouTubeSegmentPlayer = ({
     }
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (monitoringIntervalRef.current) {
+        clearInterval(monitoringIntervalRef.current);
       }
     };
   }, []);
@@ -165,16 +188,16 @@ const YouTubeSegmentPlayer = ({
   useEffect(() => {
     if (isPlayerReady && playerRef.current?.seekTo) {
       playerRef.current.seekTo(startSec, true);
-      lastReportedTimeRef.current = 0;
+      lastCurrentTimeRef.current = startSec;
       if (autoplay) {
         playerRef.current.playVideo();
       }
     }
   }, [startSec, isPlayerReady, autoplay]);
 
-  // Reset watch time tracking when videoId changes
+  // Reset position tracking when videoId changes
   useEffect(() => {
-    lastReportedTimeRef.current = 0;
+    lastCurrentTimeRef.current = null;
   }, [videoId]);
 
   // Pause video when tab becomes hidden, resume when visible

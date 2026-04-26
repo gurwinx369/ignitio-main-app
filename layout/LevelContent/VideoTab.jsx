@@ -12,16 +12,51 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
     const segmentDuration = isSegmentBased ? (level.endSec - level.startSec) : 0;
     const watchThreshold = segmentDuration * 0.5; // 50% of segment
 
-    // Storage key for segment watch time
+    // Storage keys
     const watchTimeKey = `segment_watch_${roadmapType}_${level.id}`;
+    const watchIntervalsKey = `segment_intervals_${roadmapType}_${level.id}`;
 
-    // Lazy initialization from localStorage
-    const [watchedSeconds, setWatchedSeconds] = useState(() => {
-        if (isSegmentBased) {
-            return parseFloat(localStorage.getItem(watchTimeKey) || '0');
+    // Helper: merge overlapping/adjacent intervals
+    const mergeIntervals = useCallback((intervals) => {
+        if (intervals.length === 0) return [];
+        const sorted = [...intervals].sort((a, b) => a.start - b.start);
+        const merged = [sorted[0]];
+        for (let i = 1; i < sorted.length; i++) {
+            const last = merged[merged.length - 1];
+            const curr = sorted[i];
+            // Merge if overlapping or adjacent (within 0.5s)
+            if (curr.start <= last.end + 0.5) {
+                last.end = Math.max(last.end, curr.end);
+            } else {
+                merged.push(curr);
+            }
         }
-        return 0;
+        return merged;
+    }, []);
+
+    // Helper: calculate total seconds from merged intervals
+    const calculateWatchedSeconds = useCallback((intervals) => {
+        return intervals.reduce((total, interval) => total + (interval.end - interval.start), 0);
+    }, []);
+
+    // Lazy initialization from localStorage - load intervals and compute seconds
+    const [watchedIntervals, setWatchedIntervals] = useState(() => {
+        if (isSegmentBased) {
+            try {
+                const stored = localStorage.getItem(watchIntervalsKey);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    return mergeIntervals(parsed);
+                }
+            } catch (e) {
+                console.warn('Failed to parse watch intervals:', e);
+            }
+        }
+        return [];
     });
+
+    // Derived: total watched seconds from intervals
+    const watchedSeconds = calculateWatchedSeconds(watchedIntervals);
 
     // Lazy initialization for isLoaded
     const [isLoaded, setIsLoaded] = useState(() => isSegmentBased);
@@ -29,9 +64,10 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
     // Derived: threshold reached based on watched seconds
     const thresholdReached = watchedSeconds >= watchThreshold;
 
-    // Save watch time and call onThresholdMet once when threshold is crossed
+    // Save watch intervals to localStorage whenever they change
     useEffect(() => {
-        if (isSegmentBased && watchedSeconds > 0) {
+        if (isSegmentBased && watchedIntervals.length > 0) {
+            localStorage.setItem(watchIntervalsKey, JSON.stringify(watchedIntervals));
             localStorage.setItem(watchTimeKey, watchedSeconds.toString());
 
             // Call onThresholdMet only once when threshold is first crossed
@@ -40,12 +76,42 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                 onThresholdMet?.();
             }
         }
-    }, [watchedSeconds, watchThreshold, isSegmentBased, watchTimeKey, hasWatched, onThresholdMet]);
+    }, [watchedIntervals, watchedSeconds, watchThreshold, isSegmentBased, watchIntervalsKey, watchTimeKey, hasWatched, onThresholdMet]);
 
-    const handleWatchTimeUpdate = useCallback((seconds) => {
-        // Only accumulate watch time - never decrease due to scrubbing
-        setWatchedSeconds(prev => Math.max(prev, seconds));
-    }, []);
+    // Handle watch time update from player - receives { currentTime, delta }
+    // currentTime: absolute position in video
+    // delta: seconds watched since last report (only positive, small values = real playback)
+    const handleWatchTimeUpdate = useCallback((data) => {
+        if (!isSegmentBased) return;
+
+        const { currentTime, delta } = typeof data === 'object' ? data : { currentTime: null, delta: data };
+
+        // If we don't have currentTime, fall back to delta-only mode (less accurate)
+        if (currentTime === null || currentTime === undefined) {
+            if (delta <= 0) return;
+            setWatchedIntervals(prev => {
+                const currentEnd = prev.length > 0 ? prev[prev.length - 1].end : level.startSec;
+                const newInterval = { start: currentEnd, end: currentEnd + delta };
+                return mergeIntervals([...prev, newInterval]);
+            });
+            return;
+        }
+
+        // Clamp currentTime to segment bounds
+        const clampedTime = Math.max(level.startSec, Math.min(level.endSec, currentTime));
+
+        // Create a small interval around current position
+        // The interval represents "time just watched" - from (currentTime - delta) to currentTime
+        const intervalStart = Math.max(level.startSec, clampedTime - delta);
+        const intervalEnd = Math.min(level.endSec, clampedTime);
+
+        if (intervalEnd > intervalStart) {
+            setWatchedIntervals(prev => {
+                const newInterval = { start: intervalStart, end: intervalEnd };
+                return mergeIntervals([...prev, newInterval]);
+            });
+        }
+    }, [isSegmentBased, level.startSec, level.endSec, mergeIntervals]);
 
     // Helper function to extract YouTube video ID
     const extractYouTubeId = (url) => {
