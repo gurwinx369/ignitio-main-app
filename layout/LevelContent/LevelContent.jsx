@@ -36,6 +36,7 @@ function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCom
 const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github' }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
+    const [markComplete, setCanMarkComplete] = useState(false);
     const [feedback, setFeedback] = useState(null);
     const cleanupRef = useRef(null);
     const prevLevelIdRef = useRef(null);
