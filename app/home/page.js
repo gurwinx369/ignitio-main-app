@@ -11,12 +11,10 @@ export default function Home() {
         GitGithub: "/home/roadmaps/git-github",
         CPP: "/home/roadmaps/cpp"
     }
-    const handleRedirectGitGithub = (event) => {
-        event.preventDefault()
+    const handleRedirectGitGithub = () => {
         router.push(redirects.GitGithub);
     }
-    const handleRedirectCPP = (event) => {
-        event.preventDefault()
+    const handleRedirectCPP = () => {
         router.push(redirects.CPP);
     }
     return (

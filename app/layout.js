@@ -40,26 +40,26 @@ export default function RootLayout({children}) {
 
     if (isLoading) {
         return (<html lang="en">
-            <head>
-                {/* Preconnect to common video domains */}
-                <link rel="preconnect" href="https://www.youtube.com"/>
-                <link rel="preconnect" href="https://www.youtube-nocookie.com"/>
-                <link rel="preconnect" href="https://i.ytimg.com"/>
-                <link rel="dns-prefetch" href="https://www.youtube.com"/>
-                <title></title>
-            </head>
-            <body className={`${inter.variable} ${pixelifySans.variable} antialiased`}>
-            <Loader/>
-            </body>
-            </html>);
+        <head>
+            {/* Preconnect to common video domains */}
+            <link rel="preconnect" href="https://www.youtube.com"/>
+            <link rel="preconnect" href="https://www.youtube-nocookie.com"/>
+            <link rel="preconnect" href="https://i.ytimg.com"/>
+            <link rel="dns-prefetch" href="https://www.youtube.com"/>
+            <title></title>
+        </head>
+        <body className={`${inter.variable} ${pixelifySans.variable} antialiased`}>
+        <Loader/>
+        </body>
+        </html>);
     }
 
     return (<html lang="en">
-        <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
-        <SmoothCursor/>
-        <AuthProvider>
-                <PostHogProvider>{children}</PostHogProvider>
-        </AuthProvider>
-        </body>
-        </html>);
+    <body className={`${inter.variable} ${pixelifySans.variable} antialiased cursor-none`}>
+    <SmoothCursor/>
+    <AuthProvider>
+        <PostHogProvider>{children}</PostHogProvider>
+    </AuthProvider>
+    </body>
+    </html>);
 }

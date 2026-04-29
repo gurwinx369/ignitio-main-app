@@ -1,6 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import {
+    LOAD_STATE,
+    useCardLoader,
+    SpinnerIcon,
+    SuccessIcon,
+    StatusBadge,
+    CardInfoShimmer,
+    LevelSquaresLoading,
+} from './CardLoader';
 
 // ── Animation constants ──────────────────────────────────────────
 const GREEN_BRIGHT = '#39d353';
@@ -8,7 +17,6 @@ const PURPLE       = '#bc8cff';
 const LINE_COLOR   = 'rgba(80,80,80,0.35)';
 const CYCLE        = 400;
 
-// Vertical bottom-to-top flow
 const NODES = [
     { id: 'root',  x: 0.42, y: 0.88, color: '#3a3a3a'    },
     { id: 'c1',    x: 0.42, y: 0.68, color: '#3a3a3a'    },
@@ -100,7 +108,6 @@ function GitVerticalCanvas() {
         function drawNode(x, y, r, color, alpha, pulse) {
             const pr = r + pulse * 5;
 
-            // glow
             ctx.save();
             ctx.globalAlpha = alpha * 0.18 * (1 - pulse * 0.5);
             const grd = ctx.createRadialGradient(x, y, r * 0.3, x, y, pr + 12);
@@ -112,7 +119,6 @@ function GitVerticalCanvas() {
             ctx.fill();
             ctx.restore();
 
-            // ring
             ctx.save();
             ctx.globalAlpha = alpha * 0.25;
             ctx.strokeStyle = color;
@@ -122,7 +128,6 @@ function GitVerticalCanvas() {
             ctx.stroke();
             ctx.restore();
 
-            // dot
             ctx.save();
             ctx.globalAlpha = alpha;
             ctx.fillStyle   = color;
@@ -148,7 +153,6 @@ function GitVerticalCanvas() {
             ctx.clearRect(0, 0, W(), H());
             const f = tRef.current / CYCLE;
 
-            // very subtle dot grid
             ctx.save();
             ctx.fillStyle = 'rgba(0,0,0,0.06)';
             for (let gx = 18; gx < W(); gx += 24) {
@@ -160,7 +164,6 @@ function GitVerticalCanvas() {
             }
             ctx.restore();
 
-            // edges
             EDGES.forEach(([a, b], i) => {
                 const na = NODES.find(n => n.id === a);
                 const nb = NODES.find(n => n.id === b);
@@ -176,7 +179,6 @@ function GitVerticalCanvas() {
                 }
             });
 
-            // nodes + labels
             NODES.forEach((n, i) => {
                 const appear = Math.min(1, Math.max(0, (f - NODE_TIMES[i]) / 0.07));
                 if (appear <= 0) return;
@@ -186,7 +188,6 @@ function GitVerticalCanvas() {
                 drawLabel(pos.x, pos.y, NODE_LABELS[i], n.color, ease(appear));
             });
 
-            // travelling dot
             if (f > 0.08) {
                 const ef    = (f - 0.08) / 0.92;
                 const total = EDGES.length;
@@ -215,7 +216,6 @@ function GitVerticalCanvas() {
         }
 
         rafRef.current = requestAnimationFrame(draw);
-
         const ro = new ResizeObserver(resize);
         ro.observe(canvas);
         return () => {
@@ -228,7 +228,6 @@ function GitVerticalCanvas() {
 }
 
 // ── Card ─────────────────────────────────────────────────────────
-
 export default function GitCourseCard({
                                           onClick,
                                           status         = 'Not Started',
@@ -236,65 +235,98 @@ export default function GitCourseCard({
                                           totalLevels    = 9,
                                       }) {
     const [hovered, setHovered] = useState(false);
+
+    const { state, handleClick, isLocked, isLoading, isSuccess, isPressing } =
+        useCardLoader(onClick, 1400);
+
+    const isActive = isLoading || isSuccess;
+
+    const scale = isPressing
+        ? 'scale(0.972)'
+        : hovered && !isLocked
+            ? 'translateY(-4px)'
+            : 'translateY(0)';
+
+    const shadow = isActive
+        ? '0 12px 40px rgba(0,0,0,0.10)'
+        : hovered
+            ? '0 20px 56px rgba(0,0,0,0.14)'
+            : '0 6px 24px rgba(0,0,0,0.08)';
+
+    const arrowBg = isActive
+        ? (isSuccess ? 'rgba(46,204,138,0.18)' : 'rgba(30,26,24,0.11)')
+        : hovered
+            ? 'rgba(30,26,24,0.14)'
+            : 'rgba(30,26,24,0.07)';
+
     useEffect(() => {
-        const savedLevels = localStorage.getItem("completedLevels");
+        const savedLevels = localStorage.getItem('completedLevels');
         if (!savedLevels) {
-            console.log("Failed to fetch savedLevels");
+            console.log('Failed to fetch savedLevels');
         } else {
-            console.log("savedLevels:", savedLevels);
+            console.log('savedLevels:', savedLevels);
         }
     }, []);
+
     return (
         <div
-            onClick={onClick}
+            onClick={handleClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="w-120 overflow-hidden cursor-pointer select-none"
+            className="w-120 overflow-hidden select-none"
             style={{
-                borderRadius: 24,
-                boxShadow: hovered
-                    ? '0 20px 56px rgba(0,0,0,0.14)'
-                    : '0 6px 24px rgba(0,0,0,0.08)',
-                transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                borderRadius:  24,
+                boxShadow:     shadow,
+                transform:     scale,
+                transition:    'transform 0.28s ease, box-shadow 0.28s ease',
+                cursor:        isLocked ? 'not-allowed' : 'pointer',
+                pointerEvents: isLocked ? 'none'        : 'auto',
             }}
         >
-            {/* ── Top: animation area — light warm beige like screenshot ── */}
+            {/* ── Top: animation area ───────────────────────────────── */}
             <div
                 className="relative overflow-hidden"
-                style={{
-                    height: 260,
-                    background: '#edeae2',
-                }}
+                style={{ height: 260, background: '#edeae2' }}
             >
                 <GitVerticalCanvas />
 
-                {/* Status badge — white pill, bottom-left, exactly like screenshot */}
-                <span
-                    className="absolute bottom-3.5 left-3.5 text-[11px] font-bold tracking-[0.03em] px-3.25 py-1.5 rounded-full"
-                    style={{
-                        background: '#fff',
-                        color: '#1a1a1a',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                    }}
-                >
-          {status}
-        </span>
+                {/* Loading overlay on canvas */}
+                {isActive && (
+                    <div
+                        aria-hidden="true"
+                        style={{
+                            position:      'absolute',
+                            inset:         0,
+                            background:    isSuccess
+                                ? 'rgba(57,211,83,0.06)'
+                                : 'rgba(0,0,0,0.08)',
+                            transition:    'background 0.28s ease',
+                            pointerEvents: 'none',
+                        }}
+                    />
+                )}
+
+                {/* Status badge — morphs through states */}
+                <StatusBadge state={state} status={status} />
             </div>
 
-            {/* ── Bottom: info card — pinkish beige from screenshot ── */}
+            {/* ── Bottom: info card ─────────────────────────────────── */}
             <div
                 className="px-5 pt-4.5 pb-5"
-                style={{ background: '#f2e0d0' }}
+                style={{ background: '#f2e0d0', position: 'relative' }}
             >
+                {/* Shimmer + success flash */}
+                <CardInfoShimmer state={state} />
+
                 {/* Duration */}
                 <div className="flex items-center gap-1.5 mb-3.5">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                          stroke="#3a3330" strokeWidth="2.2"
                          strokeLinecap="round" strokeLinejoin="round"
-                         style={{ opacity: 0.55, flexShrink: 0 }}>
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
+                         style={{ opacity: 0.55, flexShrink: 0 }}
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                     </svg>
                     <span
                         className="text-[11px] font-bold tracking-widest uppercase"
@@ -313,23 +345,13 @@ export default function GitCourseCard({
                     requests, and the workflows real developers use every day.
                 </p>
 
-                {/* Levels row */}
+                {/* Level squares — wave-animated during load */}
                 <div className="flex items-center gap-1 mb-4 flex-wrap">
-                    {Array.from({ length: totalLevels }).map((_, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 5,
-                                background: i < levelsFinished
-                                    ? '#1e1a18'
-                                    : 'rgba(30,26,24,0.12)',
-                                border: '1.5px solid rgba(30,26,24,0.18)',
-                                flexShrink: 0,
-                            }}
-                        />
-                    ))}
+                    <LevelSquaresLoading
+                        state={state}
+                        levelsFinished={levelsFinished}
+                        totalLevels={totalLevels}
+                    />
                     <span
                         className="text-[11px] font-semibold ml-1"
                         style={{ color: 'rgba(30,26,24,0.45)' }}
@@ -338,22 +360,27 @@ export default function GitCourseCard({
           </span>
                 </div>
 
-                {/* Arrow */}
+                {/* Arrow / Spinner / Checkmark */}
                 <div className="flex justify-end">
                     <div
                         className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{
-                            background: hovered ? 'rgba(30,26,24,0.14)' : 'rgba(30,26,24,0.07)',
-                            transform: hovered ? 'translateX(3px)' : 'translateX(0)',
+                            background: arrowBg,
+                            transform:  isLoading ? 'none' : hovered && !isLocked ? 'translateX(3px)' : 'translateX(0)',
                             transition: 'all 0.22s ease',
                         }}
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="#1e1a18" strokeWidth="2.5"
-                             strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                            <polyline points="12 5 19 12 12 19"/>
-                        </svg>
+                        {isLoading && <SpinnerIcon size={14} color="#1e1a18" />}
+                        {isSuccess  && <SuccessIcon size={14} color="#2ecc8a" />}
+                        {!isLoading && !isSuccess && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="#1e1a18" strokeWidth="2.5"
+                                 strokeLinecap="round" strokeLinejoin="round"
+                            >
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        )}
                     </div>
                 </div>
             </div>
