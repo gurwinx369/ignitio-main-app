@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Hook] Creating new file - ensure it follows project conventions' >&2"
+          }
+        ],
+        "description": "Warn about new file creation to ensure conventions"
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'file=\"$CLAUDE_TOOL_INPUT_FILE_PATH\"; if echo \"$file\" | grep -qE \"\\.(ts|tsx|js|jsx)$\"; then grep -n \"console\\.log\" \"$file\" 2>/dev/null && echo \"[Hook] Warning: console.log found - consider removing before commit\" >&2 || true; fi'"
+          }
+        ],
+        "description": "Warn about console.log in TypeScript/JavaScript files"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'file=\"$CLAUDE_TOOL_INPUT_FILE_PATH\"; if echo \"$file\" | grep -qE \"\\.(ts|tsx)$\"; then npx tsc --noEmit --skipLibCheck 2>&1 | head -20 || true; fi'",
+            "async": true,
+            "timeout": 30
+          }
+        ],
+        "description": "TypeScript check after editing .ts/.tsx files"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[Session End] Task completed. Consider running /code-review for quality check.\" >&2'"
+          }
+        ],
+        "description": "Remind about code review at session end"
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[Session Start] Welcome back! Project: Ignitio (Next.js 16 + React 19 + Firebase + MongoDB)\" >&2'"
+          }
+        ],
+        "description": "Welcome message on session start"
+      }
+    ]
+  }
+}
