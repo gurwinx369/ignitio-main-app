@@ -4,7 +4,8 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import CodeEditor from './CodeEditor';
 import CodeOutput from './CodeOutput';
 import ExecutionMetrics from './ExecutionMetrics';
-import { executeCode, getRateLimitRemaining, ERROR_TYPES } from '@/features/compiler';
+import { executeCode, ERROR_TYPES } from '@/features/compiler';
+import StdinInput from './StdinInput';
 
 /**
  * Default C++ 17 template code
@@ -29,6 +30,8 @@ const RATE_LIMIT_SECONDS = 10;
  */
 export default function CompilerPage() {
   const [code, setCode] = useState(DEFAULT_CODE);
+  const [stdin, setStdin] = useState('');
+
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +43,15 @@ export default function CompilerPage() {
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const countdownIntervalRef = useRef(null);
+
+  /**
+   * Handle stdin input changes
+   */
+  const handleStdinChange = useCallback((value) => {
+    setStdin(value);
+  }, []);
+
+
 
   /**
    * Start the rate limit countdown
@@ -113,7 +125,7 @@ export default function CompilerPage() {
   }, []);
 
   /**
-   * Execute the current code
+   * Execute the current code with current stdin input
    */
   const handleExecute = useCallback(async () => {
     // Check if already rate limited
@@ -135,7 +147,7 @@ export default function CompilerPage() {
     setOutput('');
 
     try {
-      const result = await executeCode(code, 'cpp');
+      const result = await executeCode(code, 'cpp', stdin);
 
       if (result.success) {
         setOutput(result.output);
@@ -165,13 +177,14 @@ export default function CompilerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [code, isRateLimited, rateLimitCountdown, getErrorMessage, startRateLimitCountdown]);
+  }, [code, stdin, isRateLimited, rateLimitCountdown, getErrorMessage, startRateLimitCountdown]);
 
   /**
    * Reset the editor to default code
    */
   const handleReset = useCallback(() => {
     setCode(DEFAULT_CODE);
+    setStdin('');
     setOutput('');
     setError('');
     setExecutionTime(0);
@@ -200,6 +213,8 @@ export default function CompilerPage() {
               Write, compile, and run your C++ code in the browser
             </p>
           </div>
+
+
 
           {/* Rate Limit Banner */}
           {isRateLimited && (
@@ -361,6 +376,12 @@ export default function CompilerPage() {
                     onChange={handleCodeChange}
                 />
               </div>
+
+              {/* Stdin Input Component */}
+              <StdinInput
+                value={stdin}
+                onChange={handleStdinChange}
+              />
 
               {/* Output
                 FIX 3: Added overflow-hidden to the wrapper so the fixed heights
