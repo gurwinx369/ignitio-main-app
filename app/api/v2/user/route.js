@@ -1,0 +1,263 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import connectToDB from "@/dbConfig/dbConnection";
+import { UserProfile } from "@/models/v2/user.profile.model";
+import { adminAuth } from "@/lib/firebase/firebase-admin";
+
+// SECTION 1: ZOD VALIDATORS
+// Mirrors the schema exactly.
+// Zod runs before a single DB call is made.
+// If the shape is wrong, we reject immediately.
+
+const TechUsedEnum = z.enum([
+  "python",
+  "git_github",
+  "rest_api",
+  "sql_databases",
+  "langchain",
+  "langgraph",
+]);
+
+const TriedWithEnum = z.enum([
+  "college_assignments",
+  "html_css_website",
+  "programming_languages",
+  "personal_projects",
+]);
+
+const DailyTimeEnum = z.enum(["30_minutes", "1_2_hours", "2_plus_hours"]);
+
+// discriminatedUnion enforces the branching logic at validation time.
+// Zod will reject techStack on a beginner, triedWith on written_some_code, etc.
+const CodingExperienceValidator = z.discriminatedUnion("level", [
+  z.object({
+    level: z.literal("beginner"),
+    techStack: z.null().optional(),
+    triedWith: z.null().optional(),
+  }),
+  z.object({
+    level: z.literal("written_some_code"),
+    techStack: z.object({
+      selected: z.array(TechUsedEnum).min(1, "Select at least one technology"),
+    }),
+    triedWith: z.null().optional(),
+  }),
+  z.object({
+    level: z.literal("know_basics_want_more"),
+    techStack: z.null().optional(),
+    triedWith: z.object({
+      selected: z.array(TriedWithEnum).min(1, "Select at least one option"),
+    }),
+  }),
+]);
+
+const QuestionsValidator = z.object({
+  codingExperience: CodingExperienceValidator,
+  timeCommitment: z.object({
+    dailyTime: DailyTimeEnum,
+  }),
+});
+
+// Full POST body validator.
+// firebaseUID is NOT accepted from the body.
+// We extract it from the verified token only.
+const CreateUserValidator = z.object({
+  email: z.string().email("Invalid email format").toLowerCase().trim(),
+  questions: QuestionsValidator,
+});
+
+// SECTION 2: TOKEN VERIFICATION HELPER
+// Extracts and verifies the Firebase ID token
+// from the Authorization header.
+// Returns the decoded token (contains uid, email).
+// Never trust firebaseUID from the request body.
+
+async function verifyFirebaseToken(request) {
+  const authHeader = request.headers.get("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: "Missing or malformed Authorization header", status: 401 };
+  }
+
+  const idToken = authHeader.split("Bearer ")[1]?.trim();
+
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    return { decodedToken };
+  } catch (err) {
+    // Don't expose the raw Firebase error — it leaks internals
+    //  return { error: "Invalid or expired token", status: 401 };
+    console.error("[Firebase verify error]", err.code, err.message);
+    return {
+      error:
+        process.env.NODE_ENV === "development"
+          ? `Firebase error: ${err.code} — ${err.message}`
+          : "Invalid or expired token",
+      status: 401,
+    };
+  }
+}
+
+// SECTION 3: POST — Create User Profile
+// Flow: verify token → validate body →
+//       check email matches token →
+//       atomic create → return safe response
+
+export async function POST(request) {
+  await connectToDB();
+
+  // Step 1: Verify Firebase token first — before touching the body.
+  // If auth fails, don't even parse the request.
+  const {
+    decodedToken,
+    error: authError,
+    status: authStatus,
+  } = await verifyFirebaseToken(request);
+
+  if (authError) {
+    return NextResponse.json({ message: authError }, { status: authStatus });
+  }
+
+  // Step 2: Parse and validate request body
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { message: "Invalid JSON in request body" },
+      { status: 400 },
+    );
+  }
+
+  const validation = CreateUserValidator.safeParse(body);
+
+  if (!validation.success) {
+    // Return the first validation error, formatted cleanly.
+    // Don't expose Zod's full error tree — it's noisy.
+    const firstError = validation.error.errors[0];
+    return NextResponse.json(
+      {
+        message: "Validation failed",
+        field: firstError.path.join("."),
+        detail: firstError.message,
+      },
+      { status: 422 }, // unprocessable content error code
+    );
+  }
+
+  const { email, questions } = validation.data;
+
+  // Step 3: Verify the email in the body matches the token.
+  // Prevents a logged-in user from creating a profile under
+  // a different email by tampering with the request body.
+  if (decodedToken.email !== email) {
+    return NextResponse.json(
+      { message: "Email does not match authenticated user" },
+      { status: 403 },
+    );
+  }
+
+  // Step 4: Atomic create — no race condition.
+  // findOneAndUpdate with upsert:false equivalent pattern:
+  // We use create() and catch the duplicate key error (code 11000).
+  // MongoDB's unique index on email/firebaseUID is the real
+  // race condition guard — not the application-level check.
+  try {
+    const userProfile = await UserProfile.create({
+      firebaseUID: decodedToken.uid, // from verified token, never from body
+      email,
+      questions: {
+        ...questions,
+        schemaVersion: 1,
+        completedScreens: ["coding_experience", "time_commitment"],
+        isComplete: true,
+        completedAt: new Date(),
+      },
+      // badges and roadmaps are empty at signup.
+      // Badges are earned through activity.
+      // Roadmap is generated by Kyle after profile creation.
+    });
+
+    // Step 5: Return only what the frontend needs.
+    // Never return the full Mongoose document —
+    // it exposes __v, internal _ids, and future fields
+    // you haven't audited yet.
+    return NextResponse.json(
+      {
+        message: "User profile created",
+        user: {
+          id: userProfile._id,
+          email: userProfile.email,
+          onboardingComplete: userProfile.questions.isComplete,
+          createdAt: userProfile.createdAt,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    // MongoDB duplicate key — email or firebaseUID already exists
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern)[0];
+      return NextResponse.json(
+        { message: `An account with this ${duplicateField} already exists` },
+        { status: 409 }, // 409 Conflict
+      );
+    }
+
+    // Unknown DB error — log internally, return generic message.
+    // Never send err.message to the client — it can expose
+    // schema structure, query details, or connection strings.
+    console.error("[POST /api/v2/user] DB error:", err.name);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// SECTION 4: GET — Fetch User Profile
+// A user can only fetch their own profile.
+// The UID from the token is the lookup key
+
+export async function GET(request) {
+  await connectToDB();
+
+  const {
+    decodedToken,
+    error: authError,
+    status: authStatus,
+  } = await verifyFirebaseToken(request);
+
+  if (authError) {
+    return NextResponse.json({ message: authError }, { status: authStatus });
+  }
+
+  try {
+    const userProfile = await UserProfile.findOne({
+      firebaseUID: decodedToken.uid,
+    })
+      .populate("roadmaps", "name description") // only pull name + description from roadmap
+      .populate("badges", "name badgeUrl") // only pull name + badgeUrl from badge
+      .select("-__v") // strip Mongoose version key
+      .lean(); // return plain JS object, not Mongoose doc
+    // lean() is ~3x faster for reads
+
+    if (!userProfile) {
+      return NextResponse.json(
+        { message: "User profile not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { message: "User profile found", user: userProfile },
+      { status: 200 },
+    );
+  } catch (err) {
+    console.error("[GET /api/v2/user] DB error:", err.name);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}

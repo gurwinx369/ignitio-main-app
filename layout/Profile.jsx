@@ -24,7 +24,6 @@ export default function ProfileDropdown() {
     const [isOpen, setIsOpen] = useState(false);
     const {user, logout} = useAuth();
     const {photoURL, displayName} = user;
-
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
     };
