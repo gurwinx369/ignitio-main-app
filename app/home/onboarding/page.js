@@ -1,3 +1,3 @@
-import OnboardingFlow from '@/features/onboarding/new-onboarding';
+import OnboardingFlow from '@/features/onboarding/onboarding-V2';
 
 export default OnboardingFlow;
