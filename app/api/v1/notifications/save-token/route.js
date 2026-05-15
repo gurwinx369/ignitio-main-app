@@ -1,7 +1,7 @@
 // app/api/notifications/save-token/route.js
 import { NextResponse } from "next/server";
-import { UserProfile } from "@/models/user.profile.model";
-import  UserNotification from "@/models/notification.model";
+import { UserProfile } from "../../../../../models/v1/user.profile.model";
+import  UserNotification from "../../../../../models/v1/notification.model";
 import connectDB from "@/dbConfig/dbConnection";
 
 export async function POST(request) {
