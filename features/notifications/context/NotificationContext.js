@@ -5,7 +5,7 @@ import {
     requestNotificationPermission,
     onForegroundMessage,
     displayNotification
-} from "@/lib/firebase-messaging";
+} from "../../../lib/firebase/firebase-messaging";
 
 const NotificationContext = createContext({});
 

@@ -10,7 +10,7 @@ import {
     setPersistence,
     browserLocalPersistence,
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider } from "../../lib/firebase/firebase";
 
 const AuthContext = createContext({});
 

@@ -1,6 +1,6 @@
-import {UserProfile} from "@/models/user.profile.model";
-import {Badge} from "@/models/badge.model"
-import {Roadmap} from "@/models/roadmap.model"
+import {UserProfile} from "../../../../models/v1/user.profile.model";
+import {Badge} from "../../../../models/v1/badge.model"
+import {Roadmap} from "../../../../models/v1/roadmap.model"
 import {NextResponse} from "next/server";
 import connectToDB from "@/dbConfig/dbConnection"
 

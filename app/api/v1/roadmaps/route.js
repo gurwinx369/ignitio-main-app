@@ -1,7 +1,7 @@
-import { Roadmap } from "@/models/roadmap.model";
+import { Roadmap } from "../../../../models/v1/roadmap.model";
 import { NextRequest, NextResponse } from "next/server";
 import connectToDB from "@/dbConfig/dbConnection";
-import { Level } from "@/models/level.model";
+import { Level } from "../../../../models/v1/level.model";
 
 export async function POST(NextRequest) {
   try {
