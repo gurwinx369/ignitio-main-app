@@ -40,6 +40,14 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const cleanupRef = useRef(null);
     const prevLevelIdRef = useRef(null);
 
+    const isPracticeDisabled = roadmapType === 'prompt-engineering';
+
+    useEffect(() => {
+        if (isPracticeDisabled && activeTab === 'practice') {
+            setActiveTab('video');
+        }
+    }, [isPracticeDisabled, activeTab]);
+
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
 
@@ -56,14 +64,17 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
         ? level.durationInMinutes * 60 * 1000 * 0.5
         : 0;
 
-    // Derived canMarkComplete - recomputes on every render based on localStorage
-    const canMarkComplete = isCompleted
+    // Initial value computed from storage
+    const initialCanMarkComplete = isCompleted
         ? true
         : isSegmentBased
             ? storedWatchTime >= thresholdSeconds
             : level.durationInMinutes
                 ? storedWatchTimeForLegacy >= fiftyPercentDurationLegacy
                 : false;
+
+    // Actual state
+    const [canMarkComplete, setCanMarkComplete] = useState(initialCanMarkComplete);
 
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
@@ -120,23 +131,32 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                         <div className="inline-flex bg-orange-200/60 rounded-full p-1">
                             <button
                                 onClick={() => setActiveTab('video')}
-                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                                    activeTab === 'video'
-                                        ? 'bg-blue-400 text-white shadow-md'
-                                        : 'text-gray-700 hover:text-gray-900'
-                                }`}
+                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'video'
+                                    ? 'bg-blue-400 text-white shadow-md'
+                                    : 'text-gray-700 hover:text-gray-900'
+                                    }`}
                             >
                                 Video
                             </button>
                             <button
-                                onClick={() => setActiveTab('practice')}
-                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                                    activeTab === 'practice'
-                                        ? 'bg-blue-400 text-white shadow-md'
-                                        : 'text-gray-700 hover:text-gray-900'
-                                }`}
+                                disabled={isPracticeDisabled}
+                                onClick={() => {
+                                    if (!isPracticeDisabled) {
+                                        setActiveTab('practice');
+                                    }
+                                }}
+                                title={isPracticeDisabled ? "Practice coming soon" : undefined}
+                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'practice'
+                                    ? 'bg-blue-400 text-white shadow-md'
+                                    : 'text-gray-700 hover:text-gray-900'
+                                    } ${isPracticeDisabled ? 'opacity-60 cursor-not-allowed hover:text-gray-700' : ''}`}
                             >
                                 Practice
+                                {isPracticeDisabled && (
+                                    <span className="ml-2 text-xs font-semibold opacity-70">
+                                        Coming soon
+                                    </span>
+                                )}
                             </button>
                         </div>
                     </div>

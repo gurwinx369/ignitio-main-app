@@ -34,9 +34,9 @@ export const courseDataBeginner = {
     ]
 };
 export const courseDataIntermediate = {
-    name:"Intermediate - Branch Master",
-    color:"#F5B700",
-    image:"",
+    name: "Intermediate - Branch Master",
+    color: "#F5B700",
+    image: "/github-progress-card.svg",
     levels: [
         {
             id: "B1",
@@ -93,6 +93,32 @@ export const courseDataAdvanced = {
             description: "Apply PR quality checks, tag releases and follow maintainer best-practices for collaboration.",
             videoUrl: "https://www.youtube.com/embed/5PRkhZTbvU4?rel=0",
             durationInMinutes: 12,
+        }
+    ]
+};
+
+export const gitGithubRoadmapData = {
+    id: "git-github",
+    title: "Git & GitHub",
+    description: "Master version control workflows.",
+    days: [
+        {
+            id: "day1",
+            title: "Day 1",
+            color: courseDataBeginner.color,
+            levels: courseDataBeginner.levels
+        },
+        {
+            id: "day2",
+            title: "Day 2",
+            color: courseDataIntermediate.color,
+            levels: courseDataIntermediate.levels
+        },
+        {
+            id: "day3",
+            title: "Day 3",
+            color: courseDataAdvanced.color,
+            levels: courseDataAdvanced.levels
         }
     ]
 };

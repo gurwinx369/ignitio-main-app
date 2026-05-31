@@ -610,3 +610,29 @@ export const cppCourseDataAdvanced = {
         },
     ]
 };
+
+export const cppRoadmapData = {
+    id: "cpp",
+    title: "C++ Programming",
+    description: "Master core C++ concepts.",
+    days: [
+        {
+            id: "day1",
+            title: "Day 1",
+            color: cppCourseDataBeginner.color,
+            levels: cppCourseDataBeginner.levels
+        },
+        {
+            id: "day2",
+            title: "Day 2",
+            color: cppCourseDataIntermediate.color,
+            levels: cppCourseDataIntermediate.levels
+        },
+        {
+            id: "day3",
+            title: "Day 3",
+            color: cppCourseDataAdvanced.color,
+            levels: cppCourseDataAdvanced.levels
+        }
+    ]
+};

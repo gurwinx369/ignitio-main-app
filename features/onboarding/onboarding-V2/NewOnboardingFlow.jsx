@@ -8,40 +8,101 @@ import OnboardingStepDailyTime from './OnboardingStepDailyTime';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuth } from '@/features/context/AuthContext';
+import ErrorToast from './components/ErrorToast';
+
+const getSelectedTechFieldHelper = (state) => {
+  const { level } = state;
+
+  if (level === "beginner") {
+    return [
+      "frontend development",
+      "backend development"
+    ];
+  }
+
+  if (level === "some_code") {
+    return [
+      "Gen Ai",
+      "Ai/ML"
+    ];
+  }
+
+  if (level === "know_basics") {
+    return [
+      "cloud computing",
+      "Cybersecurity"
+    ];
+  }
+
+  return [
+    "frontend development",
+    "backend development"
+  ];
+};
 
 const saveToDatabase = async (data) => {
   try {
+    if (!data.email || !data.firebaseUID) {
+      throw new Error("Email and Firebase UID are required");
+    }
+
+    if (!data.selectedTechField || data.selectedTechField.length < 2) {
+      throw new Error("At least 2 learning fields must be selected");
+    }
+
     const payload = {
-      email: data?.email || 'email not found',
-      firebaseUID: data?.firebaseUID || 'UID not found',
+      email: data?.email || "email not found",
+
+      firebaseUID: data?.firebaseUID || "UID not found",
+
       questions: {
-        selectedTechField: data?.selectedTechField,
-        selectedProject: data?.selectedProject || '',
+        selectedTechField:
+          data?.selectedTechField || [],
+
+        selectedProject:
+          data?.selectedProject ||
+          data?.projectDescription ||
+          "",
       },
+
       roadmaps: {
-        name: 'Git and Github',
+        name: "Git and Github"
       },
-      badge: data?.badge || {
-        name: 'Beginner',
-        badgeUrl: 'default badge',
-      },
+
+      badge:
+        data?.badge || {
+          name: "Onboarding Complete",
+          badgeUrl:
+            "/badges/onboarding-badge.png"
+        }
     };
 
-    const response = await axios.post('/api/v1/user', payload, {
+    console.log("payload", payload);
+    console.log("badge", payload.badge);
+    console.log("questions", payload.questions);
+    console.log("roadmap", payload.roadmaps);
+
+    const response = await axios.post("/api/v1/user", payload, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       timeout: 10000,
     });
+
+    console.log("response", response?.data);
+    console.log("Data saved successfully:", response.data);
     return response.data;
+
   } catch (err) {
-    if (err.response) {
-      throw new Error(err.response.data?.message || `Server error: ${err.response.status}`);
-    } else if (err.request) {
-      throw new Error('Network error. Please check your connection.');
-    } else {
-      throw new Error(err.message);
-    }
+    console.log(
+      "error",
+      JSON.stringify(
+        err?.response?.data,
+        null,
+        2
+      )
+    );
+    throw err;
   }
 };
 
@@ -57,6 +118,8 @@ const NewOnboardingFlow = () => {
     seenBefore: [],
     dailyTime: '',
   });
+
+  const [errorToast, setErrorToast] = useState({ show: false, title: '', message: '' });
 
   const updateData = (field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -76,19 +139,13 @@ const NewOnboardingFlow = () => {
     try {
       setIsLoading(true);
 
-      const finalData = {
-        level: data.level,
-        triedBefore: data.triedBefore,
-        seenBefore: data.seenBefore,
-        dailyTime: data.dailyTime,
-      };
-
-      // Construct a valid payload for the old API
-      const selectedTechField = data.seenBefore.length >= 2 
-        ? data.seenBefore 
-        : ['New Onboarding Path', 'Gamified Learning'];
-      
+      const selectedTechField = getSelectedTechFieldHelper(data);
       const selectedProject = `Level: ${data.level}, Tried: ${data.triedBefore}, Time: ${data.dailyTime}`;
+
+      const finalData = {
+        selectedTechField: selectedTechField,
+        selectedProject: selectedProject,
+      };
 
       const { uid, email } = user || {};
 
@@ -97,11 +154,11 @@ const NewOnboardingFlow = () => {
         badgeUrl: '/badges/onboarding-badge.png',
       };
 
-      await saveToDatabase({
+      const result = await saveToDatabase({
         firebaseUID: uid,
         email: email,
-        selectedTechField,
-        selectedProject,
+        selectedTechField: selectedTechField,
+        selectedProject: selectedProject,
         badge,
       });
 
@@ -109,7 +166,35 @@ const NewOnboardingFlow = () => {
       router.push('/home/onboarding/welcome');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
-      alert(`Failed to save your progress: ${error.message}. Please try again.`);
+
+      const errorMessage = error.response?.data?.message || error.message || '';
+      const isEmailInUse = errorMessage.includes('auth/email-already-in-use') || errorMessage.includes('already exists');
+
+      if (isEmailInUse) {
+        setErrorToast({
+          show: true,
+          title: 'Account already exists',
+          message: 'This email already has an account.\nPlease sign in instead.'
+        });
+      } else if (error.response?.data?.message) {
+        setErrorToast({
+          show: true,
+          title: 'Setup issue',
+          message: error.response.data.message
+        });
+      } else if (error.request) {
+        setErrorToast({
+          show: true,
+          title: 'Something went wrong',
+          message: "We couldn't save your progress.\nPlease check your connection and try again."
+        });
+      } else {
+        setErrorToast({
+          show: true,
+          title: 'Something went wrong',
+          message: errorMessage || "An unexpected error occurred."
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -117,6 +202,18 @@ const NewOnboardingFlow = () => {
 
   return (
     <div className="w-full min-h-screen bg-[#fcf5ee] flex justify-center items-center">
+      {errorToast.show && (
+        <ErrorToast
+          title={errorToast.title}
+          message={errorToast.message}
+          onDismiss={() => setErrorToast({ ...errorToast, show: false })}
+          onTryAgain={() => {
+            setErrorToast({ ...errorToast, show: false });
+            handleComplete();
+          }}
+        />
+      )}
+
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-[#fcf5ee]/80 backdrop-blur-sm">
           <div className="flex flex-col items-center p-8 bg-white rounded-2xl shadow-xl border-2 border-slate-200">
@@ -153,6 +250,7 @@ const NewOnboardingFlow = () => {
         <OnboardingStepDailyTime
           selection={data.dailyTime}
           setSelection={(val) => updateData('dailyTime', val)}
+          codingLevel={data.level}
           onBack={() => {
             // Determine back path based on level
             if (data.level === 'beginner') setStep(1);

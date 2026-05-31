@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Leaf, Code, Zap } from 'lucide-react';
+import { Leaf, Code, Zap } from 'lucide-react';
 import Image from 'next/image';
+import ProgressHeader from './components/ProgressHeader';
 
 const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
   const options = [
@@ -40,22 +41,12 @@ const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
   };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto h-dvh bg-[#fcf5ee] relative flex flex-col overflow-hidden font-sans">
-      {/* TOP BAR */}
-      <div className="pt-14 px-6 flex items-center gap-4">
-        {onBack && (
-          <button onClick={onBack} className="transition-transform active:scale-90 shrink-0">
-            <ArrowLeft className="text-[#19183b]" size={24} />
-          </button>
-        )}
-        <div className="flex flex-1 gap-1.5">
-          <div className="h-1.5 flex-1 bg-[#00a9ff] rounded-full"></div>
-          <div className="h-1.5 flex-1 bg-[#ddd8d0] rounded-full"></div>
-          <div className="h-1.5 flex-1 bg-[#ddd8d0] rounded-full"></div>
-          <div className="h-1.5 flex-1 bg-[#ddd8d0] rounded-full"></div>
-          <div className="h-1.5 flex-1 bg-[#ddd8d0] rounded-full"></div>
-        </div>
-      </div>
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
+      <ProgressHeader 
+        currentStep="level" 
+        codingLevel={selection || 'beginner'} 
+        onBack={onBack} 
+      />
 
       {/* HEADER SECTION */}
       <div className="mt-8 px-6 flex items-start gap-4">
@@ -81,7 +72,7 @@ const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
       </div>
 
       {/* SELECTION CARDS */}
-      <div className="mt-6 px-6 flex flex-col gap-4 overflow-y-auto pb-40">
+      <div className="mt-6 px-6 flex flex-col gap-4 flex-1 overflow-y-auto pb-32">
         {options.map((opt) => {
           const isSelected = selection === opt.id;
           return (
@@ -111,7 +102,7 @@ const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
       </div>
 
       {/* CTA BUTTON */}
-      <div className="absolute bottom-12 left-0 w-full px-6 bg-to-t from-[#fcf5ee] to-transparent pt-4">
+      <div className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
         <button
           onClick={handleContinue}
           disabled={!selection}

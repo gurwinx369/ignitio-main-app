@@ -109,6 +109,7 @@ const ExpandableProgressCard = ({
                             isExpanded={isExpanded}
                             completedLevels={completedLevels}
                             onLevelClick={handleLevelClick}
+                            difficulty={id}
                         />
                     )}
                 </div>

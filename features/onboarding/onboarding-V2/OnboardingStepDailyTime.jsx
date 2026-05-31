@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import ProgressHeader from './components/ProgressHeader';
 
-const OnboardingStepDailyTime = ({ onBack, onComplete, selection, setSelection }) => {
+const OnboardingStepDailyTime = ({ onBack, onComplete, selection, setSelection, codingLevel }) => {
   const options = [
     {
       id: '30_min',
@@ -34,23 +35,14 @@ const OnboardingStepDailyTime = ({ onBack, onComplete, selection, setSelection }
   };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto h-dvh bg-[#fcf5ee] relative flex flex-col overflow-hidden font-sans">
-      <header className="px-6 pt-14 pb-4">
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border-2 border-[#cdc5bc] shadow-[0_4px_0_0_rgba(0,0,0,0.05)] active:translate-y-0.5 transition-all shrink-0">
-            <ArrowLeft className="text-[#1e293b]" size={20} />
-          </button>
-          <div className="flex flex-1 gap-2">
-            <div className="h-3 flex-1 rounded-full bg-[#00a9ff] shadow-[0_0_8px_rgba(0,169,255,0.4)]"></div>
-            <div className="h-3 flex-1 rounded-full bg-[#00a9ff] shadow-[0_0_8px_rgba(0,169,255,0.4)]"></div>
-            <div className="h-3 flex-1 rounded-full bg-[#00a9ff] shadow-[0_0_8px_rgba(0,169,255,0.4)]"></div>
-            <div className="h-3 flex-1 rounded-full bg-[#00a9ff] shadow-[0_0_8px_rgba(0,169,255,0.4)]"></div>
-            <div className="h-3 flex-1 rounded-full bg-[#e6e2e0]"></div>
-          </div>
-        </div>
-      </header>
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
+      <ProgressHeader 
+        currentStep="dailyTime" 
+        codingLevel={codingLevel || 'beginner'} 
+        onBack={onBack} 
+      />
 
-      <section className="px-6 flex-1 overflow-y-auto pb-40">
+      <section className="px-6 flex-1 overflow-y-auto pb-8">
         <section className="flex items-start gap-3 mt-4 mb-6">
           <div className="w-12 h-12 shrink-0 bg-[#edeae2] border-2 border-slate-700 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center p-1">
             <Image alt="Kyle Avatar" className="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0uhm7k_FuO5l-pDmZI_sW4ke1q7jxG_zhrnlhxq8wIDLpY6kkP0fMPvzIAeoAljcolLH5IqH8klQchoKRtmf1_MzL2njPw3KcAp5wHc3wMYVxKfWZHtJbnuUJDs2OCd3ixRPCbONpeWYUThDtkRAPQgCPXl9v8Uovb0ikeQXPDIbj3eToR_ftdFcNu26KZagmj3maI9xGJwhZ-vxn9FsXM2qgiIbxBaKe54vhVf5Ohfg0yGg4wKUeRPdn9ZABC9P6VYanewmt6L5cw" width={48} height={48} unoptimized />
@@ -99,13 +91,14 @@ const OnboardingStepDailyTime = ({ onBack, onComplete, selection, setSelection }
             );
           })}
         </div>
-      </section>
 
-      <footer className="absolute bottom-0 left-0 w-full p-6 pb-10 bg-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
-        <div className="flex items-center justify-center gap-2 mb-6">
+        <div className="flex items-center justify-center gap-2 mt-8 mb-4">
           <span className="text-[14px]">🗓️</span>
           <p className="font-medium text-[12px] text-[#b0a89e]">Kyle will build your roadmap around this</p>
         </div>
+      </section>
+
+      <footer className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
         <button
           onClick={handleComplete}
           disabled={!selection}

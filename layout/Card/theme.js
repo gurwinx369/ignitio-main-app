@@ -1,0 +1,20 @@
+export const roadmapThemes = {
+    beginner:{
+        accent:"#14B8A6",
+        secondary:"#5EEAD4",
+        glow:"rgba(20,184,166,0.35)",
+        backgroundPattern:"clouds"
+    },
+    intermediate:{
+        accent:"#F97316",
+        secondary:"#FDBA74",
+        glow:"rgba(249,115,22,0.35)",
+        backgroundPattern:"circuit"
+    },
+    advanced:{
+        accent:"#6366F1",
+        secondary:"#A5B4FC",
+        glow:"rgba(99,102,241,0.35)",
+        backgroundPattern:"galaxy"
+    }
+};

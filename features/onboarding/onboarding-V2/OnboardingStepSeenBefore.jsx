@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Check, Terminal, Network, Webhook, Database, Link2, GitBranch, Layers, Box } from 'lucide-react';
+import { Check, Terminal, Network, Webhook, Database, Link2, GitBranch, Layers, Box } from 'lucide-react';
+import ProgressHeader from './components/ProgressHeader';
 
 const OnboardingStepSeenBefore = ({ onBack, onNext, selection = [], setSelection }) => {
   const options = [
@@ -28,28 +29,19 @@ const OnboardingStepSeenBefore = ({ onBack, onNext, selection = [], setSelection
   };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto h-dvh bg-[#fcf5ee] relative flex flex-col font-sans">
-      <nav className="sticky top-0 w-full z-50 flex items-center px-6 pt-14 pb-6 bg-[#fcf5ee]">
-        <div className="flex items-center w-full gap-4">
-          <button onClick={onBack} className="transition-transform active:scale-90 shrink-0">
-            <ArrowLeft className="text-[#19183b]" size={24} />
-          </button>
-          <div className="flex flex-1 gap-1">
-            <div className="h-[7px] flex-1 bg-[#00a9ff] rounded-full shadow-[0_2px_6px_rgba(0,169,255,0.35)]"></div>
-            <div className="h-[7px] flex-1 bg-[#00a9ff] rounded-full shadow-[0_2px_6px_rgba(0,169,255,0.35)]"></div>
-            <div className="h-[7px] flex-1 bg-[#ddd8d0] rounded-full"></div>
-            <div className="h-[7px] flex-1 bg-[#ddd8d0] rounded-full"></div>
-            <div className="h-[7px] flex-1 bg-[#ddd8d0] rounded-full"></div>
-          </div>
-        </div>
-      </nav>
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
+      <ProgressHeader 
+        currentStep="seenBefore" 
+        codingLevel="know_basics" 
+        onBack={onBack} 
+      />
 
       <section className="px-6 mt-4 mb-6">
         <h1 className="text-[26px] font-bold text-[#19183b] leading-tight mb-2">Which of these have you actually used?</h1>
         <p className="text-[13px] text-slate-500 font-normal">Pick everything that applies — no wrong answers.</p>
       </section>
 
-      <div className="px-6 grid grid-cols-2 gap-[10px] pb-40 overflow-y-auto">
+      <div className="px-6 grid grid-cols-2 gap-[10px] pb-32 flex-1 overflow-y-auto">
         {options.map((opt) => {
           const isSelected = selection.includes(opt.id);
           return (
@@ -74,7 +66,7 @@ const OnboardingStepSeenBefore = ({ onBack, onNext, selection = [], setSelection
         })}
       </div>
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] px-6 pb-10 pt-4 bg-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent flex flex-col items-center">
+      <div className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent flex flex-col items-center">
         <div className="bg-[#e8f7ff] rounded-full px-3 py-1 mb-4">
           <span className="font-bold text-[12px] text-[#00a9ff] tracking-wider">{selection.length} SELECTED</span>
         </div>

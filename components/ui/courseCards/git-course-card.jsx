@@ -227,13 +227,22 @@ function GitVerticalCanvas() {
     return <canvas ref={canvasRef} className="block w-full h-full" />;
 }
 
+import { gitGithubRoadmapData } from '@/data/gitGithubCourseData';
+
 // ── Card ─────────────────────────────────────────────────────────
 export default function GitCourseCard({
                                           onClick,
                                           status         = 'Not Started',
                                           levelsFinished = 0,
-                                          totalLevels    = 9,
+                                          totalLevels,
                                       }) {
+    const totalLevelsData = gitGithubRoadmapData.days.flatMap(day => day.levels);
+    const calculatedTotalLevels = totalLevelsData.length;
+    const totalDurationMinutes = totalLevelsData.reduce((acc, level) => acc + (level.durationInMinutes || 0), 0);
+    const formattedDuration = totalDurationMinutes >= 60 
+        ? `${Math.round(totalDurationMinutes / 60)} Hours`
+        : `${totalDurationMinutes} Minutes`;
+
     const [hovered, setHovered] = useState(false);
 
     const { state, handleClick, isLocked, isLoading, isSuccess, isPressing } =
@@ -259,21 +268,20 @@ export default function GitCourseCard({
             ? 'rgba(30,26,24,0.14)'
             : 'rgba(30,26,24,0.07)';
 
-    useEffect(() => {
-        const savedLevels = localStorage.getItem('completedLevels');
-        if (!savedLevels) {
-            console.log('Failed to fetch savedLevels');
-        } else {
-            console.log('savedLevels:', savedLevels);
-        }
-    }, []);
+    // Use passed totalLevels or fallback to calculated
+    const displayTotalLevels = totalLevels || calculatedTotalLevels;
+
+    // No longer trying to fetch completedLevels here because it is passed from the parent now
+    // useEffect(() => {
+    //     // handled in page.js
+    // }, []);
 
     return (
         <div
             onClick={handleClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="w-120 overflow-hidden select-none"
+            className="w-full sm:w-120 overflow-hidden select-none"
             style={{
                 borderRadius:  24,
                 boxShadow:     shadow,
@@ -332,7 +340,7 @@ export default function GitCourseCard({
                         className="text-[11px] font-bold tracking-widest uppercase"
                         style={{ color: '#3a3330' }}
                     >
-            4 Hours
+            {totalDurationMinutes > 0 ? formattedDuration : "4 Hours"}
           </span>
                 </div>
 
@@ -350,13 +358,13 @@ export default function GitCourseCard({
                     <LevelSquaresLoading
                         state={state}
                         levelsFinished={levelsFinished}
-                        totalLevels={totalLevels}
+                        totalLevels={displayTotalLevels}
                     />
                     <span
                         className="text-[11px] font-semibold ml-1"
                         style={{ color: 'rgba(30,26,24,0.45)' }}
                     >
-            {levelsFinished}/{totalLevels} levels
+            {levelsFinished}/{displayTotalLevels} levels
           </span>
                 </div>
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowLeft, Terminal, Globe, Book, Compass, ArrowRight } from 'lucide-react';
+import { Terminal, Globe, Book, Compass, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import ProgressHeader from './components/ProgressHeader';
 
 const OnboardingStepTriedBefore = ({ onBack, onNext, selection, setSelection }) => {
   const options = [
@@ -36,19 +37,12 @@ const OnboardingStepTriedBefore = ({ onBack, onNext, selection, setSelection }) 
   };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto h-dvh bg-[#fcf5ee] relative flex flex-col overflow-hidden font-sans">
-      <header className="flex items-center px-6 pt-14 pb-4">
-        <button onClick={onBack} className="transition-transform active:scale-90 shrink-0">
-          <ArrowLeft className="text-[#19183b]" size={24} />
-        </button>
-        <div className="flex flex-1 gap-1 ml-4">
-          <div className="flex-1 h-[7px] rounded-full bg-[#00a9ff]"></div>
-          <div className="flex-1 h-[7px] rounded-full bg-[#00a9ff]"></div>
-          <div className="flex-1 h-[7px] rounded-full bg-[#ddd8d0]"></div>
-          <div className="flex-1 h-[7px] rounded-full bg-[#ddd8d0]"></div>
-          <div className="flex-1 h-[7px] rounded-full bg-[#ddd8d0]"></div>
-        </div>
-      </header>
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
+      <ProgressHeader 
+        currentStep="triedBefore" 
+        codingLevel="some_code" 
+        onBack={onBack} 
+      />
 
       <section className="px-6 py-4 flex items-start gap-3">
         <div className="w-[68px] h-[68px] bg-[#edeae2] border-2 border-[#1e293b] rounded-[16px] shrink-0 overflow-hidden flex items-center justify-center p-1">
@@ -96,7 +90,7 @@ const OnboardingStepTriedBefore = ({ onBack, onNext, selection, setSelection }) 
         })}
       </section>
 
-      <footer className="absolute bottom-0 left-0 w-full px-6 pb-7 bg-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent pt-4">
+      <footer className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
         <button
           onClick={handleContinue}
           disabled={!selection}
