@@ -13,7 +13,7 @@ const OnboardingBadge = ({ profession, onNext }) => {
           🎉 Badge Unlocked
         </h1>
         <p className="text-[18px] text-[#6b7280] text-center bg-white px-6 py-3 rounded-2xl border-2 border-[#ede8e1] shadow-sm">
-          Profession: <strong className="text-[#00a9ff]">{profession}</strong>
+          Profession: <strong className="text-[#00a9ff]">{profession ? profession.charAt(0).toUpperCase() + profession.slice(1) : ''}</strong>
         </p>
       </div>
 

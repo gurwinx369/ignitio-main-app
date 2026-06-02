@@ -10,6 +10,7 @@
     "vercel-build": "next build"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@gsap/react": "^2.1.2",
     "@posthog/next": "^0.1.0",
     "@radix-ui/react-slot": "^1.2.4",

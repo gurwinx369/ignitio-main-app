@@ -1,11 +1,11 @@
 'use client';
 import React from 'react';
-import { User, Briefcase, GraduationCap } from 'lucide-react';
+import { GraduationCap, PenTool, Palette, Code } from 'lucide-react';
 
 const OnboardingProfession = ({ onNext, selection, setSelection }) => {
   const options = [
     {
-      id: 'Student',
+      id: 'student',
       title: 'Student',
       icon: <GraduationCap className="text-[#16a34a]" size={24} />,
       bg: 'bg-[#d9f7e8]',
@@ -14,19 +14,28 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
       cardInactive: 'bg-white border-[#ede8e1]',
     },
     {
-      id: 'Teacher',
-      title: 'Teacher',
-      icon: <User className="text-[#d97706]" size={24} />,
+      id: 'writer',
+      title: 'Writer',
+      icon: <PenTool className="text-[#d97706]" size={24} />,
       bg: 'bg-[#ffecd9]',
       borderActive: 'border-[#00a9ff]',
       cardActive: 'bg-[#f0faff] border-[#00a9ff]',
       cardInactive: 'bg-white border-[#ede8e1]',
     },
     {
-      id: 'Job Doing',
-      title: 'Job Doing',
-      icon: <Briefcase className="text-[#db2777]" size={24} />,
+      id: 'designer',
+      title: 'Designer',
+      icon: <Palette className="text-[#db2777]" size={24} />,
       bg: 'bg-[#fde8f0]',
+      borderActive: 'border-[#00a9ff]',
+      cardActive: 'bg-[#f0faff] border-[#00a9ff]',
+      cardInactive: 'bg-white border-[#ede8e1]',
+    },
+    {
+      id: 'developer',
+      title: 'Developer',
+      icon: <Code className="text-[#2563eb]" size={24} />,
+      bg: 'bg-[#dbeafe]',
       borderActive: 'border-[#00a9ff]',
       cardActive: 'bg-[#f0faff] border-[#00a9ff]',
       cardInactive: 'bg-white border-[#ede8e1]',

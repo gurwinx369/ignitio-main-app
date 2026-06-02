@@ -4,32 +4,33 @@ import mongoose, { Schema } from "mongoose";
 // Export these and reuse them in your API validators
 // and frontend constants. Never hardcode strings twice.
 
+/* COMMENTED OUT OLD ONBOARDING SCHEMAS & ENUMS
 export const CODING_EXPERIENCE_LEVEL = {
-    BEGINNER:            "beginner",            // Screen 1 — no sub-question
-    WRITTEN_SOME_CODE:   "written_some_code",   // Screen 1 — triggers tech stack sub-question
-    KNOW_BASICS:         "know_basics_want_more" // Screen 1 — triggers tried-with sub-question
+  BEGINNER: "beginner", // Screen 1 — no sub-question
+  WRITTEN_SOME_CODE: "written_some_code", // Screen 1 — triggers tech stack sub-question
+  KNOW_BASICS: "know_basics_want_more", // Screen 1 — triggers tried-with sub-question
 };
 
 export const TECH_USED = {
-    PYTHON:              "python",
-    GIT_GITHUB:          "git_github",
-    REST_API:            "rest_api",
-    SQL_DATABASES:       "sql_databases",
-    LANGCHAIN:           "langchain",
-    LANGGRAPH:           "langgraph",
+  PYTHON: "python",
+  GIT_GITHUB: "git_github",
+  REST_API: "rest_api",
+  SQL_DATABASES: "sql_databases",
+  LANGCHAIN: "langchain",
+  LANGGRAPH: "langgraph",
 };
 
 export const TRIED_WITH = {
-    COLLEGE_ASSIGNMENTS:   "college_assignments",
-    HTML_CSS_WEBSITE:      "html_css_website",
-    PROGRAMMING_LANGUAGES: "programming_languages", // Java, Python, C++ etc.
-    // PERSONAL_PROJECTS:     "personal_projects",      // your 4th option
+  COLLEGE_ASSIGNMENTS: "college_assignments",
+  HTML_CSS_WEBSITE: "html_css_website",
+  PROGRAMMING_LANGUAGES: "programming_languages", // Java, Python, C++ etc.
+  // PERSONAL_PROJECTS:     "personal_projects",      // your 4th option
 };
 
 export const DAILY_TIME = {
-    THIRTY_MIN:  "30_minutes",
-    ONE_TWO_HRS: "1_2_hours",
-    TWO_PLUS:    "2_plus_hours",
+  THIRTY_MIN: "30_minutes",
+  ONE_TWO_HRS: "1_2_hours",
+  TWO_PLUS: "2_plus_hours",
 };
 // SUB-SCHEMAS
 // Discriminated union pattern:
@@ -40,27 +41,27 @@ export const DAILY_TIME = {
 // Sub-question: "What tech have you used?" (multi-select)
 // Only populated when level === 'written_some_code'
 const TechStackSubSchema = new Schema(
-    {
-        selected: {
-            type: [String],
-            enum: Object.values(TECH_USED),
-            default: [], // [] is valid — user may skip sub-question
-        },
+  {
+    selected: {
+      type: [String],
+      enum: Object.values(TECH_USED),
+      default: [], // [] is valid — user may skip sub-question
     },
-    { _id: false } // no _id on sub-docs that are never queried standalone
+  },
+  { _id: false }, // no _id on sub-docs that are never queried standalone
 );
 
 // Sub-question: "What have you tried?" (multi-select)
 // Only populated when level === 'know_basics_want_more'
 const TriedWithSubSchema = new Schema(
-    {
-        selected: {
-            type: [String],
-            enum: Object.values(TRIED_WITH),
-            default: [],
-        },
+  {
+    selected: {
+      type: [String],
+      enum: Object.values(TRIED_WITH),
+      default: [],
     },
-    { _id: false }
+  },
+  { _id: false },
 );
 
 // Screen 1 — Coding Experience
@@ -70,38 +71,38 @@ const TriedWithSubSchema = new Schema(
 // not the schema — Mongoose validators get
 // complicated with conditional logic.
 const CodingExperienceSchema = new Schema(
-    {
-        level: {
-            type: String,
-            enum: Object.values(CODING_EXPERIENCE_LEVEL),
-            required: true,
-        },
-
-        // Populated only when level === 'written_some_code'
-        techStack: {
-            type: TechStackSubSchema,
-            default: null,
-        },
-
-        // Populated only when level === 'know_basics_want_more'
-        triedWith: {
-            type: TriedWithSubSchema,
-            default: null,
-        },
+  {
+    level: {
+      type: String,
+      enum: Object.values(CODING_EXPERIENCE_LEVEL),
+      required: true,
     },
-    { _id: false }
+
+    // Populated only when level === 'written_some_code'
+    techStack: {
+      type: TechStackSubSchema,
+      default: null,
+    },
+
+    // Populated only when level === 'know_basics_want_more'
+    triedWith: {
+      type: TriedWithSubSchema,
+      default: null,
+    },
+  },
+  { _id: false },
 );
 
 // Screen 2 — Time Commitment
 const TimeCommitmentSchema = new Schema(
-    {
-        dailyTime: {
-            type: String,
-            enum: Object.values(DAILY_TIME),
-            required: true,
-        },
+  {
+    dailyTime: {
+      type: String,
+      enum: Object.values(DAILY_TIME),
+      required: true,
     },
-    { _id: false }
+  },
+  { _id: false },
 );
 
 // ROOT QUESTIONS SCHEMA
@@ -110,88 +111,117 @@ const TimeCommitmentSchema = new Schema(
 // Critical for funnel drop-off analytics.
 
 const QuestionsSchema = new Schema(
-    {
-        schemaVersion: {
-            type: Number,
-            default: 1,
-        },
-        codingExperience: {
-            type: CodingExperienceSchema,
-            default: null,
-        },
-        timeCommitment: {
-            type: TimeCommitmentSchema,
-            default: null,
-        },
-        completedScreens: {
-            type: [String],
-            enum: ["coding_experience", "time_commitment"],
-            default: [],
-        },
-        isComplete: {
-            type: Boolean,
-            default: false,
-            index: true,
-        },
-        completedAt: {
-            type: Date,
-            default: null,
-        },
+  {
+    schemaVersion: {
+      type: Number,
+      default: 1,
     },
-    { _id: false }
+    codingExperience: {
+      type: CodingExperienceSchema,
+      default: null,
+    },
+    timeCommitment: {
+      type: TimeCommitmentSchema,
+      default: null,
+    },
+    completedScreens: {
+      type: [String],
+      enum: ["coding_experience", "time_commitment"],
+      default: [],
+    },
+    isComplete: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { _id: false },
 );
+*/
+
+export const USER_ROLES = {
+  STUDENT: "student",
+  WRITER: "writer",
+  DESIGNER: "designer",
+  DEVELOPER: "developer",
+};
+
 // USER PROFILE — final assembly
 const UserProfileSchema = new Schema(
-    {
-        firebaseUID: {
-            type: String,
-            required: true,
-            unique: true,
-            index: true,
-        },
-        notification: {
-            type: Schema.Types.ObjectId,
-            ref: "Notification",
-        },
-        email: {
-            type: String,
-            validate: {
-                validator: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-                message: "Please enter a valid email",
-            },
-            trim: true,
-            lowercase: true,
-            required: true,
-            unique: true,
-        },
-        badges: [{ type: Schema.Types.ObjectId, ref: "Badge" }],
-
-        // ✅ Onboarding questions — embedded, not referenced.
-        // Queried on every session start. Embedding is correct.
-        // A ref here would add a round-trip with zero benefit.
-        questions: {
-            type: QuestionsSchema,
-            default: () => ({}), // auto-initialize with defaults
-        },
-
-        roadmaps: {
-            type: Schema.Types.ObjectId,
-            ref: "Roadmap",
-        },
+  {
+    firebaseUID: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
     },
-    { timestamps: true }
+    notification: {
+      type: Schema.Types.ObjectId,
+      ref: "Notification",
+    },
+    email: {
+      type: String,
+      validate: {
+        validator: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+        message: "Please enter a valid email",
+      },
+      trim: true,
+      lowercase: true,
+      required: true,
+      unique: true,
+    },
+    badges: [{ type: Schema.Types.ObjectId, ref: "Badge" }],
+
+    role: {
+      type: String,
+      enum: Object.values(USER_ROLES),
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    onboardingComplete: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    roadmap_name: {
+      type: String,
+      default: "Prompt engineering",
+    },
+    // Ref to KyleHistory — created lazily on first quiz or assignment submission.
+    kyleHistory: {
+      type: Schema.Types.ObjectId,
+      ref: "KyleHistory",
+      default: null,
+    },
+    last_active_on: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true },
 );
 
-// ─────────────────────────────────────────────
+//Middleware to update the last active on automatically
+UserProfileSchema.pre("save", function () {
+  this.last_active_on = Date.now();
+});
+
 // INDEXES
-// Compound index for the most common ops query:
-// "show me all beginner users who haven't finished"
-// ─────────────────────────────────────────────
+// Compound index for the most common ops query
 UserProfileSchema.index({
-    "questions.isComplete": 1,
-    "questions.codingExperience.level": 1,
+  onboardingComplete: 1,
+  role: 1,
 });
 
 export const UserProfile =
-    mongoose.models.UserProfile ||
-    mongoose.model("UserProfile", UserProfileSchema);
+  mongoose.models.UserProfile ||
+  mongoose.model("UserProfile", UserProfileSchema);
