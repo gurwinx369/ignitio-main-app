@@ -8,23 +8,9 @@ import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engi
 import { promptEngineeringRoadmapData } from "@/data/promptEngineeringCourseData";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
-import { useAuth } from "@/features/context/AuthContext";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      user.getIdToken()
-        .then((token) => {
-          console.log("Firebase Bearer Token:", token);
-        })
-        .catch((error) => {
-          console.error("Error fetching firebase token:", error);
-        });
-    }
-  }, [user]);
 
   const redirects = {
     GitGithub: "/home/roadmaps/git-github",
