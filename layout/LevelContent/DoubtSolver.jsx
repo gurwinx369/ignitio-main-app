@@ -41,7 +41,9 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
     const [question, setQuestion] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [isHighDemand, setIsHighDemand] = useState(false);
     const messagesEndRef = useRef(null);
+    const lastQuestion = useRef('');
 
     // Resolve role once
     const resolvedRole = useRef(propRole || (typeof window !== 'undefined' ? localStorage.getItem('profession') : null) || 'other');
@@ -52,15 +54,11 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, loading]);
+    }, [messages, loading, error]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!question.trim() || loading) return;
-
-        const currentQuestion = question.trim();
-        setQuestion('');
+    const sendQuestion = async (currentQuestion) => {
         setError(null);
+        setIsHighDemand(false);
 
         if (!user) {
             setError("Please sign in again to ask Kyle.");
@@ -94,17 +92,42 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
             const data = await response.json();
 
             if (!response.ok) {
+                if (data.retryable) {
+                    setIsHighDemand(true);
+                    return;
+                }
                 throw new Error(data.error || 'Something went wrong. Please try again.');
             }
 
             const answer = data?.data?.answer || data?.answer || "Kyle responded, but no answer text was returned.";
             setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
         } catch (err) {
-            console.error('DoubtSolver Error:', err);
             setError(err.message || 'Failed to connect to Kyle.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!question.trim() || loading) return;
+
+        const currentQuestion = question.trim();
+        lastQuestion.current = currentQuestion;
+        setQuestion('');
+        await sendQuestion(currentQuestion);
+    };
+
+    const handleRetry = async () => {
+        if (!lastQuestion.current || loading) return;
+        // Remove the last user bubble so it doesn't duplicate when resending
+        setMessages(prev => {
+            const lastUserIdx = [...prev].reverse().findIndex(m => m.role === 'user');
+            if (lastUserIdx === -1) return prev;
+            const realIdx = prev.length - 1 - lastUserIdx;
+            return prev.filter((_, i) => i !== realIdx);
+        });
+        await sendQuestion(lastQuestion.current);
     };
 
     const handleKeyDown = (e) => {
@@ -166,8 +189,36 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                             </div>
                         </div>
                     )}
-                    
-                    {error && (
+
+                    {/* High-demand retry card */}
+                    {isHighDemand && !loading && (
+                        <div className="flex justify-start">
+                            <div className="flex gap-3 max-w-[85%]">
+                                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
+                                    <Bot size={16} />
+                                </div>
+                                <div className="bg-white border border-orange-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle size={16} className="text-orange-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm text-gray-700 leading-snug">
+                                            Kyle is experiencing <span className="font-semibold text-orange-500">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
+                                        </p>
+                                    </div>
+                                    <button
+                                        id="kyle-retry-btn"
+                                        onClick={handleRetry}
+                                        disabled={loading}
+                                        className="self-start text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        ↩ Try again
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Generic error pill */}
+                    {error && !isHighDemand && (
                         <div className="flex justify-center my-4">
                             <div className="bg-red-50 text-red-600 px-4 py-2 rounded-full text-sm flex items-center gap-2 border border-red-100">
                                 <AlertCircle size={16} />

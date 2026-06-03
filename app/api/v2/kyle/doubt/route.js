@@ -34,7 +34,7 @@ export async function POST(request) {
         error: first?.message || "Validation failed",
         field: first?.path ? first.path.join(".") : "",
       },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -43,29 +43,50 @@ export async function POST(request) {
     return NextResponse.json({ data: { answer } }, { status: 200 });
   } catch (err) {
     const errMsg = err.message || "";
-    const isTransient = /503|Service Unavailable|high demand|try again later/i.test(errMsg);
+    const isTransient =
+      /503|Service Unavailable|high demand|try again later/i.test(errMsg);
 
     if (isTransient) {
       const delay = Math.floor(Math.random() * (1200 - 700 + 1)) + 700;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
       try {
         const retryAnswer = await answerDoubt(parsed.data);
-        return NextResponse.json({ data: { answer: retryAnswer } }, { status: 200 });
+        return NextResponse.json(
+          { data: { answer: retryAnswer } },
+          { status: 200 },
+        );
       } catch (retryErr) {
         const retryErrMsg = retryErr.message || "";
-        if (/503|Service Unavailable|high demand|try again later/i.test(retryErrMsg)) {
+        if (
+          /503|Service Unavailable|high demand|try again later/i.test(
+            retryErrMsg,
+          )
+        ) {
           return NextResponse.json(
-            { error: "Kyle is busy right now. Please try again in a few seconds." },
-            { status: 503 }
+            {
+              error:
+                "Kyle is busy right now. Please try again in a few seconds.",
+              retryable: true,
+            },
+            { status: 503 },
           );
         }
-        console.error("[POST /api/v2/kyle/doubt] Retry error:", retryErr.message);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error(
+          "[POST /api/v2/kyle/doubt] Retry error:",
+          retryErr.message,
+        );
+        return NextResponse.json(
+          { error: "Internal server error" },
+          { status: 500 },
+        );
       }
     }
 
     console.error("[POST /api/v2/kyle/doubt]", err.message);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
