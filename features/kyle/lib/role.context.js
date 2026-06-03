@@ -10,6 +10,8 @@ const ROLE_CONTEXTS = {
     "Use writing examples most people already understand — like drafting an email, editing a blog post, or rewriting a sentence to sound clearer.",
   designer:
     "Use design examples a beginner would recognise — like picking a colour for a poster, arranging a simple page layout, or explaining a design idea to a friend.",
+  other:
+    "The learner has not selected a specific professional role. Explain concepts clearly, avoid profession-specific assumptions, use practical examples, and offer adaptable guidance.",
 };
 
 const FALLBACK = "student";

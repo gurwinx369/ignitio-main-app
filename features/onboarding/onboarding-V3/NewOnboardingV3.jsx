@@ -33,7 +33,7 @@ const NewOnboardingV3 = () => {
       const idToken = await user.getIdToken();
       const payload = {
         email: user.email,
-        role: profession.toLowerCase(), // role must be one of: student, writer, designer, developer
+        role: profession.toLowerCase(), // role must be one of: student, writer, designer, developer, other
       };
 
       const response = await axios.post('/api/v2/user', payload, {

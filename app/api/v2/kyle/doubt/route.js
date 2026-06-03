@@ -10,7 +10,7 @@ import { answerDoubt } from "@/features/kyle/lib/kyle.service";
 const BodySchema = z.object({
   concept: z.string().min(1),
   transcript: z.string().min(1),
-  role: z.enum(["student", "developer", "writer", "designer"]),
+  role: z.enum(["student", "developer", "writer", "designer", "other"]),
   question: z.string().min(1).max(500),
 });
 

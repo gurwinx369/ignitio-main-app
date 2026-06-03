@@ -20,7 +20,7 @@ const LevelSchema = z.object({
 });
 
 const BodySchema = z.object({
-  role: z.enum(["student", "developer", "writer", "designer"]),
+  role: z.enum(["student", "developer", "writer", "designer", "other"]),
   dayNumber: z.number().int().positive(),
   levels: z.array(LevelSchema).min(1),
   assignmentPrompt: z.string().min(1),

@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { GraduationCap, PenTool, Palette, Code } from 'lucide-react';
+import { GraduationCap, PenTool, Palette, Code, Briefcase } from 'lucide-react';
 
 const OnboardingProfession = ({ onNext, selection, setSelection }) => {
   const options = [
@@ -40,6 +40,15 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
       cardActive: 'bg-[#f0faff] border-[#00a9ff]',
       cardInactive: 'bg-white border-[#ede8e1]',
     },
+    {
+      id: 'other',
+      title: 'Other',
+      icon: <Briefcase className="text-[#7c3aed]" size={24} />,
+      bg: 'bg-[#ede9fe]',
+      borderActive: 'border-[#00a9ff]',
+      cardActive: 'bg-[#f0faff] border-[#00a9ff]',
+      cardInactive: 'bg-white border-[#ede8e1]',
+    },
   ];
 
   return (
@@ -60,9 +69,8 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
             <div
               key={opt.id}
               onClick={() => setSelection(opt.id)}
-              className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer active:scale-[0.98] ${
-                isSelected ? opt.cardActive + ' shadow-[0_4px_20px_rgba(0,169,255,0.15)]' : opt.cardInactive
-              }`}
+              className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer active:scale-[0.98] ${isSelected ? opt.cardActive + ' shadow-[0_4px_20px_rgba(0,169,255,0.15)]' : opt.cardInactive
+                }`}
             >
               <div className={`w-12 h-12 rounded-xl ${opt.bg} flex items-center justify-center shrink-0`}>
                 {opt.icon}
@@ -71,9 +79,8 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
                 <p className="text-[16px] font-bold text-[#19183b]">{opt.title}</p>
               </div>
               <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  isSelected ? 'border-[#00a9ff] bg-[#00a9ff]' : 'border-[#ede8e1]'
-                }`}
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[#00a9ff] bg-[#00a9ff]' : 'border-[#ede8e1]'
+                  }`}
               >
                 {isSelected && <div className="w-2 h-2 rounded-full bg-white"></div>}
               </div>
@@ -86,9 +93,8 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
         <button
           onClick={() => selection && onNext()}
           disabled={!selection}
-          className={`w-full h-15 py-4 text-white font-extrabold text-[17px] transition-all flex items-center justify-center gap-2 rounded-full ${
-            selection ? 'bg-[#00a9ff] shadow-[0_5px_0px_#0085cc] active:translate-y-[3px] active:shadow-[0_2px_0px_#0085cc]' : 'bg-gray-300'
-          }`}
+          className={`w-full h-15 py-4 text-white font-extrabold text-[17px] transition-all flex items-center justify-center gap-2 rounded-full ${selection ? 'bg-[#00a9ff] shadow-[0_5px_0px_#0085cc] active:translate-y-[3px] active:shadow-[0_2px_0px_#0085cc]' : 'bg-gray-300'
+            }`}
         >
           Continue →
         </button>

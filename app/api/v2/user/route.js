@@ -12,7 +12,7 @@ import { adminAuth } from "@/lib/firebase/firebase-admin";
 // Old Zod validators commented out.
 const CreateUserValidator = z.object({
   email: z.string().email("Invalid email format").toLowerCase().trim(),
-  role: z.enum(["student", "writer", "designer", "developer"]),
+  role: z.enum(["student", "writer", "designer", "developer", "other"]),
 });
 
 // SECTION 2: TOKEN VERIFICATION HELPER

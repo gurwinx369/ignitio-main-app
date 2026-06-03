@@ -148,6 +148,7 @@ export const USER_ROLES = {
   WRITER: "writer",
   DESIGNER: "designer",
   DEVELOPER: "developer",
+  OTHER: "other",
 };
 
 // USER PROFILE — final assembly

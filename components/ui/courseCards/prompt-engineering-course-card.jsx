@@ -253,11 +253,12 @@ export default function PromptEngineeringCourseCard({
     status = 'Not Started',
     levelsFinished = 0,
     totalLevels,
+    roadmapData = promptEngineeringRoadmapData,
 }) {
     const [hovered, setHovered] = useState(false);
 
-    const totalDays = promptEngineeringRoadmapData.days.length;
-    const calculatedTotalLevels = promptEngineeringRoadmapData.days.flatMap(day => day.levels).length;
+    const totalDays = roadmapData.days.length;
+    const calculatedTotalLevels = roadmapData.days.flatMap(day => day.levels).length;
     const displayTotalLevels = totalLevels || calculatedTotalLevels;
 
     // ── Loader integration ─────────────────────────────────────────
@@ -358,13 +359,13 @@ export default function PromptEngineeringCourseCard({
 
                 {/* Description */}
                 <h3 className="text-[18px] font-bold text-gray-900 mb-1">
-                    {promptEngineeringRoadmapData.title}
+                    {roadmapData.title}
                 </h3>
                 <p
                     className="text-[15.5px] font-medium leading-[1.55] mb-4"
                     style={{ color: '#1e1a18' }}
                 >
-                    {promptEngineeringRoadmapData.description}
+                    {roadmapData.description}
                 </p>
 
                 {/* Level squares — wave-animated during load */}

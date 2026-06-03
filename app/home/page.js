@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import Profile from "@/layout/Profile";
 import CppCourseCard from "../../components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
-import { promptEngineeringRoadmapData } from "@/data/promptEngineeringCourseData";
+import { useAuth } from "@/features/context/AuthContext";
+import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const redirects = {
     GitGithub: "/home/roadmaps/git-github",
@@ -21,6 +23,39 @@ export default function Home() {
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
+  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(genericPromptEngineeringRoadmapData);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      let role = "other";
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          const res = await fetch("/api/v2/user", {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            role = data.user?.role || "other";
+          } else {
+            role = localStorage.getItem("profession") || "other";
+          }
+        } catch (error) {
+          console.error("Failed to fetch user role:", error);
+          role = localStorage.getItem("profession") || "other";
+        }
+      } else {
+        role = localStorage.getItem("profession") || "other";
+      }
+      setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
+    };
+    
+    if (user !== undefined) {
+      fetchUserRole();
+    }
+  }, [user]);
 
   useEffect(() => {
     setIsClient(true);
@@ -44,10 +79,10 @@ export default function Home() {
         legacySections: ["beginner", "intermediate", "advanced"],
       },
       {
-        id: "prompt-engineering",
-        title: promptEngineeringRoadmapData.title,
+        id: selectedPromptRoadmap.id,
+        title: selectedPromptRoadmap.title,
         route: redirects.PromptEngineering,
-        totalLevels: promptEngineeringRoadmapData.days.flatMap(
+        totalLevels: selectedPromptRoadmap.days.flatMap(
           (day) => day.levels,
         ).length,
         legacySections: [],
@@ -102,7 +137,7 @@ export default function Home() {
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(bestRoadmap);
-  }, []);
+  }, [selectedPromptRoadmap]);
 
   const handleRedirectGitGithub = () => {
     router.push(redirects.GitGithub);
@@ -186,13 +221,14 @@ export default function Home() {
               <PromptEngineeringCourseCard
                 onClick={handleRedirectPromptEngineering}
                 levelsFinished={
-                  roadmapProgress["prompt-engineering"]?.completed || 0
+                  roadmapProgress[selectedPromptRoadmap.id]?.completed || 0
                 }
                 totalLevels={
-                  roadmapProgress["prompt-engineering"]?.total ||
-                  promptEngineeringRoadmapData.days.flatMap((day) => day.levels)
+                  roadmapProgress[selectedPromptRoadmap.id]?.total ||
+                  selectedPromptRoadmap.days.flatMap((day) => day.levels)
                     .length
                 }
+                roadmapData={selectedPromptRoadmap}
               />
             </div>
             <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
