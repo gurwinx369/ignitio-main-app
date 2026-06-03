@@ -126,7 +126,7 @@ export const promptEngineeringStudentRoadmapData = {
     {
       id: "day2",
       title: "Day 2 — Systems and Workflow",
-      color: "#10b981",
+      color: "#3b82f6",
       levels: [
         {
           id: "PE_STUDENT_D2_01",
@@ -218,7 +218,7 @@ export const promptEngineeringStudentRoadmapData = {
     {
       id: "day3",
       title: "Day 3 — Advanced Techniques",
-      color: "#10b981",
+      color: "#ec4899",
       levels: [
         {
           id: "PE_STUDENT_D3_01",

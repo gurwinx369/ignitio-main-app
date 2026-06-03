@@ -8,6 +8,7 @@ import LevelCompletionToast from '@/layout/Card/LevelCompletionToast';
 import LevelContent from '@/layout/LevelContent/LevelContent';
 import Profile from "@/layout/Profile";
 import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
+import KyleAssignmentModal from '@/layout/LevelContent/KyleAssignmentModal';
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
@@ -21,6 +22,10 @@ export default function RoadmapTemplate({ roadmapData }) {
     const [selectedLevel, setSelectedLevel] = useState(null);
     const [showCompletion, setShowCompletion] = useState(false);
     const [isRoadmapReady, setIsRoadmapReady] = useState(false);
+    
+    // Assignment gate state
+    const [assignmentGateVersion, setAssignmentGateVersion] = useState(0);
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     
     const prevCompletedCount = useRef(0);
 
@@ -114,16 +119,55 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const activeDay = roadmapData.days[activeDayIndex];
     
-    const checkIsUnlocked = (level) => {
-        if (!level) return false;
-        if (completedLevels.includes(level.id)) return true;
-        const globalIndex = allLevels.findIndex(l => l.id === level.id);
-        if (globalIndex === 0) {
-            return true;
+    const isPromptEngineeringRoadmap = roadmapData.id?.startsWith('prompt-engineering');
+
+    // Force recalculation when assignment is passed
+    const _forceUpdate = assignmentGateVersion;
+
+    const arePreviousAssignmentsPassed = (dayIndex) => {
+        if (!isPromptEngineeringRoadmap) return true;
+        if (dayIndex <= 0) return true;
+
+        return roadmapData.days
+            .slice(0, dayIndex)
+            .every(day =>
+                localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true"
+            );
+    };
+
+    const getUnlockState = (level) => {
+        if (!level) return { isUnlocked: false, lockedReason: "Not available" };
+        
+        let globalUnlocked = false;
+        if (completedLevels.includes(level.id)) {
+            globalUnlocked = true;
         } else {
-            const prevLevel = allLevels[globalIndex - 1];
-            return completedLevels.includes(prevLevel.id);
+            const globalIndex = allLevels.findIndex(l => l.id === level.id);
+            if (globalIndex <= 0) {
+                globalUnlocked = true;
+            } else {
+                const prevLevel = allLevels[globalIndex - 1];
+                globalUnlocked = completedLevels.includes(prevLevel.id);
+            }
         }
+
+        if (!globalUnlocked) {
+            return { isUnlocked: false, lockedReason: "Complete Previous Lesson First" };
+        }
+
+        if (isPromptEngineeringRoadmap) {
+            const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === level.id));
+            if (dayIndex > 0) {
+                const prevPassed = arePreviousAssignmentsPassed(dayIndex);
+                if (!prevPassed) {
+                    const prevDay = roadmapData.days[dayIndex - 1];
+                    const prevDayNumber = Number(String(prevDay?.id || "").match(/\d+/)?.[0]) || dayIndex;
+                    return { isUnlocked: false, lockedReason: `Complete Day ${prevDayNumber} assignment first` };
+                }
+            }
+        }
+
+        return { isUnlocked: true, lockedReason: null };
     };
 
     const handlePrevDay = () => setActiveDayIndex(prev => Math.max(0, prev - 1));
@@ -148,25 +192,49 @@ export default function RoadmapTemplate({ roadmapData }) {
             
             setCompletedLevels(sortedCompleted);
             localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
+
+            if (isPromptEngineeringRoadmap) {
+                const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === levelId));
+                if (dayIndex !== -1) {
+                    const day = roadmapData.days[dayIndex];
+                    const isDayCompleteNow = day.levels.every(l => newCompleted.includes(l.id));
+                    const isAssignmentPassed = localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true";
+                    
+                    if (isDayCompleteNow && !isAssignmentPassed && activeDayIndex === dayIndex) {
+                        setShowAssignmentModal(true);
+                    }
+                }
+            }
         }
     };
 
     const dayNumber = Number(String(activeDay?.id || "").match(/\d+/)?.[0]) || activeDayIndex + 1;
 
-    if (selectedLevel) {
-        return (
-            <LevelContent
-                level={selectedLevel}
-                onBack={() => setSelectedLevel(null)}
-                onComplete={handleVideoComplete}
-                isCompleted={completedLevels.includes(selectedLevel.id)}
-                roadmapType={roadmapData.id}
-                dayNumber={dayNumber}
-            />
-        );
-    }
+    const isCurrentDayComplete = useMemo(() => {
+        if (!activeDay) return false;
+        return activeDay.levels.every(l => completedLevels.includes(l.id));
+    }, [activeDay, completedLevels]);
 
-    return (
+    const isCurrentDayAssignmentPassed = typeof window !== 'undefined' 
+        ? localStorage.getItem(`assignment_passed_${roadmapData.id}_${activeDay?.id}`) === "true" 
+        : false;
+
+    const renderContent = () => {
+        if (selectedLevel) {
+            return (
+                <LevelContent
+                    level={selectedLevel}
+                    onBack={() => setSelectedLevel(null)}
+                    onComplete={handleVideoComplete}
+                    isCompleted={completedLevels.includes(selectedLevel.id)}
+                    roadmapType={roadmapData.id}
+                    dayNumber={dayNumber}
+                    showAssignmentModal={showAssignmentModal}
+                />
+            );
+        }
+
+        return (
         <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans relative">
             <div className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[var(--color-primary)]/80 backdrop-blur-md mb-4 border-b border-gray-200/50">
                 <div className="max-w-7xl mx-auto flex items-center">
@@ -223,6 +291,21 @@ export default function RoadmapTemplate({ roadmapData }) {
                     </button>
                 </div>
 
+                {isPromptEngineeringRoadmap && isCurrentDayComplete && !isCurrentDayAssignmentPassed && (
+                    <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
+                        <div>
+                            <h3 className="font-bold text-orange-900 text-lg">Day {dayNumber} Assignment Pending</h3>
+                            <p className="text-orange-700 text-sm">Pass the assignment to unlock the next day's lessons.</p>
+                        </div>
+                        <button 
+                            onClick={() => setShowAssignmentModal(true)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+                        >
+                            Complete Assignment
+                        </button>
+                    </div>
+                )}
+
                 {activeDay && (
                     <div className="relative transition-all duration-700 opacity-100 grayscale-0">
                         {(!isMounted || !isRoadmapReady) ? (
@@ -241,16 +324,20 @@ export default function RoadmapTemplate({ roadmapData }) {
                             </div>
                         )}
                         
-                        {isMounted && popupLevel && (
-                            <LessonPopup 
-                                level={popupLevel}
-                                isCompleted={completedLevels.includes(popupLevel.id)}
-                                isUnlocked={checkIsUnlocked(popupLevel)}
-                                onStart={() => handleStartLesson(popupLevel)}
-                                onClose={() => setPopupLevel(null)}
-                                difficulty={activeDay.id}
-                            />
-                        )}
+                        {isMounted && popupLevel && (() => {
+                            const unlockState = getUnlockState(popupLevel);
+                            return (
+                                <LessonPopup 
+                                    level={popupLevel}
+                                    isCompleted={completedLevels.includes(popupLevel.id)}
+                                    isUnlocked={unlockState.isUnlocked}
+                                    lockedReason={unlockState.lockedReason}
+                                    onStart={() => handleStartLesson(popupLevel)}
+                                    onClose={() => setPopupLevel(null)}
+                                    difficulty={activeDay.id}
+                                />
+                            );
+                        })()}
                         
                         {isMounted && showCompletion && (
                             <LevelCompletionToast difficulty={activeDay.id} color={activeDay.color} />
@@ -259,5 +346,26 @@ export default function RoadmapTemplate({ roadmapData }) {
                 )}
             </div>
         </div>
+    );
+};
+
+    return (
+        <>
+            {renderContent()}
+            <KyleAssignmentModal
+                open={showAssignmentModal}
+                roadmapId={roadmapData.id}
+                roadmapType={roadmapData.id}
+                dayId={activeDay?.id}
+                dayNumber={dayNumber}
+                levels={activeDay?.levels || []}
+                isFinalDay={activeDayIndex === roadmapData.days.length - 1}
+                onPassed={() => {
+                    setAssignmentGateVersion(v => v + 1);
+                    setShowAssignmentModal(false);
+                }}
+                onClose={() => setShowAssignmentModal(false)}
+            />
+        </>
     );
 }

@@ -35,7 +35,7 @@ function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCom
     };
 }
 
-const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber }) => {
+const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber, showAssignmentModal = false }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
@@ -53,6 +53,8 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
 
     const [quizSatisfied, setQuizSatisfied] = useState(initialQuizSatisfied);
     const [showQuizModal, setShowQuizModal] = useState(false);
+
+    const shouldPauseVideo = showQuizModal || showAssignmentModal;
 
     useEffect(() => {
         if (isPromptEngineeringRoadmap && activeTab === 'practice') {
@@ -216,6 +218,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     canMarkComplete={canMarkComplete}
                     roadmapType={roadmapType}
                     isVisible={activeTab === 'video'}
+                    shouldPauseVideo={shouldPauseVideo}
                 />
             </div>
             {activeTab === 'practice' && !isPromptEngineeringRoadmap && (

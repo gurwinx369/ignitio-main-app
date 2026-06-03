@@ -21,7 +21,8 @@ const YouTubeSegmentPlayer = ({
   onWatchTimeUpdate,
   onReady,
   autoplay = true,
-  isVisible = true
+  isVisible = true,
+  shouldPauseVideo = false
 }) => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef(null);
@@ -213,6 +214,13 @@ const YouTubeSegmentPlayer = ({
     }
     // Note: We don't auto-resume on visible to avoid unexpected playback
   }, [isVisible, isPlayerReady]);
+
+  // Pause video when shouldPauseVideo is true
+  useEffect(() => {
+    if (shouldPauseVideo && isPlayerReady && playerRef.current?.pauseVideo) {
+      playerRef.current.pauseVideo();
+    }
+  }, [shouldPauseVideo, isPlayerReady]);
 
   // Continuous boundary enforcement - runs even when paused to catch scrubbing
   useEffect(() => {

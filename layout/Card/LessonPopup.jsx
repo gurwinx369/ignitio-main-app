@@ -2,8 +2,10 @@ import React from "react";
 import { PlayCircle, Clock, CheckCircle2, ArrowRight, BarChart } from "lucide-react";
 import { roadmapThemes } from './theme';
 
-const LessonPopup = ({ level, isCompleted, isUnlocked = true, onStart, onClose, difficulty = "beginner" }) => {
+const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onStart, onClose, difficulty = "beginner" }) => {
     const theme = roadmapThemes[difficulty] || roadmapThemes.beginner;
+
+    const disabledMessage = lockedReason || "Complete Previous Lesson First";
 
     return (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -62,7 +64,7 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, onStart, onClose, 
                                 : 'text-white active:scale-95 hover:shadow-lg hover:scale-[1.02]'}`}
                         style={{ backgroundColor: isUnlocked ? theme.accent : undefined }}
                     >
-                        {!isUnlocked ? "Complete Previous Lesson First" : (isCompleted ? "Review Lesson" : "Start Lesson")}
+                        {!isUnlocked ? disabledMessage : (isCompleted ? "Review Lesson" : "Start Lesson")}
                         {isUnlocked && <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />}
                     </button>
                 </div>

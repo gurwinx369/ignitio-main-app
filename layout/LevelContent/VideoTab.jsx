@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 
-const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, canMarkComplete, roadmapType = 'git-github', isVisible = true }) => {
+const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
     const thresholdCalledRef = useRef(false);
 
     // Check if level is segment-based
@@ -134,6 +134,7 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                             onReady={() => setIsLoaded(true)}
                             autoplay={true}
                             isVisible={isVisible}
+                            shouldPauseVideo={shouldPauseVideo}
                         />
                     </div>
 

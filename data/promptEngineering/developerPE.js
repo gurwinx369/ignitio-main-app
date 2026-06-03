@@ -21,7 +21,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 0,
           endSec: 103,
-          durationInMinutes: 1.72,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D1_02",
@@ -33,7 +33,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 104,
           endSec: 151,
-          durationInMinutes: 0.78,
+          durationInMinutes: 1,
         },
         {
           id: "PE_DEVELOPER_D1_03",
@@ -45,7 +45,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 429,
           endSec: 623,
-          durationInMinutes: 3.23,
+          durationInMinutes: 3,
         },
         {
           id: "PE_DEVELOPER_D1_04",
@@ -57,7 +57,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 645,
           endSec: 706,
-          durationInMinutes: 1.02,
+          durationInMinutes: 1,
         },
         {
           id: "PE_DEVELOPER_D1_05",
@@ -69,7 +69,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 707,
           endSec: 870,
-          durationInMinutes: 2.72,
+          durationInMinutes: 3,
         },
         {
           id: "PE_DEVELOPER_D1_06",
@@ -81,14 +81,14 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 871,
           endSec: 1092,
-          durationInMinutes: 3.68,
+          durationInMinutes: 4,
         },
       ],
     },
     {
       id: "day2",
       title: "Day 2 — AI-Paired Coding Workflows",
-      color: "#3b82f6",
+      color: "#10b981",
       levels: [
         {
           id: "PE_DEVELOPER_D2_01",
@@ -100,7 +100,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 69,
           endSec: 353,
-          durationInMinutes: 4.73,
+          durationInMinutes: 5,
         },
         {
           id: "PE_DEVELOPER_D2_02",
@@ -112,7 +112,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 354,
           endSec: 463,
-          durationInMinutes: 1.82,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D2_03",
@@ -124,7 +124,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 464,
           endSec: 561,
-          durationInMinutes: 1.62,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D2_04",
@@ -136,7 +136,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 562,
           endSec: 625,
-          durationInMinutes: 1.05,
+          durationInMinutes: 1,
         },
         {
           id: "PE_DEVELOPER_D2_05",
@@ -148,7 +148,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 626,
           endSec: 742,
-          durationInMinutes: 1.93,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D2_06",
@@ -160,14 +160,14 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "91B_v-wOaws",
           startSec: 720,
           endSec: 771,
-          durationInMinutes: 0.85,
+          durationInMinutes: 1,
         },
       ],
     },
     {
       id: "day3",
       title: "Day 3 — Advanced Developer Prompting",
-      color: "#3b82f6",
+      color: "#ec4899",
       levels: [
         {
           id: "PE_DEVELOPER_D3_01",
@@ -179,7 +179,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 1093,
           endSec: 1206,
-          durationInMinutes: 1.88,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D3_02",
@@ -203,7 +203,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 1328,
           endSec: 1463,
-          durationInMinutes: 2.25,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D3_04",
@@ -215,7 +215,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 1757,
           endSec: 1882,
-          durationInMinutes: 2.08,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D3_05",
@@ -227,7 +227,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "2BpCk4d2Cc0",
           startSec: 1883,
           endSec: 1938,
-          durationInMinutes: 0.92,
+          durationInMinutes: 2,
         },
         {
           id: "PE_DEVELOPER_D3_06",
@@ -239,7 +239,7 @@ export const promptEngineeringDeveloperRoadmapData = {
           videoId: "VnEoS2eQXsw",
           startSec: 524,
           endSec: 635,
-          durationInMinutes: 1.85,
+          durationInMinutes: 2,
         },
       ],
     },
