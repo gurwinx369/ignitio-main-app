@@ -1,24 +1,80 @@
-import React from 'react';
-import LevelItem from './LevelItem';
+import React, { useState, useEffect, useRef } from 'react';
+import RoadmapWorldView from './RoadmapWorldView';
+import LessonPopup from './LessonPopup';
+import LevelCompletionToast from './LevelCompletionToast';
 
 const LevelsList = ({
-                        levels, color, isExpanded, completedLevels, onLevelClick
+                        levels, color, isExpanded, completedLevels, onLevelClick, difficulty
                     }) => {
-    return (<div
-            className="overflow-y-scroll transition-all duration-500 ease-in-out"
+    const [popupLevel, setPopupLevel] = useState(null);
+    const [showCompletion, setShowCompletion] = useState(false);
+    const prevCompletedCount = useRef(null);
+
+    useEffect(() => {
+        if(prevCompletedCount.current === null) {
+            prevCompletedCount.current = completedLevels.length;
+            return;
+        }
+
+        if(completedLevels.length > prevCompletedCount.current) {
+            setShowCompletion(true);
+
+            const timer = setTimeout(() => {
+                setShowCompletion(false);
+            }, 2500);
+
+            prevCompletedCount.current = completedLevels.length;
+            
+            return () => clearTimeout(timer);
+        }
+
+        prevCompletedCount.current = completedLevels.length;
+    }, [completedLevels]);
+
+    const handleNodeClick = (level) => {
+        setPopupLevel(level);
+    };
+
+    const handleClosePopup = () => {
+        setPopupLevel(null);
+    };
+
+    const handleStartLesson = (level) => {
+        setPopupLevel(null);
+        onLevelClick(level); // Call existing handler
+    };
+
+    return (
+        <div
+            className="transition-all duration-500 ease-in-out relative w-full overflow-visible"
             style={{
-                maxHeight: isExpanded ? '2000px' : '0px', opacity: isExpanded ? 1 : 0
+                maxHeight: isExpanded ? 'none' : '0px',
+                opacity: isExpanded ? 1 : 0
             }}
         >
-            <div className="p-4 sm:p-6 lg:p-8 space-y-2 sm:space-y-3 lg:space-y-4">
-                {levels.map((level) => (<LevelItem
-                        key={level.id}
-                        level={level}
-                        color={color}
-                        isCompleted={completedLevels.includes(level.id)}
-                        onClick={() => onLevelClick(level)}
-                    />))}
-            </div>
+            {isExpanded && (
+                <RoadmapWorldView 
+                    levels={levels}
+                    completedLevels={completedLevels}
+                    color={color}
+                    onNodeClick={handleNodeClick}
+                    difficulty={difficulty}
+                />
+            )}
+            
+            {popupLevel && (
+                <LessonPopup 
+                    level={popupLevel}
+                    isCompleted={completedLevels.includes(popupLevel.id)}
+                    onStart={handleStartLesson}
+                    onClose={handleClosePopup}
+                    difficulty={difficulty}
+                />
+            )}
+            
+            {showCompletion && (
+                <LevelCompletionToast difficulty={difficulty} />
+            )}
         </div>);
 };
 

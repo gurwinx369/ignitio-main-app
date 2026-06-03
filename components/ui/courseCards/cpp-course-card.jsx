@@ -403,13 +403,24 @@ function CppExecCanvas() {
     return <canvas ref={canvasRef} className="block w-full h-full" />;
 }
 
+import { cppRoadmapData } from '@/data/cppCourseData';
+
 // ─── CppCourseCard ────────────────────────────────────────────────
 export default function CppCourseCard({
                                           onClick,
                                           status         = 'Not Started',
                                           levelsFinished = 0,
-                                          totalLevels    = 9,
+                                          totalLevels,
                                       }) {
+    const totalLevelsData = cppRoadmapData.days.flatMap(day => day.levels);
+    const calculatedTotalLevels = totalLevelsData.length;
+    const totalDurationMinutes = totalLevelsData.reduce((acc, level) => acc + (level.durationInMinutes || 0), 0);
+    const formattedDuration = totalDurationMinutes >= 60 
+        ? `${Math.round(totalDurationMinutes / 60)} Hours`
+        : `${totalDurationMinutes} Minutes`;
+
+    const displayTotalLevels = totalLevels || calculatedTotalLevels;
+
     const [hovered, setHovered] = useState(false);
 
     // ── Loader integration ─────────────────────────────────────────
@@ -446,7 +457,7 @@ export default function CppCourseCard({
             onClick={handleClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="w-120 overflow-hidden select-none"
+            className="w-full sm:w-120 overflow-hidden select-none"
             style={{
                 borderRadius: 24,
                 boxShadow:    shadow,
@@ -501,7 +512,7 @@ export default function CppCourseCard({
                         className="text-[11px] font-bold tracking-widest uppercase"
                         style={{ color: '#3a3330' }}
                     >
-            6 Hours
+            {totalDurationMinutes > 0 ? formattedDuration : "6 Hours"}
           </span>
                 </div>
 
@@ -519,13 +530,13 @@ export default function CppCourseCard({
                     <LevelSquaresLoading
                         state={state}
                         levelsFinished={levelsFinished}
-                        totalLevels={totalLevels}
+                        totalLevels={displayTotalLevels}
                     />
                     <span
                         className="text-[11px] font-semibold ml-1"
                         style={{ color: 'rgba(30,26,24,0.45)' }}
                     >
-            {levelsFinished}/{totalLevels} levels
+            {levelsFinished}/{displayTotalLevels} levels
           </span>
                 </div>
 

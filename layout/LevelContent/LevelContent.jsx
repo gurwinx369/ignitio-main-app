@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
+import DoubtSolver from './DoubtSolver';
+import KyleQuizModal from './KyleQuizModal';
 
 // Function to calculate the 50% time duration for legacy full-video levels
 function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
@@ -33,12 +35,44 @@ function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCom
     };
 }
 
-const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github' }) => {
+const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber, showAssignmentModal = false }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
     const cleanupRef = useRef(null);
     const prevLevelIdRef = useRef(null);
+
+    const isPromptEngineeringRoadmap = roadmapType?.startsWith('prompt-engineering');
+
+    const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
+    const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;
+
+    const initialQuizSatisfied = typeof window !== 'undefined'
+        ? (localStorage.getItem(quizGateCompletedKey) === "true" || sessionStorage.getItem(quizGateBypassedKey) === "true")
+        : false;
+
+    const [quizSatisfied, setQuizSatisfied] = useState(initialQuizSatisfied);
+    const [showQuizModal, setShowQuizModal] = useState(false);
+
+    const shouldPauseVideo = showQuizModal || showAssignmentModal;
+
+    useEffect(() => {
+        if (isPromptEngineeringRoadmap && activeTab === 'practice') {
+            setActiveTab('video');
+        }
+        if (!isPromptEngineeringRoadmap && activeTab === 'kyle') {
+            setActiveTab('video');
+        }
+    }, [isPromptEngineeringRoadmap, activeTab]);
+
+    // Update quiz logic when level changes
+    useEffect(() => {
+        const satisfied = typeof window !== 'undefined'
+            ? (localStorage.getItem(quizGateCompletedKey) === "true" || sessionStorage.getItem(quizGateBypassedKey) === "true")
+            : false;
+        setQuizSatisfied(satisfied);
+        setShowQuizModal(false);
+    }, [quizGateCompletedKey, quizGateBypassedKey]);
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
@@ -56,14 +90,17 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
         ? level.durationInMinutes * 60 * 1000 * 0.5
         : 0;
 
-    // Derived canMarkComplete - recomputes on every render based on localStorage
-    const canMarkComplete = isCompleted
+    // Initial value computed from storage
+    const initialCanMarkComplete = isCompleted
         ? true
         : isSegmentBased
             ? storedWatchTime >= thresholdSeconds
             : level.durationInMinutes
                 ? storedWatchTimeForLegacy >= fiftyPercentDurationLegacy
                 : false;
+
+    // Actual state
+    const [canMarkComplete, setCanMarkComplete] = useState(initialCanMarkComplete);
 
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
@@ -86,7 +123,23 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Called when 50% watch threshold is met
     const handleThresholdMet = useCallback(() => {
         setCanMarkComplete(true);
-    }, []);
+        if (isPromptEngineeringRoadmap && !quizSatisfied) {
+            setShowQuizModal(true);
+        }
+    }, [isPromptEngineeringRoadmap, quizSatisfied]);
+
+    const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
+        localStorage.setItem(quizGateCompletedKey, "true");
+        setQuizSatisfied(true);
+    };
+
+    const handleCloseQuizModal = () => {
+        // In case they bypassed, check if bypassed key exists
+        if (sessionStorage.getItem(quizGateBypassedKey) === "true") {
+            setQuizSatisfied(true);
+        }
+        setShowQuizModal(false);
+    };
 
     // Called when user clicks the Complete button
     const handleMarkComplete = useCallback(() => {
@@ -115,35 +168,45 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                         <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
 
-                    {/* Video/Practice Switcher */}
+                    {/* Video/Practice/Ask Kyle Switcher */}
                     <div className="flex justify-center mb-6 sm:mb-8">
                         <div className="inline-flex bg-orange-200/60 rounded-full p-1">
                             <button
                                 onClick={() => setActiveTab('video')}
-                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                                    activeTab === 'video'
-                                        ? 'bg-blue-400 text-white shadow-md'
-                                        : 'text-gray-700 hover:text-gray-900'
-                                }`}
+                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'video'
+                                    ? 'bg-blue-400 text-white shadow-md'
+                                    : 'text-gray-700 hover:text-gray-900'
+                                    }`}
                             >
                                 Video
                             </button>
-                            <button
-                                onClick={() => setActiveTab('practice')}
-                                className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                                    activeTab === 'practice'
+                            {isPromptEngineeringRoadmap ? (
+                                <button
+                                    onClick={() => setActiveTab('kyle')}
+                                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'kyle'
                                         ? 'bg-blue-400 text-white shadow-md'
                                         : 'text-gray-700 hover:text-gray-900'
-                                }`}
-                            >
-                                Practice
-                            </button>
+                                        }`}
+                                >
+                                    Ask Kyle
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setActiveTab('practice')}
+                                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'practice'
+                                        ? 'bg-blue-400 text-white shadow-md'
+                                        : 'text-gray-700 hover:text-gray-900'
+                                        }`}
+                                >
+                                    Practice
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Content - VideoTab always mounted to keep player warm, PracticeTab conditionally rendered */}
+            {/* Content - VideoTab always mounted to keep player warm, others conditionally rendered */}
             <div className={activeTab === 'video' ? 'block' : 'hidden'}>
                 <VideoTab
                     level={level}
@@ -155,9 +218,26 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     canMarkComplete={canMarkComplete}
                     roadmapType={roadmapType}
                     isVisible={activeTab === 'video'}
+                    shouldPauseVideo={shouldPauseVideo}
                 />
             </div>
-            {activeTab === 'practice' && <PracticeTab level={level} roadmapType={roadmapType} />}
+            {activeTab === 'practice' && !isPromptEngineeringRoadmap && (
+                <PracticeTab level={level} roadmapType={roadmapType} />
+            )}
+            {activeTab === 'kyle' && isPromptEngineeringRoadmap && (
+                <div className="pb-12">
+                    <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
+                </div>
+            )}
+            <KyleQuizModal
+                open={showQuizModal}
+                level={level}
+                roadmapType={roadmapType}
+                dayNumber={dayNumber}
+                role={role}
+                onAnswered={handleQuizAnswered}
+                onCloseAfterAnswered={handleCloseQuizModal}
+            />
         </div>
     );
 };
