@@ -2,6 +2,37 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Bot, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
+function renderBasicMarkdown(text) {
+  const normalizedText = String(text || "")
+    .replace(/\\\*/g, "*");
+
+  const tokens = normalizedText.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*)/g);
+
+  return tokens.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={index} className="font-bold text-gray-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (
+      part.startsWith("*") &&
+      part.endsWith("*") &&
+      !part.startsWith("**")
+    ) {
+      return (
+        <em key={index} className="italic text-gray-900">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+
+    return <React.Fragment key={index}>{part}</React.Fragment>;
+  });
+}
+
 const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([
@@ -112,7 +143,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                                         ? 'bg-blue-500 text-white rounded-2xl rounded-tr-sm' 
                                         : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-tl-sm whitespace-pre-wrap'
                                 }`}>
-                                    {msg.text}
+                                    {msg.role === 'kyle' ? renderBasicMarkdown(msg.text) : msg.text}
                                 </div>
                             </div>
                         </div>

@@ -151,6 +151,8 @@ export default function RoadmapTemplate({ roadmapData }) {
         }
     };
 
+    const dayNumber = Number(String(activeDay?.id || "").match(/\d+/)?.[0]) || activeDayIndex + 1;
+
     if (selectedLevel) {
         return (
             <LevelContent
@@ -159,6 +161,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                 onComplete={handleVideoComplete}
                 isCompleted={completedLevels.includes(selectedLevel.id)}
                 roadmapType={roadmapData.id}
+                dayNumber={dayNumber}
             />
         );
     }

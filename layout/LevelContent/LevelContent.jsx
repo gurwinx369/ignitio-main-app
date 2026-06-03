@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
 import DoubtSolver from './DoubtSolver';
+import KyleQuizModal from './KyleQuizModal';
 
 // Function to calculate the 50% time duration for legacy full-video levels
 function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
@@ -34,14 +35,24 @@ function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCom
     };
 }
 
-const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role }) => {
+const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
     const cleanupRef = useRef(null);
     const prevLevelIdRef = useRef(null);
 
-    const isPromptEngineeringRoadmap = roadmapType.startsWith('prompt-engineering');
+    const isPromptEngineeringRoadmap = roadmapType?.startsWith('prompt-engineering');
+
+    const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
+    const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;
+
+    const initialQuizSatisfied = typeof window !== 'undefined'
+        ? (localStorage.getItem(quizGateCompletedKey) === "true" || sessionStorage.getItem(quizGateBypassedKey) === "true")
+        : false;
+
+    const [quizSatisfied, setQuizSatisfied] = useState(initialQuizSatisfied);
+    const [showQuizModal, setShowQuizModal] = useState(false);
 
     useEffect(() => {
         if (isPromptEngineeringRoadmap && activeTab === 'practice') {
@@ -51,6 +62,15 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
             setActiveTab('video');
         }
     }, [isPromptEngineeringRoadmap, activeTab]);
+
+    // Update quiz logic when level changes
+    useEffect(() => {
+        const satisfied = typeof window !== 'undefined'
+            ? (localStorage.getItem(quizGateCompletedKey) === "true" || sessionStorage.getItem(quizGateBypassedKey) === "true")
+            : false;
+        setQuizSatisfied(satisfied);
+        setShowQuizModal(false);
+    }, [quizGateCompletedKey, quizGateBypassedKey]);
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
@@ -101,7 +121,23 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Called when 50% watch threshold is met
     const handleThresholdMet = useCallback(() => {
         setCanMarkComplete(true);
-    }, []);
+        if (isPromptEngineeringRoadmap && !quizSatisfied) {
+            setShowQuizModal(true);
+        }
+    }, [isPromptEngineeringRoadmap, quizSatisfied]);
+
+    const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
+        localStorage.setItem(quizGateCompletedKey, "true");
+        setQuizSatisfied(true);
+    };
+
+    const handleCloseQuizModal = () => {
+        // In case they bypassed, check if bypassed key exists
+        if (sessionStorage.getItem(quizGateBypassedKey) === "true") {
+            setQuizSatisfied(true);
+        }
+        setShowQuizModal(false);
+    };
 
     // Called when user clicks the Complete button
     const handleMarkComplete = useCallback(() => {
@@ -190,6 +226,15 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
                 </div>
             )}
+            <KyleQuizModal
+                open={showQuizModal}
+                level={level}
+                roadmapType={roadmapType}
+                dayNumber={dayNumber}
+                role={role}
+                onAnswered={handleQuizAnswered}
+                onCloseAfterAnswered={handleCloseQuizModal}
+            />
         </div>
     );
 };
