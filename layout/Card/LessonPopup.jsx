@@ -1,19 +1,97 @@
-import React from "react";
+import React, { useRef, useState, useLayoutEffect } from "react";
 import { PlayCircle, Clock, CheckCircle2, ArrowRight, BarChart } from "lucide-react";
 import { roadmapThemes } from './theme';
 
-const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onStart, onClose, difficulty = "beginner" }) => {
+const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onStart, onClose, difficulty = "beginner", anchor }) => {
     const theme = roadmapThemes[difficulty] || roadmapThemes.beginner;
+
+    const [posStyle, setPosStyle] = useState({});
+    const [isPositioned, setIsPositioned] = useState(false);
+    const panelRef = useRef(null);
+
+    useLayoutEffect(() => {
+        setIsPositioned(false);
+        
+        if (!anchor) return;
+        if (window.innerWidth < 768) return; // Mobile handled by css classes
+
+        const PANEL_WIDTH = 380;
+        const PANEL_GAP = 24;
+        const CONTAINER_PADDING = 16;
+
+        const containerWidth = anchor.containerWidth;
+        const containerHeight = anchor.containerHeight;
+
+        const panelWidth = Math.min(PANEL_WIDTH, containerWidth - CONTAINER_PADDING * 2);
+        const panelHeight = panelRef.current?.getBoundingClientRect().height || 320;
+
+        const spaceRight = containerWidth - anchor.x - CONTAINER_PADDING;
+        const spaceLeft = anchor.x - CONTAINER_PADDING;
+
+        const clamp = (value, min, max) => {
+            if (max < min) return min;
+            return Math.min(Math.max(value, min), max);
+        };
+
+        let left;
+
+        if (spaceRight >= panelWidth + PANEL_GAP) {
+            left = anchor.x + PANEL_GAP;
+        } else if (spaceLeft >= panelWidth + PANEL_GAP) {
+            left = anchor.x - panelWidth - PANEL_GAP;
+        } else {
+            left = anchor.x - panelWidth / 2;
+        }
+        
+        left = clamp(left, CONTAINER_PADDING, containerWidth - panelWidth - CONTAINER_PADDING);
+
+        let top = anchor.y - panelHeight / 2;
+
+        top = clamp(
+            top,
+            CONTAINER_PADDING,
+            containerHeight - panelHeight - CONTAINER_PADDING
+        );
+
+        setPosStyle({
+            left: `${left}px`,
+            top: `${top}px`,
+            width: `${panelWidth}px`,
+            transform: "none",
+        });
+        setIsPositioned(true);
+
+    }, [anchor, level, isCompleted, isUnlocked]);
 
     const disabledMessage = lockedReason || "Complete Previous Lesson First";
 
     return (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <>
+            {/* Desktop Backdrop - transparent click-away */}
+            <div 
+                className="hidden md:block absolute inset-0 z-40 bg-transparent" 
+                onClick={onClose}
+            ></div>
+
+            {/* Mobile Backdrop - subtle dark blur */}
+            <div 
+                className="md:hidden fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-[1px]" 
+                onClick={onClose}
+            ></div>
+
             <div
-                className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-t-8"
-                style={{ borderTopColor: theme.accent }}
+                ref={panelRef}
+                className="fixed z-50 h-auto min-h-0 bg-white/95 backdrop-blur shadow-2xl animate-in fade-in duration-200 border-t-8 inset-x-0 bottom-0 max-h-[85vh] rounded-t-[2rem] md:absolute md:inset-x-auto md:bottom-auto md:max-h-[calc(100vh-120px)] md:rounded-[2rem] md:border md:border-[#f1e4d2]"
+                style={{ 
+                    borderTopColor: theme.accent, 
+                    ...posStyle,
+                    visibility: (isPositioned || typeof window !== 'undefined' && window.innerWidth < 768) ? "visible" : "hidden" 
+                }}
             >
-                <div className="p-6">
+                <div className="overflow-y-auto p-5 md:p-6">
+                    {/* Mobile drag handle */}
+                    <div className="md:hidden mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200" />
+                    
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2 flex-wrap">
                             <span
@@ -69,7 +147,7 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
                     </button>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

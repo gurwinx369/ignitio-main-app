@@ -34,6 +34,65 @@ const YouTubeSegmentPlayer = ({
   // Track whether we're currently playing (for detecting forward playback)
   const isPlayingRef = useRef(false);
 
+  const [boundaryNotice, setBoundaryNotice] = useState(null);
+  const boundaryNoticeShownRef = useRef({
+    start: false,
+    end: false,
+  });
+  const boundaryNoticeTimerRef = useRef(null);
+
+  const formatTime = useCallback((totalSeconds = 0) => {
+    const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }, []);
+
+  const showBoundaryNotice = useCallback((type) => {
+    if (boundaryNoticeShownRef.current[type]) return;
+
+    boundaryNoticeShownRef.current[type] = true;
+
+    const isStart = type === "start";
+    const timeLabel = formatTime(isStart ? startSec : endSec);
+
+    setBoundaryNotice({
+      type,
+      title: isStart ? "Level starts here" : "Lesson ends here",
+      message: isStart
+        ? `This level starts here at ${timeLabel}.`
+        : `This lesson ends here at ${timeLabel}. Continue to the next level for the next part.`,
+    });
+
+    if (boundaryNoticeTimerRef.current) {
+      clearTimeout(boundaryNoticeTimerRef.current);
+    }
+
+    boundaryNoticeTimerRef.current = setTimeout(() => {
+      setBoundaryNotice(null);
+    }, 3500);
+  }, [formatTime, startSec, endSec]);
+
+  const resetBoundaryNotice = useCallback(() => {
+    boundaryNoticeShownRef.current = {
+      start: false,
+      end: false,
+    };
+
+    setBoundaryNotice(null);
+
+    if (boundaryNoticeTimerRef.current) {
+      clearTimeout(boundaryNoticeTimerRef.current);
+      boundaryNoticeTimerRef.current = null;
+    }
+  }, []);
+
   // Stop monitoring - stable ref-based function
   const stopMonitoring = useCallback(() => {
     if (monitoringIntervalRef.current) {
@@ -56,13 +115,17 @@ const YouTubeSegmentPlayer = ({
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
+          showBoundaryNotice("start");
           return;
         }
 
         // HARD BOUNDARY: Pause at endSec
         if (currentTime >= endSec) {
+          playerRef.current.seekTo(endSec, true);
           playerRef.current.pauseVideo();
+          showBoundaryNotice("end");
           stopMonitoring();
+          lastCurrentTimeRef.current = endSec;
           return;
         }
 
@@ -95,6 +158,7 @@ const YouTubeSegmentPlayer = ({
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
+          showBoundaryNotice("start");
           return;
         }
         // Initialize tracking at current position
@@ -108,9 +172,11 @@ const YouTubeSegmentPlayer = ({
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
+          showBoundaryNotice("start");
         } else if (currentTime > endSec) {
           playerRef.current.seekTo(endSec, true);
           lastCurrentTimeRef.current = endSec;
+          showBoundaryNotice("end");
         }
       }
       stopMonitoring();
@@ -140,6 +206,9 @@ const YouTubeSegmentPlayer = ({
     return () => {
       if (monitoringIntervalRef.current) {
         clearInterval(monitoringIntervalRef.current);
+      }
+      if (boundaryNoticeTimerRef.current) {
+        clearTimeout(boundaryNoticeTimerRef.current);
       }
     };
   }, []);
@@ -196,10 +265,11 @@ const YouTubeSegmentPlayer = ({
     }
   }, [startSec, isPlayerReady, autoplay]);
 
-  // Reset position tracking when videoId changes
+  // Reset position tracking and notice when videoId/segment changes
   useEffect(() => {
+    resetBoundaryNotice();
     lastCurrentTimeRef.current = null;
-  }, [videoId]);
+  }, [videoId, startSec, endSec, resetBoundaryNotice]);
 
   // Pause video when tab becomes hidden, resume when visible
   useEffect(() => {
@@ -232,11 +302,17 @@ const YouTubeSegmentPlayer = ({
         // Enforce hard boundaries regardless of play state
         if (currentTime < startSec) {
           playerRef.current.seekTo(startSec, true);
+          showBoundaryNotice("start");
         } else if (currentTime > endSec) {
           playerRef.current.seekTo(endSec, true);
-          if (playerRef.current.getPlayerState() === window.YT.PlayerState.PLAYING) {
-            playerRef.current.pauseVideo();
-          }
+          playerRef.current.pauseVideo();
+          lastCurrentTimeRef.current = endSec;
+          showBoundaryNotice("end");
+        }
+
+        if (currentTime > startSec + 2 && currentTime < endSec - 2) {
+          boundaryNoticeShownRef.current.start = false;
+          boundaryNoticeShownRef.current.end = false;
         }
       }
     }, 200);
@@ -245,17 +321,70 @@ const YouTubeSegmentPlayer = ({
   }, [isPlayerReady, startSec, endSec, videoId]);
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-      <div
-        id={`youtube-player-${videoId}`}
-        className="absolute top-0 left-0 w-full h-full rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-xl"
-      />
-      {!isPlayerReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse rounded-3xl sm:rounded-[2.5rem]">
-          <div className="text-gray-400 text-lg">Loading video...</div>
-        </div>
-      )}
-    </div>
+    <>
+      <div ref={containerRef} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+        <div
+          id={`youtube-player-${videoId}`}
+          className="absolute top-0 left-0 w-full h-full rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-xl"
+        />
+        {!isPlayerReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse rounded-3xl sm:rounded-[2.5rem]">
+            <div className="text-gray-400 text-lg">Loading video...</div>
+          </div>
+        )}
+        {boundaryNotice && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[2px]" />
+
+            <div className="relative w-full max-w-md animate-[boundaryNoticeIn_220ms_ease-out] overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-br from-white via-cyan-50 to-amber-50 px-5 py-5 text-center shadow-2xl ring-1 ring-cyan-100/70">
+              <div className="pointer-events-none absolute -left-16 -top-16 h-32 w-32 rounded-full bg-cyan-200/40 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-16 -right-16 h-32 w-32 rounded-full bg-amber-200/50 blur-2xl" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setBoundaryNotice(null);
+
+                  if (boundaryNoticeTimerRef.current) {
+                    clearTimeout(boundaryNoticeTimerRef.current);
+                    boundaryNoticeTimerRef.current = null;
+                  }
+                }}
+                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-900"
+                aria-label="Close boundary notice"
+              >
+                ×
+              </button>
+
+              <div className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
+                {boundaryNotice.type === "end" ? "⏭" : "⏮"}
+              </div>
+
+              <h3 className="relative pr-8 text-lg font-extrabold tracking-tight text-slate-950">
+                {boundaryNotice.title}
+              </h3>
+
+              <p className="relative mt-2 text-sm font-semibold leading-relaxed text-slate-700 sm:text-base">
+                {boundaryNotice.message}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes boundaryNoticeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+    </>
   );
 };
 
