@@ -153,18 +153,8 @@ export default function Home() {
     <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-16 gap-6">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-              Welcome back!
-            </h1>
-            <p className="mt-3 text-lg md:text-xl text-gray-600 font-medium">
-              Pick up right where you left off.
-            </p>
-          </div>
-          <div>
-            <Profile />
-          </div>
+        <div className="mb-12">
+          <Profile />
         </div>
 
         {/* Continue Learning Banner */}

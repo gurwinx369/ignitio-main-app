@@ -35,7 +35,7 @@ const RoadmapNode = ({ level, index, status, theme, onClick }) => {
                     backgroundColor: isCompleted ? theme.accent : undefined,
                     boxShadow: (isCompleted || isUnlocked) ? `0 0 20px ${theme.glow}` : undefined
                 }}
-                onClick={() => onClick(level)}
+                onClick={(e) => onClick(level, e)}
             >
                 <div className={`flex items-center justify-center transition-transform duration-300 ${innerRotation} ${isCompleted ? 'group-hover:-translate-y-1' : ''}`}>
                     {isLocked ? (
