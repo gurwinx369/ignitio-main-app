@@ -1,12 +1,6 @@
-'use client';
-
 import { Inter, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
-import { SmoothCursor } from "@/components/ui/smooth-cursor";
-import { useEffect, useState } from 'react';
-import Loader from '@/layout/Loader';
-import { AuthProvider } from "@/features/context/AuthContext";
-import { PostHogProvider } from './providers';
+import ClientLayoutWrapper from "./client-layout-wrapper";
 
 const inter = Inter({
     variable: "--font-inter",
@@ -21,57 +15,75 @@ const pixelifySans = Pixelify_Sans({
     weight: ["400", "500", "600", "700"],
 });
 
+export const viewport = {
+    themeColor: "#00A9FF",
+    width: "device-width",
+    initialScale: 1,
+};
+
+export const metadata = {
+    metadataBase: new URL('https://app.ignitio.cloud'),
+    title: {
+        default: "Ignitio | AI-Powered Personalized Tech Learning Platform",
+        template: "%s | Ignitio"
+    },
+    description: "Accelerate your tech skills with Ignitio's personalized AI-driven roadmaps, interactive coding playgrounds, and real-time AI doubt solver.",
+    keywords: ["AI learning", "personalized learning", "C++ roadmap", "Git tutorial", "GitHub interactive course", "Prompt Engineering course", "personalized curriculum", "interactive code editor", "AI tutor"],
+    authors: [{ name: "Ignitio Team" }],
+    creator: "Ignitio",
+    publisher: "Ignitio",
+    alternates: {
+        canonical: "/",
+    },
+    openGraph: {
+        type: "website",
+        locale: "en_US",
+        url: "https://app.ignitio.cloud",
+        siteName: "Ignitio",
+        title: "Ignitio | AI-Powered Personalized Tech Learning Platform",
+        description: "Accelerate your tech skills with Ignitio's personalized AI-driven roadmaps, interactive coding playgrounds, and real-time AI doubt solver.",
+        images: [
+            {
+                url: "/ignitio-logo.png",
+                width: 1200,
+                height: 630,
+                alt: "Ignitio AI Personalized Learning",
+            }
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Ignitio | AI-Powered Personalized Tech Learning Platform",
+        description: "Accelerate your tech skills with Ignitio's personalized AI-driven roadmaps, interactive coding playgrounds, and real-time AI doubt solver.",
+        images: ["/ignitio-logo.png"],
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+        },
+    },
+};
+
 export default function RootLayout({ children }) {
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 3000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    // Preload YouTube IFrame API on app mount to reduce cold-start latency
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const iframeApiSrc = "https://www.youtube.com/iframe_api";
-
-        if (!window.YT && !document.querySelector(`script[src="${iframeApiSrc}"]`)) {
-            const tag = document.createElement("script");
-            tag.src = iframeApiSrc;
-            tag.async = true;
-
-            const firstScriptTag = document.getElementsByTagName("script")[0];
-            firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-        }
-    }, []);
-
+    const bodyClass = `${inter.variable} ${pixelifySans.variable} antialiased`;
+    
     return (
         <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
             <head>
-                <link rel="preconnect" href="https://www.youtube.com" />
+                <link rel="preconnect" href="https://www.youtube" />
                 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
                 <link rel="preconnect" href="https://i.ytimg.com" />
-                <link rel="dns-prefetch" href="https://www.youtube.com" />
-                <title>Ignitio AI Powered Gen AI Learning Platform</title>
+                <link rel="dns-prefetch" href="https://www.youtube" />
             </head>
-
-            <body
-                className={`
-                    ${inter.variable} ${pixelifySans.variable} antialiased
-                    ${isLoading ? "" : "cursor-none"}
-                `}
-            >
-                {isLoading ? (
-                    <Loader />
-                ) : (
-                    <>
-                        <SmoothCursor />
-                        <AuthProvider>
-                            <PostHogProvider>{children}</PostHogProvider>
-                        </AuthProvider>
-                    </>
-                )}
-            </body>
+            <ClientLayoutWrapper bodyClass={bodyClass}>
+                {children}
+            </ClientLayoutWrapper>
         </html>
     );
 }

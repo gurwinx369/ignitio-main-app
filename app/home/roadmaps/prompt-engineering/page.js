@@ -1,58 +1,45 @@
-"use client";
+import React from 'react';
+import PromptEngineeringClient from '@/features/roadmaps/PromptEngineering/components/PromptEngineeringClient';
 
-import React, { useState, useEffect } from 'react';
-import RoadmapTemplate from '@/components/roadmap/RoadmapTemplate';
-import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
-import { useAuth } from '@/features/context/AuthContext';
-import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from '@/data/promptEngineering';
+export const metadata = {
+    title: "Generative AI & Prompt Engineering Interactive Learning Roadmap",
+    description: "Master LLMs and generative AI prompt engineering. Learn zero-shot, few-shot, chain-of-thought, role prompting, and agents with interactive labs and AI feedback.",
+    alternates: {
+        canonical: "/home/roadmaps/prompt-engineering",
+    },
+    openGraph: {
+        title: "Prompt Engineering Interactive Learning Roadmap | Ignitio",
+        description: "Master LLMs and generative AI prompt engineering. Learn zero-shot, few-shot, chain-of-thought, role prompting, and agents with interactive labs and AI feedback.",
+        url: "https://app.ignitio.cloud/home/roadmaps/prompt-engineering",
+    },
+};
 
 export default function PromptEngineeringPage() {
-    const { user } = useAuth();
-    const [selectedRoadmap, setSelectedRoadmap] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchUserRole = async () => {
-            let role = "other";
-            if (user) {
-                try {
-                    const token = await user.getIdToken();
-                    const res = await fetch("/api/v2/user", {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        role = data.user?.role || "other";
-                    } else {
-                        role = localStorage.getItem("profession") || "other";
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch user role:", error);
-                    role = localStorage.getItem("profession") || "other";
-                }
-            } else {
-                role = localStorage.getItem("profession") || "other";
-            }
-            setSelectedRoadmap(getPromptEngineeringRoadmapByRole(role));
-            setIsLoading(false);
-        };
-
-        if (user !== undefined) {
-            fetchUserRole();
+    const courseSchema = {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "Generative AI & Prompt Engineering Interactive Learning Roadmap",
+        "description": "Master LLMs and generative AI prompt engineering. Learn zero-shot, few-shot, chain-of-thought, role prompting, and agents with interactive labs and AI feedback.",
+        "provider": {
+            "@type": "Organization",
+            "name": "Ignitio",
+            "sameAs": "https://app.ignitio.cloud"
+        },
+        "courseCode": "PE-101",
+        "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "Online",
+            "instructionType": "Interactive"
         }
-    }, [user]);
+    };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans relative pt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <RoadmapSkeleton color="#f59e0b" />
-                </div>
-            </div>
-        );
-    }
-
-    return <RoadmapTemplate roadmapData={selectedRoadmap || genericPromptEngineeringRoadmapData} />;
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
+            />
+            <PromptEngineeringClient />
+        </>
+    );
 }
