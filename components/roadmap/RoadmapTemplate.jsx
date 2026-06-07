@@ -208,18 +208,8 @@ export default function RoadmapTemplate({ roadmapData }) {
             setCompletedLevels(sortedCompleted);
             localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
 
-            if (isPromptEngineeringRoadmap) {
-                const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === levelId));
-                if (dayIndex !== -1) {
-                    const day = roadmapData.days[dayIndex];
-                    const isDayCompleteNow = day.levels.every(l => newCompleted.includes(l.id));
-                    const isAssignmentPassed = localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true";
-
-                    if (isDayCompleteNow && !isAssignmentPassed && activeDayIndex === dayIndex) {
-                        setShowAssignmentModal(true);
-                    }
-                }
-            }
+            // Do not auto-open assignment from inside LevelContent.
+            // Assignment is intentionally opened only from the roadmap CTA after user returns.
         }
     };
 
@@ -397,7 +387,7 @@ export default function RoadmapTemplate({ roadmapData }) {
         <>
             {renderContent()}
             <KyleAssignmentModal
-                open={showAssignmentModal}
+                open={showAssignmentModal && !selectedLevel}
                 roadmapId={roadmapData.id}
                 roadmapType={roadmapData.id}
                 dayId={activeDay?.id}

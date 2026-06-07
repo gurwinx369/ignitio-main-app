@@ -102,6 +102,9 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Actual state
     const [canMarkComplete, setCanMarkComplete] = useState(initialCanMarkComplete);
 
+    const canMarkCompleteAfterQuiz = canMarkComplete && (!isPromptEngineeringRoadmap || quizSatisfied);
+
+
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
         if (!isSegmentBased && level.durationInMinutes && !isCompleted && !canMarkComplete) {
@@ -215,7 +218,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     onMarkComplete={handleMarkComplete}
                     feedback={feedback}
                     setFeedback={setFeedback}
-                    canMarkComplete={canMarkComplete}
+                    canMarkComplete={canMarkCompleteAfterQuiz}
                     roadmapType={roadmapType}
                     isVisible={activeTab === 'video'}
                     shouldPauseVideo={shouldPauseVideo}
