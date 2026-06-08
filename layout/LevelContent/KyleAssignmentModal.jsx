@@ -28,6 +28,19 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
 
     const hasFetched = useRef(false);
     const requiredScore = Math.min(10, dayNumber + 4);
+
+    useEffect(() => {
+        if (!open) {
+            setStatus('loading');
+            setAssignmentPrompt("");
+            setUserResponse("");
+            setScoreData(null);
+            setErrorMsg(null);
+            setLockedUntil(null);
+            hasFetched.current = false;
+        }
+    }, [open, roadmapId, dayId]);
+
     
     const formattedLevels = levels.map(l => ({
         concept: l.concept || l.title || l.name || "Concept",
