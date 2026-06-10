@@ -81,14 +81,14 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
 
             <div
                 ref={panelRef}
-                className="fixed z-50 h-auto min-h-0 bg-white/95 backdrop-blur shadow-2xl animate-in fade-in duration-200 border-t-8 inset-x-0 bottom-0 max-h-[85vh] rounded-t-[2rem] md:absolute md:inset-x-auto md:bottom-auto md:max-h-[calc(100vh-120px)] md:rounded-[2rem] md:border md:border-[#f1e4d2]"
+                className="fixed left-0 right-0 bottom-0 z-50 flex max-h-[85dvh] min-h-0 flex-col overflow-hidden bg-white/95 backdrop-blur shadow-2xl animate-in fade-in duration-200 border-t-8 rounded-t-[2rem] md:absolute md:left-auto md:right-auto md:bottom-auto md:h-auto md:max-h-[calc(100vh-120px)] md:overflow-visible md:rounded-[2rem] md:border md:border-[#f1e4d2]"
                 style={{ 
                     borderTopColor: theme.accent, 
                     ...posStyle,
                     visibility: (isPositioned || typeof window !== 'undefined' && window.innerWidth < 768) ? "visible" : "hidden" 
                 }}
             >
-                <div className="overflow-y-auto p-5 md:p-6">
+                <div className="min-h-0 flex-1 overflow-y-auto p-5 pb-4 md:p-6 md:pb-4">
                     {/* Mobile drag handle */}
                     <div className="md:hidden mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200" />
                     
@@ -119,12 +119,12 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
                         </button>
                     </div>
 
-                    <h3 className="text-2xl font-extrabold text-gray-900 mb-2 leading-tight">{level.title}</h3>
-                    <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                    <h3 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-2 leading-tight">{level.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 md:mb-6 leading-relaxed">
                         {level.description || "In this lesson, we will cover the core concepts and workflows required to master this topic."}
                     </p>
 
-                    <div className="flex items-center gap-4 mb-8 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-4 mb-0 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
                         <div className="flex items-center gap-1.5">
                             <Clock className="w-4 h-4 text-gray-400" />
                             {level.durationInMinutes
@@ -132,7 +132,12 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
                                 : "Duration unavailable"}
                         </div>
                     </div>
+                </div>
 
+                <div 
+                    className="shrink-0 border-t border-gray-100 bg-white/95 p-5 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] md:border-0 md:bg-transparent md:p-6 md:pt-0 md:shadow-none"
+                    style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+                >
                     <button
                         onClick={() => isUnlocked && onStart(level)}
                         disabled={!isUnlocked}

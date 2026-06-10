@@ -172,8 +172,25 @@ export default function RoadmapTemplate({ roadmapData }) {
         return { isUnlocked: true, lockedReason: null };
     };
 
-    const handlePrevDay = () => setActiveDayIndex(prev => Math.max(0, prev - 1));
-    const handleNextDay = () => setActiveDayIndex(prev => Math.min(roadmapData.days.length - 1, prev + 1));
+    const closeLessonPopup = () => {
+        setPopupLevel(null);
+        setPopupAnchor(null);
+    };
+
+    const handlePrevDay = () => {
+        closeLessonPopup();
+        setActiveDayIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNextDay = () => {
+        closeLessonPopup();
+        setActiveDayIndex(prev => Math.min(roadmapData.days.length - 1, prev + 1));
+    };
+
+    useEffect(() => {
+        setPopupLevel(null);
+        setPopupAnchor(null);
+    }, [activeDayIndex, roadmapData.id]);
 
     const handleNodeClick = (level, event) => {
         if (event && event.currentTarget && roadmapViewportRef.current) {
@@ -305,7 +322,10 @@ export default function RoadmapTemplate({ roadmapData }) {
                                     return (
                                         <button
                                             key={day.id}
-                                            onClick={() => setActiveDayIndex(index)}
+                                            onClick={() => {
+                                                closeLessonPopup();
+                                                setActiveDayIndex(index);
+                                            }}
                                             className={`whitespace-nowrap px-6 py-2.5 rounded-full font-semibold text-sm transition-all duration-300 ${isActive ? 'bg-slate-900 text-white shadow-md transform scale-[1.02]' : 'bg-white/60 backdrop-blur-md text-gray-600 hover:bg-white hover:text-slate-900 border border-gray-200/50 hover:shadow-sm'}`}
                                         >
                                             {day.title}
@@ -340,7 +360,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                     )}
 
                     {activeDay && (
-                        <div ref={roadmapViewportRef} className="relative transition-all duration-700 opacity-100 grayscale-0">
+                        <div ref={roadmapViewportRef} className="relative transition-all duration-700 opacity-100">
                             {(!isMounted || !isRoadmapReady) ? (
                                 <RoadmapSkeleton color={activeDay.color} />
                             ) : (
@@ -358,6 +378,9 @@ export default function RoadmapTemplate({ roadmapData }) {
                             )}
 
                             {isMounted && popupLevel && (() => {
+                                const isPopupLevelInActiveDay = activeDay?.levels?.some(level => level.id === popupLevel.id);
+                                if (!isPopupLevelInActiveDay) return null;
+
                                 const unlockState = getUnlockState(popupLevel);
                                 return (
                                     <LessonPopup
