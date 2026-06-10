@@ -4,6 +4,7 @@ import VideoTab from './VideoTab';
 import PracticeTab from './PracticeTab';
 import DoubtSolver from './DoubtSolver';
 import KyleQuizModal from './KyleQuizModal';
+import { isKyleEnabledRoadmap } from '@/features/roadmaps/lib/roadmapCapabilities';
 
 // Function to calculate the 50% time duration for legacy full-video levels
 function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerComplete) {
@@ -42,7 +43,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const cleanupRef = useRef(null);
     const prevLevelIdRef = useRef(null);
 
-    const isPromptEngineeringRoadmap = roadmapType?.startsWith('prompt-engineering');
+    const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
 
     const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
     const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;
@@ -57,13 +58,13 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const shouldPauseVideo = showQuizModal || showAssignmentModal;
 
     useEffect(() => {
-        if (isPromptEngineeringRoadmap && activeTab === 'practice') {
+        if (isKyleRoadmap && activeTab === 'practice') {
             setActiveTab('video');
         }
-        if (!isPromptEngineeringRoadmap && activeTab === 'kyle') {
+        if (!isKyleRoadmap && activeTab === 'kyle') {
             setActiveTab('video');
         }
-    }, [isPromptEngineeringRoadmap, activeTab]);
+    }, [isKyleRoadmap, activeTab]);
 
     // Update quiz logic when level changes
     useEffect(() => {
@@ -102,7 +103,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Actual state
     const [canMarkComplete, setCanMarkComplete] = useState(initialCanMarkComplete);
 
-    const canMarkCompleteAfterQuiz = canMarkComplete && (!isPromptEngineeringRoadmap || quizSatisfied);
+    const canMarkCompleteAfterQuiz = canMarkComplete && (!isKyleRoadmap || quizSatisfied);
 
 
     // Legacy levels: start timer only if not already completed
@@ -126,10 +127,10 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Called when 50% watch threshold is met
     const handleThresholdMet = useCallback(() => {
         setCanMarkComplete(true);
-        if (isPromptEngineeringRoadmap && !quizSatisfied) {
+        if (isKyleRoadmap && !quizSatisfied) {
             setShowQuizModal(true);
         }
-    }, [isPromptEngineeringRoadmap, quizSatisfied]);
+    }, [isKyleRoadmap, quizSatisfied]);
 
     const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
         localStorage.setItem(quizGateCompletedKey, "true");
@@ -183,7 +184,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                             >
                                 Video
                             </button>
-                            {isPromptEngineeringRoadmap ? (
+                            {isKyleRoadmap ? (
                                 <button
                                     onClick={() => setActiveTab('kyle')}
                                     className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'kyle'
@@ -224,10 +225,10 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     shouldPauseVideo={shouldPauseVideo}
                 />
             </div>
-            {activeTab === 'practice' && !isPromptEngineeringRoadmap && (
+            {activeTab === 'practice' && !isKyleRoadmap && (
                 <PracticeTab level={level} roadmapType={roadmapType} />
             )}
-            {activeTab === 'kyle' && isPromptEngineeringRoadmap && (
+            {activeTab === 'kyle' && isKyleRoadmap && (
                 <div className="pb-12">
                     <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
                 </div>

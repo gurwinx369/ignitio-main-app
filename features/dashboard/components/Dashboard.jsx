@@ -10,6 +10,8 @@ import { useAuth } from "@/features/context/AuthContext";
 import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
+import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
+import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -25,6 +27,8 @@ export default function Dashboard() {
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
   const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(genericPromptEngineeringRoadmapData);
+  const [userRole, setUserRole] = useState("other");
+  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -50,9 +54,11 @@ export default function Dashboard() {
       } else {
         role = localStorage.getItem("profession") || "other";
       }
+      setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
+      setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
     };
-    
+
     if (user !== undefined) {
       fetchUserRole();
     }
@@ -90,6 +96,18 @@ export default function Dashboard() {
       },
     ];
 
+    if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
+      roadmapsData.push({
+        id: selectedDsaRoadmap.id,
+        title: selectedDsaRoadmap.title,
+        route: "/home/roadmaps/dsa",
+        totalLevels: selectedDsaRoadmap.days.flatMap(
+          (day) => day.levels,
+        ).length,
+        legacySections: [],
+      });
+    }
+
     const progressMap = {};
 
     for (const roadmap of roadmapsData) {
@@ -104,7 +122,7 @@ export default function Dashboard() {
           if (Array.isArray(parsed)) {
             completedLevelsCount = parsed.length;
           }
-        } catch (e) {}
+        } catch (e) { }
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -115,7 +133,7 @@ export default function Dashboard() {
               if (Array.isArray(parsed)) {
                 completedLevelsCount += parsed.length;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
       }
@@ -138,7 +156,7 @@ export default function Dashboard() {
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(bestRoadmap);
-  }, [selectedPromptRoadmap]);
+  }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
 
   const handleRedirectGitGithub = () => {
     router.push(redirects.GitGithub);
@@ -148,6 +166,9 @@ export default function Dashboard() {
   };
   const handleRedirectPromptEngineering = () => {
     router.push(redirects.PromptEngineering);
+  };
+  const handleRedirectDsa = () => {
+    router.push("/home/roadmaps/dsa");
   };
 
   return (
@@ -223,6 +244,19 @@ export default function Dashboard() {
                 roadmapData={selectedPromptRoadmap}
               />
             </div>
+            {isDsaAllowedRole(userRole) && selectedDsaRoadmap && (
+              <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+                <DsaCourseCard
+                  onClick={handleRedirectDsa}
+                  levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+                  totalLevels={
+                    roadmapProgress[selectedDsaRoadmap.id]?.total ||
+                    selectedDsaRoadmap.days.flatMap((day) => day.levels).length
+                  }
+                  roadmapData={selectedDsaRoadmap}
+                />
+              </div>
+            )}
             <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
               <CppCourseCard
                 onClick={handleRedirectCPP}

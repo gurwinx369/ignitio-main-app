@@ -9,6 +9,10 @@ import LevelContent from '@/layout/LevelContent/LevelContent';
 import Profile from "@/layout/Profile";
 import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
 import KyleAssignmentModal from '@/layout/LevelContent/KyleAssignmentModal';
+import {
+  isKyleEnabledRoadmap,
+  isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
+} from "@/features/roadmaps/lib/roadmapCapabilities";
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
@@ -121,13 +125,14 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const activeDay = roadmapData.days[activeDayIndex];
 
-    const isPromptEngineeringRoadmap = roadmapData.id?.startsWith('prompt-engineering');
+    const isKyleRoadmap = isKyleEnabledRoadmap(roadmapData.id);
+    const hasAssignmentGate = isAssignmentGatedRoadmapType(roadmapData.id);
 
     // Force recalculation when assignment is passed
     const _forceUpdate = assignmentGateVersion;
 
     const arePreviousAssignmentsPassed = (dayIndex) => {
-        if (!isPromptEngineeringRoadmap) return true;
+        if (!hasAssignmentGate) return true;
         if (dayIndex <= 0) return true;
 
         return roadmapData.days
@@ -157,7 +162,7 @@ export default function RoadmapTemplate({ roadmapData }) {
             return { isUnlocked: false, lockedReason: "Complete Previous Lesson First" };
         }
 
-        if (isPromptEngineeringRoadmap) {
+        if (hasAssignmentGate) {
             const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === level.id));
             if (dayIndex > 0) {
                 const prevPassed = arePreviousAssignmentsPassed(dayIndex);
@@ -324,7 +329,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                         </button>
                     </div>
 
-                    {isPromptEngineeringRoadmap && isCurrentDayComplete && !isCurrentDayAssignmentPassed && (
+                    {hasAssignmentGate && isCurrentDayComplete && !isCurrentDayAssignmentPassed && (
                         <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
                             <div>
                                 <h3 className="font-bold text-orange-900 text-lg">Day {dayNumber} Assignment Pending</h3>
