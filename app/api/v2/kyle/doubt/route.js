@@ -8,10 +8,21 @@ import { verifyFirebaseToken } from "@/lib/auth";
 import { answerDoubt } from "@/features/kyle/lib/kyle.service";
 
 const BodySchema = z.object({
-  concept: z.string().min(1),
-  transcript: z.string().min(1),
+  mode: z.enum(["contextual", "general"]).optional(),
+  concept: z.string().optional(),
+  transcript: z.string().optional(),
   role: z.enum(["student", "developer", "writer", "designer", "other"]),
   question: z.string().min(1).max(500),
+}).superRefine((data, ctx) => {
+  const hasContext = Boolean(data.concept?.trim()) && Boolean(data.transcript?.trim());
+  if (data.mode === "general") return;
+  if (!hasContext) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "concept and transcript are required for contextual requests",
+      path: ["concept"],
+    });
+  }
 });
 
 export async function POST(request) {

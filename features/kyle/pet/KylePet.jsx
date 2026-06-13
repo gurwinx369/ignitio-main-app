@@ -6,12 +6,13 @@ import { usePathname } from 'next/navigation';
 import { useKylePetPosition } from './useKylePetPosition';
 import { kylePetConfig } from './kylePetConfig';
 import KylePetBubble from './KylePetBubble';
+import { useAskKyle } from '@/features/kyle/ask/useAskKyle';
 
 function getKyleRouteContext(pathname) {
   if (!pathname) return 'default';
   if (pathname.includes('/quiz')) return 'quiz';
   if (pathname.includes('/assignment')) return 'assignment';
-  if (pathname.includes('/lesson') || pathname.includes('/video')) return 'lesson';
+  if (pathname.includes('/lesson') || pathname.includes('/video') || pathname.includes('/interactive-overviews')) return 'lesson';
   if (pathname.includes('/roadmaps')) return 'roadmap';
   if (pathname.includes('/home')) return 'dashboard';
   return 'default';
@@ -26,6 +27,8 @@ export default function KylePet() {
   const bubbleTimeoutRef = useRef(null);
   const sleepTimeoutRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [forcedState, setForcedState] = useState(null);
+  const forcedStateTimeoutRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -72,8 +75,42 @@ export default function KylePet() {
     };
   }, [resetSleepTimer]);
 
+  useEffect(() => {
+    const handlePetState = (e) => {
+      const { state, duration, action } = e.detail || {};
+
+      if (forcedStateTimeoutRef.current) {
+        clearTimeout(forcedStateTimeoutRef.current);
+        forcedStateTimeoutRef.current = null;
+      }
+
+      if (action === 'clear' || state === null) {
+        setForcedState(null);
+        return;
+      }
+
+      if (state === 'thinking' || state === 'celebrating') {
+        setForcedState(state);
+        resetSleepTimer();
+
+        if (duration) {
+          forcedStateTimeoutRef.current = setTimeout(() => {
+            setForcedState(null);
+          }, duration);
+        }
+      }
+    };
+
+    window.addEventListener('kyle-pet-state', handlePetState);
+    return () => {
+      window.removeEventListener('kyle-pet-state', handlePetState);
+      if (forcedStateTimeoutRef.current) clearTimeout(forcedStateTimeoutRef.current);
+    };
+  }, [resetSleepTimer]);
+
   const visualState = (() => {
     if (isDragging) return 'dragging';
+    if (forcedState) return forcedState;
     if (message) return 'speaking';
     if (isSleeping) return 'sleeping';
     if (isHovered) return 'hovered';
@@ -117,13 +154,27 @@ export default function KylePet() {
     bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
   }, [resetSleepTimer, closeBubble]);
 
+  const { openAskKyle } = useAskKyle();
+
   const handleAskKyle = useCallback((e) => {
     e.stopPropagation();
-    setMessage("Ask Kyle will open here soon.");
+    const context = getKyleRouteContext(pathname);
+    
+    if (context === 'lesson') {
+      setMessage("Use the lesson Ask Kyle tab for this concept-specific question.");
+      resetSleepTimer();
+      if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
+      bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
+      return;
+    }
+
+    openAskKyle({
+      source: "kyle-pet",
+      mode: "general"
+    });
     resetSleepTimer();
-    if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
-    bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
-  }, [resetSleepTimer, closeBubble]);
+    closeBubble();
+  }, [openAskKyle, resetSleepTimer, closeBubble, pathname]);
 
   const handleResetPosition = useCallback((e) => {
     e.stopPropagation();

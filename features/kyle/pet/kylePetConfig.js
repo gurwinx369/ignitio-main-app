@@ -114,7 +114,7 @@ export const kylePetConfig = {
     },
   },
 
-  preloadStates: ["hovered", "dragging", "speaking", "sleeping"],
+  preloadStates: ["hovered", "dragging", "speaking", "sleeping", "thinking", "celebrating"],
   
   restoreButton: {
     positionClassName: "bottom-24 right-4 sm:bottom-4 sm:right-4",
