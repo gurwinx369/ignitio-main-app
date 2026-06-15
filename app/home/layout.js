@@ -3,12 +3,17 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {NotificationProvider} from "@/features/notifications/context/NotificationContext";
 import NotificationModal from "@/features/notifications/components/NotificationModal";
+import KylePet from "@/features/kyle/pet/KylePet";
+import { AskKyleProvider } from "@/features/kyle/ask/AskKyleProvider";
 
 export default function ProtectedLayout({children}) {
     return (<ProtectedRoute>
             <NotificationProvider>
                 <NotificationModal/>
-                {children}
+                <AskKyleProvider>
+                    <KylePet />
+                    {children}
+                </AskKyleProvider>
             </NotificationProvider>
         </ProtectedRoute>);
 }

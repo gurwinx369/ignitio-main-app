@@ -82,6 +82,14 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
         
         setIsCorrect(wasCorrect);
 
+        if (typeof window !== 'undefined') {
+            if (wasCorrect) {
+                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'celebrating', duration: 3000 } }));
+            } else {
+                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'thinking', duration: 2000 } }));
+            }
+        }
+
         try {
             if (!user) throw new Error("Please sign in again to continue.");
             const idToken = await user.getIdToken();

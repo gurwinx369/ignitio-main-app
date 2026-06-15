@@ -129,6 +129,9 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
         setCanMarkComplete(true);
         if (isKyleRoadmap && !quizSatisfied) {
             setShowQuizModal(true);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'thinking' } }));
+            }
         }
     }, [isKyleRoadmap, quizSatisfied]);
 
@@ -143,6 +146,9 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
             setQuizSatisfied(true);
         }
         setShowQuizModal(false);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { action: 'clear' } }));
+        }
     };
 
     // Called when user clicks the Complete button
