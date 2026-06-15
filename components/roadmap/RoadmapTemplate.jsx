@@ -34,6 +34,8 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const prevCompletedCount = useRef(0);
     const roadmapViewportRef = useRef(null);
+    const dayTabsContainerRef = useRef(null);
+    const dayButtonRefs = useRef([]);
 
     const ROADMAP_SKELETON_MIN_MS = 450;
 
@@ -197,6 +199,17 @@ export default function RoadmapTemplate({ roadmapData }) {
         setPopupAnchor(null);
     }, [activeDayIndex, roadmapData.id]);
 
+    useEffect(() => {
+        const activeButton = dayButtonRefs.current[activeDayIndex];
+        if (!activeButton) return;
+
+        activeButton.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+        });
+    }, [activeDayIndex]);
+
     const handleNodeClick = (level, event) => {
         if (event && event.currentTarget && roadmapViewportRef.current) {
             const nodeRect = event.currentTarget.getBoundingClientRect();
@@ -320,13 +333,16 @@ export default function RoadmapTemplate({ roadmapData }) {
                             <ChevronLeft className="w-5 h-5" />
                         </button>
 
-                        <div className="flex-1 overflow-x-auto whitespace-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div ref={dayTabsContainerRef} className="flex-1 overflow-x-auto whitespace-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             <div className="flex items-center gap-3 px-1 py-1 w-full max-w-full">
                                 {roadmapData.days.map((day, index) => {
                                     const isActive = activeDayIndex === index;
                                     return (
                                         <button
                                             key={day.id}
+                                            ref={(el) => {
+                                                dayButtonRefs.current[index] = el;
+                                            }}
                                             onClick={() => {
                                                 closeLessonPopup();
                                                 setActiveDayIndex(index);
