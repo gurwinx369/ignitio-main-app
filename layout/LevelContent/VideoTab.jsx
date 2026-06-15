@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 
-const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
+const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
     const thresholdCalledRef = useRef(false);
 
     // Check if level is segment-based
@@ -60,6 +60,18 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
 
     // Lazy initialization for isLoaded
     const [isLoaded, setIsLoaded] = useState(() => isSegmentBased);
+
+    const safeSegmentDuration = Math.max(0, Number(segmentDuration) || 0);
+    const safeWatchThreshold = Math.max(0, Number(watchThreshold) || 0);
+    const safeWatchedSeconds = Math.max(0, Number(watchedSeconds) || 0);
+
+    const watchProgressPercent = safeSegmentDuration > 0
+        ? Math.min(100, Math.max(0, (safeWatchedSeconds / safeSegmentDuration) * 100))
+        : 0;
+
+    const remainingSeconds = Math.max(0, Math.ceil(safeWatchThreshold - safeWatchedSeconds));
+
+    const hasMetWatchRequirement = hasMetWatchThreshold || safeWatchedSeconds >= safeWatchThreshold;
 
     // Derived: threshold reached based on watched seconds
     const thresholdReached = watchedSeconds >= watchThreshold;
@@ -164,19 +176,23 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                             <div className="bg-white/60 rounded-lg p-3">
                                 <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                                     <span>Watch progress</span>
-                                    <span>{Math.min(100, Math.round((watchedSeconds / segmentDuration) * 100))}%</span>
+                                    <span>{Math.round(watchProgressPercent)}%</span>
                                 </div>
                                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-blue-500 transition-all duration-300"
-                                        style={{ width: `${Math.min(100, (watchedSeconds / segmentDuration) * 100)}%` }}
+                                        style={{ width: `${watchProgressPercent}%` }}
                                     />
                                 </div>
-                                {!canMarkComplete && (
+                                {!hasMetWatchRequirement ? (
                                     <p className="text-xs text-gray-500 mt-2">
-                                        Watch {Math.round((watchThreshold - watchedSeconds))} more seconds to unlock completion
+                                        Watch {remainingSeconds} more seconds to unlock completion
                                     </p>
-                                )}
+                                ) : !canMarkComplete ? (
+                                    <p className="text-xs text-orange-600 mt-2">
+                                        Watch requirement complete. Finish the Kyle checkpoint to unlock completion.
+                                    </p>
+                                ) : null}
                             </div>
                         )}
                     </div>

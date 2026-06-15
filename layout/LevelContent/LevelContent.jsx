@@ -105,6 +105,12 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
 
     const canMarkCompleteAfterQuiz = canMarkComplete && (!isKyleRoadmap || quizSatisfied);
 
+    // Recover users who refresh after already meeting watch threshold but not finishing quiz
+    useEffect(() => {
+        if (isKyleRoadmap && canMarkComplete && !quizSatisfied && !isCompleted) {
+            setShowQuizModal(true);
+        }
+    }, [isKyleRoadmap, canMarkComplete, quizSatisfied, isCompleted]);
 
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
@@ -225,6 +231,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     onMarkComplete={handleMarkComplete}
                     feedback={feedback}
                     setFeedback={setFeedback}
+                    hasMetWatchThreshold={canMarkComplete}
                     canMarkComplete={canMarkCompleteAfterQuiz}
                     roadmapType={roadmapType}
                     isVisible={activeTab === 'video'}
