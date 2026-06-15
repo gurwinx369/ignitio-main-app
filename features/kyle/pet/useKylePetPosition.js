@@ -112,21 +112,19 @@ export function useKylePetPosition() {
 
   useEffect(() => {
     const handleBlur = () => {
-      if (isDragging) {
-        cleanupDragState();
-      }
-    };
-    
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('blur', handleBlur);
       cleanupDragState();
     };
-  }, [isDragging, cleanupDragState]);
+
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [cleanupDragState]);
 
   const onPointerDown = (e) => {
     try {
-      e.target.setPointerCapture(e.pointerId);
+      e.currentTarget.setPointerCapture(e.pointerId);
       activePointerId.current = e.pointerId;
     } catch (err) {}
     
@@ -173,7 +171,7 @@ export function useKylePetPosition() {
   const onPointerUp = (e) => {
     if (!isDragging) return;
     try {
-      e.target.releasePointerCapture(e.pointerId);
+      e.currentTarget.releasePointerCapture(e.pointerId);
       activePointerId.current = null;
     } catch (err) {}
     

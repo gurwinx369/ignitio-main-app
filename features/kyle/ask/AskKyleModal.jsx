@@ -32,9 +32,21 @@ function renderBasicMarkdown(text) {
   });
 }
 
-export default function AskKyleModal({ isOpen, onClose, options }) {
+export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking }) {
   const { user } = useAuth();
   const pathname = usePathname();
+
+  const setKylePetVisualState = (state) => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(
+      new CustomEvent('kyle-pet-state', {
+        detail: state
+          ? { state }
+          : { action: 'clear' }
+      })
+    );
+  };
 
   const INITIAL_MESSAGES = [
     { role: 'kyle', text: "Hi! I'm Kyle. Ask me about your roadmap, focus, learning strategy, or concepts. I’ll guide you." }
@@ -42,7 +54,6 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
 
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [question, setQuestion] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isHighDemand, setIsHighDemand] = useState(false);
 
@@ -58,9 +69,11 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
       setQuestion('');
       setError(null);
       setIsHighDemand(false);
+      setIsThinking(false);
+      setKylePetVisualState(null);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen]);
+  }, [isOpen, setIsThinking]);
 
   // Scroll to bottom when open and content changes
   useEffect(() => {
@@ -70,7 +83,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, messages, loading, error, isHighDemand]);
+  }, [isOpen, messages, isThinking, error, isHighDemand]);
 
   // Close modal if user navigates to a lesson/contextual page
   useEffect(() => {
@@ -88,11 +101,14 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
 
     if (!user) {
       setError("Please sign in again to ask Kyle.");
+      setIsThinking(false);
+      setKylePetVisualState(null);
       return;
     }
 
     setMessages(prev => [...prev, { role: 'user', text: currentQuestion }]);
-    setLoading(true);
+    setIsThinking(true);
+    setKylePetVisualState('thinking');
 
     try {
       const idToken = await user.getIdToken();
@@ -136,13 +152,14 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
     } catch (err) {
       setError(err.message || 'Failed to connect to Kyle.');
     } finally {
-      setLoading(false);
+      setIsThinking(false);
+      setKylePetVisualState(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!question.trim() || loading) return;
+    if (!question.trim() || isThinking) return;
 
     if (question.length > 500) {
       setError("Question must be 500 characters or less.");
@@ -156,7 +173,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
   };
 
   const handleRetry = async () => {
-    if (!lastQuestion.current || loading) return;
+    if (!lastQuestion.current || isThinking) return;
     setMessages(prev => {
       const lastUserIdx = [...prev].reverse().findIndex(m => m.role === 'user');
       if (lastUserIdx === -1) return prev;
@@ -217,7 +234,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
             </div>
           ))}
 
-          {loading && (
+          {isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
                 <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
@@ -236,7 +253,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
           )}
 
           {/* High-demand retry card */}
-          {isHighDemand && !loading && (
+          {isHighDemand && !isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
                 <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
@@ -251,7 +268,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
                   </div>
                   <button
                     onClick={handleRetry}
-                    disabled={loading}
+                    disabled={isThinking}
                     className="self-start text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-none"
                   >
                     ↩ Try again
@@ -296,7 +313,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
             </div>
             <button
               type="submit"
-              disabled={!question.trim() || loading}
+              disabled={!question.trim() || isThinking}
               className="shrink-0 h-14 px-5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm cursor-none"
             >
               <Send size={18} />
