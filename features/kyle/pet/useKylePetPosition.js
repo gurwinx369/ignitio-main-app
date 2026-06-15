@@ -14,6 +14,7 @@ export function useKylePetPosition() {
   const startMousePos = useRef({ x: 0, y: 0 });
   const rafId = useRef(null);
   const targetPos = useRef({ x: 0, y: 0 });
+  const activePointerId = useRef(null);
 
   const getViewportDimensions = () => {
     if (typeof window === 'undefined') return { width: 0, height: 0 };
@@ -86,14 +87,60 @@ export function useKylePetPosition() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isReady, breakpoint.mobileMaxWidth, size, clampPosition]);
 
+  const cleanupDragState = useCallback(() => {
+    setIsDragging(false);
+    
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+      setPosition(prev => clampPosition(targetPos.current, petSize));
+    }
+
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'none';
+      document.body.style.userSelect = '';
+    }
+
+    try {
+      if (activePointerId.current !== null && typeof document !== 'undefined') {
+         // Fallback if pointer capture needs release
+         activePointerId.current = null;
+      }
+    } catch (e) {}
+
+  }, [clampPosition, petSize]);
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (isDragging) {
+        cleanupDragState();
+      }
+    };
+    
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      cleanupDragState();
+    };
+  }, [isDragging, cleanupDragState]);
+
   const onPointerDown = (e) => {
-    e.target.setPointerCapture(e.pointerId);
+    try {
+      e.target.setPointerCapture(e.pointerId);
+      activePointerId.current = e.pointerId;
+    } catch (err) {}
+    
     setIsDragging(true);
     setWasDragged(false);
     if (rafId.current) cancelAnimationFrame(rafId.current);
     startPos.current = { ...position };
     startMousePos.current = { x: e.clientX, y: e.clientY };
     targetPos.current = { ...position };
+
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+    }
   };
 
   const onPointerMove = (e) => {
@@ -125,17 +172,15 @@ export function useKylePetPosition() {
 
   const onPointerUp = (e) => {
     if (!isDragging) return;
-    e.target.releasePointerCapture(e.pointerId);
-    setIsDragging(false);
+    try {
+      e.target.releasePointerCapture(e.pointerId);
+      activePointerId.current = null;
+    } catch (err) {}
     
-    if (rafId.current) {
-      cancelAnimationFrame(rafId.current);
-      rafId.current = null;
-      setPosition(clampPosition(targetPos.current, petSize));
-    }
+    cleanupDragState();
 
     try {
-      localStorage.setItem(storageKeys.position, JSON.stringify(position));
+      localStorage.setItem(storageKeys.position, JSON.stringify(targetPos.current));
     } catch (err) {
       console.warn("Failed to save Kyle Pet position", err);
     }
@@ -163,6 +208,7 @@ export function useKylePetPosition() {
     isReady,
     petSize,
     resetPosition,
+    cleanupDragState,
     handlers: {
       onPointerDown,
       onPointerMove,

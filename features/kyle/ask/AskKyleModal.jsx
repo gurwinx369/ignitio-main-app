@@ -174,8 +174,10 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FAF9F6] w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200">
+    <>
+      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 cursor-none" onClick={onClose}></div>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
+        <div className="bg-[#FAF9F6] w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200 cursor-none pointer-events-auto">
 
         {/* Header */}
         <div className="bg-white px-6 py-4 border-b border-orange-50 flex items-center justify-between">
@@ -190,7 +192,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-none"
           >
             <X size={20} />
           </button>
@@ -250,7 +252,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
                   <button
                     onClick={handleRetry}
                     disabled={loading}
-                    className="self-start text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="self-start text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-none"
                   >
                     ↩ Try again
                   </button>
@@ -285,7 +287,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask Kyle anything..."
-                className="w-full max-h-32 min-h-[56px] py-3.5 pl-4 pr-12 bg-transparent resize-none outline-none text-slate-800 text-sm sm:text-base scrollbar-thin"
+                className="w-full max-h-32 min-h-[56px] py-3.5 pl-4 pr-12 bg-transparent resize-none outline-none text-slate-800 text-sm sm:text-base scrollbar-thin cursor-none"
                 rows={1}
               />
               <div className="absolute bottom-2 right-3 text-[10px] text-slate-400">
@@ -295,7 +297,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
             <button
               type="submit"
               disabled={!question.trim() || loading}
-              className="shrink-0 h-14 px-5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="shrink-0 h-14 px-5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm cursor-none"
             >
               <Send size={18} />
             </button>
@@ -305,6 +307,7 @@ export default function AskKyleModal({ isOpen, onClose, options }) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

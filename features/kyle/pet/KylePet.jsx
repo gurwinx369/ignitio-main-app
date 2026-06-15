@@ -20,7 +20,7 @@ function getKyleRouteContext(pathname) {
 
 export default function KylePet() {
   const pathname = usePathname();
-  const { position, isDragging, hasMovedBeyondClickThreshold, isReady, petSize, resetPosition, handlers } = useKylePetPosition();
+  const { position, isDragging, hasMovedBeyondClickThreshold, isReady, petSize, resetPosition, cleanupDragState, handlers } = useKylePetPosition();
   const [isSleeping, setIsSleeping] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [message, setMessage] = useState(null);
@@ -154,7 +154,17 @@ export default function KylePet() {
     bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
   }, [resetSleepTimer, closeBubble]);
 
-  const { openAskKyle } = useAskKyle();
+  const { isOpen: isAskKyleOpen, openAskKyle } = useAskKyle();
+
+  useEffect(() => {
+    if (!isAskKyleOpen) return;
+
+    if (isDragging) {
+      cleanupDragState();
+    }
+
+    closeBubble();
+  }, [isAskKyleOpen, isDragging, cleanupDragState, closeBubble]);
 
   const handleAskKyle = useCallback((e) => {
     e.stopPropagation();
@@ -225,7 +235,7 @@ export default function KylePet() {
 
   return (
     <div
-      className={`fixed z-[60] touch-none select-none ${isDragging ? 'transition-none' : 'transition-transform duration-200'}`}
+      className={`fixed z-[90] touch-none select-none ${isDragging ? 'transition-none' : 'transition-transform duration-200'} ${isAskKyleOpen ? 'pointer-events-none' : ''}`}
       style={{
         transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         width: petSize,
