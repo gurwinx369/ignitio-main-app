@@ -9,6 +9,7 @@ import {
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence,
+    getAdditionalUserInfo,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../lib/firebase/firebase";
 
@@ -58,19 +59,32 @@ export const AuthProvider = ({ children }) => {
                 password
             );
             console.log("Signup successful:", result.user.email);
-            return { success: true, user: result.user };
+            return { success: true, user: result.user, authMode: "new_signup" };
         } catch (error) {
-            console.error("Signup error:", error.code, error.message);
-            let errorMessage = "Failed to create account";
-
             if (error.code === "auth/email-already-in-use") {
-                errorMessage = "Email already in use";
-            } else if (error.code === "auth/invalid-email") {
+                try {
+                    console.info("Signup: Email already in use, attempting login fallback...");
+                    const loginResult = await signInWithEmailAndPassword(auth, email, password);
+                    console.log("Fallback login successful:", loginResult.user.email);
+                    return { success: true, user: loginResult.user, authMode: "existing_login" };
+                } catch (loginError) {
+                    console.error("Fallback login error:", loginError.code, loginError.message);
+                    return { success: false, error: "Check your email or password." };
+                }
+            }
+
+            console.error("Signup error:", error.code, error.message);
+
+            let errorMessage = "Check your email or password.";
+
+            if (error.code === "auth/invalid-email") {
                 errorMessage = "Invalid email address";
             } else if (error.code === "auth/weak-password") {
                 errorMessage = "Password is too weak";
             } else if (error.code === "auth/network-request-failed") {
                 errorMessage = "Network error. Please check your connection";
+            } else if (error.code === "auth/too-many-requests") {
+                errorMessage = "Too many failed attempts. Please try again later";
             }
 
             return { success: false, error: errorMessage };
@@ -85,13 +99,9 @@ export const AuthProvider = ({ children }) => {
             return { success: true, user: result.user };
         } catch (error) {
             console.error("Login error:", error.code, error.message);
-            let errorMessage = "Failed to login";
+            let errorMessage = "Check your email or password.";
 
-            if (error.code === "auth/user-not-found") {
-                errorMessage = "No account found with this email";
-            } else if (error.code === "auth/wrong-password") {
-                errorMessage = "Incorrect password";
-            } else if (error.code === "auth/invalid-email") {
+            if (error.code === "auth/invalid-email") {
                 errorMessage = "Invalid email address";
             } else if (error.code === "auth/user-disabled") {
                 errorMessage = "This account has been disabled";
@@ -117,7 +127,11 @@ export const AuthProvider = ({ children }) => {
             // Use signInWithPopup with proper error handling
             const result = await signInWithPopup(auth, googleProvider);
             console.log("Google login successful:", result.user.email);
-            return { success: true, user: result.user };
+            
+            const additionalUserInfo = getAdditionalUserInfo(result);
+            const authMode = additionalUserInfo?.isNewUser ? "new_signup" : "existing_login";
+
+            return { success: true, user: result.user, authMode };
         } catch (error) {
             console.error("Google login error:", error.code, error.message);
             let errorMessage = "Failed to sign in with Google";

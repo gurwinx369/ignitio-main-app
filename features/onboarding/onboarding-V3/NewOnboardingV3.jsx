@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import OnboardingProfession from './OnboardingProfession';
-import OnboardingBadge from './OnboardingBadge';
 import { useAuth } from '@/features/context/AuthContext';
 import axios from 'axios';
 import ErrorToast from '../onboarding-V2/components/ErrorToast';
@@ -10,14 +9,13 @@ import ErrorToast from '../onboarding-V2/components/ErrorToast';
 const NewOnboardingV3 = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
   const [profession, setProfession] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorToast, setErrorToast] = useState({ show: false, title: '', message: '' });
 
   const handleNextFromProfession = () => {
     if (profession) {
-      setStep(2);
+      handleComplete();
     }
   };
 
@@ -47,7 +45,7 @@ const NewOnboardingV3 = () => {
       console.log('Profile created successfully:', response.data);
 
       localStorage.setItem('profession', profession.toLowerCase());
-      router.push('/home');
+      router.replace('/home');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
       const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred.';
@@ -84,19 +82,11 @@ const NewOnboardingV3 = () => {
         </div>
       )}
 
-      {step === 1 && (
-        <OnboardingProfession
-          selection={profession}
-          setSelection={setProfession}
-          onNext={handleNextFromProfession}
-        />
-      )}
-      {step === 2 && (
-        <OnboardingBadge
-          profession={profession}
-          onNext={handleComplete}
-        />
-      )}
+      <OnboardingProfession
+        selection={profession}
+        setSelection={setProfession}
+        onNext={handleNextFromProfession}
+      />
     </div>
   );
 };
