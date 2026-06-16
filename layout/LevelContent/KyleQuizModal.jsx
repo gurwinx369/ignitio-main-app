@@ -15,6 +15,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
     const [selectedOption, setSelectedOption] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const [isCorrect, setIsCorrect] = useState(null);
+    const [retryNonce, setRetryNonce] = useState(0);
 
     const hasFetched = useRef(false);
 
@@ -70,7 +71,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
         };
 
         fetchQuiz();
-    }, [open, user, level, propRole, quiz]);
+    }, [open, user, level, propRole, quiz, retryNonce]);
 
     const handleSubmit = async () => {
         if (!selectedOption || !quiz) return;
@@ -133,7 +134,11 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
     
     const handleRetry = () => {
         setErrorMsg(null);
+        setQuiz(null);
+        setSelectedOption(null);
+        setIsCorrect(null);
         hasFetched.current = false;
+        setRetryNonce(prev => prev + 1);
         setStatus('loading'); // Re-trigger effect
     };
 

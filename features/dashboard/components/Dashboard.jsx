@@ -154,8 +154,28 @@ export default function Dashboard() {
       }
     }
 
+    let lastActiveRoadmapId = null;
+    try {
+      const savedLastActive = localStorage.getItem("ignitio:last_active_roadmap");
+      if (savedLastActive) {
+        const parsed = JSON.parse(savedLastActive);
+        if (parsed && parsed.id) {
+          lastActiveRoadmapId = parsed.id;
+        }
+      }
+    } catch (e) {}
+
+    let activeRoadmapToSet = bestRoadmap;
+
+    if (lastActiveRoadmapId) {
+      const foundLastActive = roadmapsData.find(r => r.id === lastActiveRoadmapId);
+      if (foundLastActive) {
+        activeRoadmapToSet = foundLastActive;
+      }
+    }
+
     setRoadmapProgress(progressMap);
-    setActiveRoadmap(bestRoadmap);
+    setActiveRoadmap(activeRoadmapToSet);
   }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
 
   const handleRedirectGitGithub = () => {

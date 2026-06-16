@@ -29,11 +29,13 @@ export default function RoadmapTemplate({ roadmapData }) {
     const [isRoadmapReady, setIsRoadmapReady] = useState(false);
 
     // Assignment gate state
-    const [assignmentGateVersion, setAssignmentGateVersion] = useState(0);
+    const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
 
     const prevCompletedCount = useRef(0);
     const roadmapViewportRef = useRef(null);
+    const dayTabsContainerRef = useRef(null);
+    const dayButtonRefs = useRef([]);
 
     const ROADMAP_SKELETON_MIN_MS = 450;
 
@@ -128,8 +130,28 @@ export default function RoadmapTemplate({ roadmapData }) {
     const isKyleRoadmap = isKyleEnabledRoadmap(roadmapData.id);
     const hasAssignmentGate = isAssignmentGatedRoadmapType(roadmapData.id);
 
-    // Force recalculation when assignment is passed
-    const _forceUpdate = assignmentGateVersion;
+    useEffect(() => {
+        if (typeof window === "undefined" || !roadmapData?.id) return;
+        
+        const passedMap = {};
+        roadmapData.days.forEach(day => {
+            if (localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true") {
+                passedMap[day.id] = true;
+            }
+        });
+        setAssignmentPassedDays(passedMap);
+    }, [roadmapData.id, roadmapData.days]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !roadmapData?.id) return;
+
+        localStorage.setItem("ignitio:last_active_roadmap", JSON.stringify({
+            id: roadmapData.id,
+            title: roadmapData.title,
+            route: window.location.pathname,
+            updatedAt: Date.now(),
+        }));
+    }, [roadmapData.id, roadmapData.title]);
 
     const arePreviousAssignmentsPassed = (dayIndex) => {
         if (!hasAssignmentGate) return true;
@@ -137,9 +159,7 @@ export default function RoadmapTemplate({ roadmapData }) {
 
         return roadmapData.days
             .slice(0, dayIndex)
-            .every(day =>
-                localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true"
-            );
+            .every(day => assignmentPassedDays[day.id]);
     };
 
     const getUnlockState = (level) => {
@@ -197,6 +217,17 @@ export default function RoadmapTemplate({ roadmapData }) {
         setPopupAnchor(null);
     }, [activeDayIndex, roadmapData.id]);
 
+    useEffect(() => {
+        const activeButton = dayButtonRefs.current[activeDayIndex];
+        if (!activeButton) return;
+
+        activeButton.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+        });
+    }, [activeDayIndex]);
+
     const handleNodeClick = (level, event) => {
         if (event && event.currentTarget && roadmapViewportRef.current) {
             const nodeRect = event.currentTarget.getBoundingClientRect();
@@ -242,9 +273,7 @@ export default function RoadmapTemplate({ roadmapData }) {
         return activeDay.levels.every(l => completedLevels.includes(l.id));
     }, [activeDay, completedLevels]);
 
-    const isCurrentDayAssignmentPassed = typeof window !== 'undefined'
-        ? localStorage.getItem(`assignment_passed_${roadmapData.id}_${activeDay?.id}`) === "true"
-        : false;
+    const isCurrentDayAssignmentPassed = activeDay ? !!assignmentPassedDays[activeDay.id] : false;
 
     const renderContent = () => {
         if (selectedLevel) {
@@ -320,13 +349,16 @@ export default function RoadmapTemplate({ roadmapData }) {
                             <ChevronLeft className="w-5 h-5" />
                         </button>
 
-                        <div className="flex-1 overflow-x-auto whitespace-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div ref={dayTabsContainerRef} className="flex-1 overflow-x-auto whitespace-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             <div className="flex items-center gap-3 px-1 py-1 w-full max-w-full">
                                 {roadmapData.days.map((day, index) => {
                                     const isActive = activeDayIndex === index;
                                     return (
                                         <button
                                             key={day.id}
+                                            ref={(el) => {
+                                                dayButtonRefs.current[index] = el;
+                                            }}
                                             onClick={() => {
                                                 closeLessonPopup();
                                                 setActiveDayIndex(index);
@@ -423,7 +455,14 @@ export default function RoadmapTemplate({ roadmapData }) {
                 levels={activeDay?.levels || []}
                 isFinalDay={activeDayIndex === roadmapData.days.length - 1}
                 onPassed={() => {
-                    setAssignmentGateVersion(v => v + 1);
+                    const passedDayId = activeDay?.id;
+                    if (passedDayId) {
+                        localStorage.setItem(`assignment_passed_${roadmapData.id}_${passedDayId}`, "true");
+                        setAssignmentPassedDays(prev => ({
+                            ...prev,
+                            [passedDayId]: true,
+                        }));
+                    }
                     setShowAssignmentModal(false);
                 }}
                 onClose={() => setShowAssignmentModal(false)}

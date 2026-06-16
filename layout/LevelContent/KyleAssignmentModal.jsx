@@ -25,6 +25,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     const [scoreData, setScoreData] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const [lockedUntil, setLockedUntil] = useState(null);
+    const [retryNonce, setRetryNonce] = useState(0);
 
     const hasFetched = useRef(false);
     const requiredScore = Math.min(10, dayNumber + 4);
@@ -88,7 +89,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
         };
 
         generateAssignment();
-    }, [open, user, dayNumber, levels, role, assignmentPrompt]);
+    }, [open, user, dayNumber, levels, role, assignmentPrompt, retryNonce]);
 
     const handleSubmit = async () => {
         if (!userResponse.trim() || !assignmentPrompt) return;
@@ -122,11 +123,10 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 if (data.error && data.error.includes("already passed")) {
                     setStatus('already-passed');
                     localStorage.setItem(`assignment_passed_${roadmapId}_${dayId}`, "true");
-                    onPassed();
                     return;
                 }
-                if (data.data?.lockedUntil) {
-                    setLockedUntil(data.data.lockedUntil);
+                if (data.lockedUntil) {
+                    setLockedUntil(data.lockedUntil);
                     setStatus('cooldown');
                     return;
                 }
@@ -136,15 +136,14 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 throw new Error(data.error || 'Failed to submit assignment');
             }
 
-            const { score, feedback, attemptsRemaining, breakdown, weaknesses } = data.data;
+            const { score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses } = data.data;
             const uiPassed = Number(score) >= requiredScore;
             
-            setScoreData({ score, feedback, attemptsRemaining, breakdown, weaknesses, uiPassed });
+            setScoreData({ score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses, uiPassed });
 
             if (uiPassed) {
                 localStorage.setItem(`assignment_passed_${roadmapId}_${dayId}`, "true");
                 setStatus('result_pass');
-                onPassed();
             } else {
                 setStatus('result_fail');
             }
@@ -157,7 +156,9 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     
     const handleRetryGenerate = () => {
         setErrorMsg(null);
+        setAssignmentPrompt("");
         hasFetched.current = false;
+        setRetryNonce(prev => prev + 1);
         setStatus('loading');
     };
 
@@ -264,7 +265,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                             <h4 className="text-xl font-bold text-gray-900">Already Passed</h4>
                             <p className="text-gray-600">You already passed this assignment.</p>
                             <button 
-                                onClick={onClose}
+                                onClick={onPassed}
                                 className="w-full max-w-sm mt-4 py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95"
                             >
                                 Continue
@@ -346,7 +347,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                             <div className="pt-2">
                                 {status === 'result_pass' ? (
                                     <button
-                                        onClick={onClose}
+                                        onClick={onPassed}
                                         className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 text-lg flex items-center justify-center gap-2"
                                     >
                                         {isFinalDay ? (
@@ -366,16 +367,28 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                                                     <RefreshCcw size={20} /> Retry Answer
                                                 </button>
                                                 <p className="text-center text-sm text-gray-500 font-medium">
-                                                    {scoreData.attemptsRemaining} attempt{scoreData.attemptsRemaining !== 1 ? 's' : ''} remaining
+                                                    {scoreData.attemptsRemaining} attempt(s) remaining before a 6-hour cooldown.
                                                 </p>
                                             </>
                                         ) : (
-                                            <button
-                                                onClick={onClose}
-                                                className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all"
-                                            >
-                                                Back to Roadmap
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={onClose}
+                                                    className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all"
+                                                >
+                                                    Back to Roadmap
+                                                </button>
+                                                {scoreData.lockedUntil ? (
+                                                    <p className="text-center text-sm text-red-500 font-medium mt-3">
+                                                        No attempts remaining. Assignment locked for 6 hours.<br/>
+                                                        Try again after {new Date(scoreData.lockedUntil).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-center text-sm text-red-500 font-medium mt-3">
+                                                        No attempts remaining. Please try again later.
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 )}
