@@ -23,9 +23,9 @@ export default function LoginForm() {
         const result = await login(form.email, form.password);
 
         if (result.success) {
-            router.push("/home/");
+            router.replace("/home");
         } else {
-            setError(result.error || "Failed to login");
+            setError(result.error || "Check your email or password.");
         }
         setLoading(false);
     };
@@ -37,7 +37,15 @@ export default function LoginForm() {
         const result = await loginWithGoogle();
 
         if (result.success) {
-            router.push("/home/");
+            if (result.authMode === "new_signup") {
+                router.replace("/home/onboarding");
+            } else {
+                router.replace("/home");
+            }
+        } else if (result.error === null) {
+            // Cancelled popup
+            setLoading(false);
+            return;
         } else {
             setError(result.error || "Failed to sign in with Google");
         }

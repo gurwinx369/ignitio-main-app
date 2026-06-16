@@ -29,9 +29,13 @@ export default function SignupForm() {
         const result = await signup(form.email, form.password);
 
         if (result.success) {
-            router.push("/home/onboarding");
+            if (result.authMode === "existing_login") {
+                router.replace("/home");
+            } else {
+                router.replace("/home/onboarding");
+            }
         } else {
-            setError(result.error || "Failed to create account");
+            setError(result.error || "Check your email or password.");
         }
         setLoading(false);
     };
@@ -43,7 +47,15 @@ export default function SignupForm() {
         const result = await loginWithGoogle();
 
         if (result.success) {
-            router.push("/home/onboarding");
+            if (result.authMode === "new_signup") {
+                router.replace("/home/onboarding");
+            } else {
+                router.replace("/home");
+            }
+        } else if (result.error === null) {
+            // Cancelled popup
+            setLoading(false);
+            return;
         } else {
             setError(result.error || "Failed to sign up with Google");
         }

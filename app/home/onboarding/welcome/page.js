@@ -1,3 +1,5 @@
-import WelcomePage from "@/features/onboarding/WelcomeBadge";
+import { redirect } from 'next/navigation';
 
-export default WelcomePage;
+export default function WelcomePage() {
+  redirect('/home');
+}
