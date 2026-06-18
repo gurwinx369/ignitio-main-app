@@ -410,6 +410,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                                         color={activeDay.color}
                                         onNodeClick={handleNodeClick}
                                         difficulty={activeDay.id}
+                                        roadmapId={roadmapData.id}
                                     />
                                 </div>
                             )}

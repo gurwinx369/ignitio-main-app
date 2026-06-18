@@ -1,7 +1,7 @@
 import React from 'react';
 import { Lock, Check } from 'lucide-react';
 
-const RoadmapNode = ({ level, index, status, theme, onClick }) => {
+const RoadmapNode = ({ level, index, status, theme, onClick, showStartHint }) => {
     // status: 'completed', 'unlocked', 'locked'
     const isLocked = status === 'locked';
     const isCompleted = status === 'completed';
@@ -27,6 +27,14 @@ const RoadmapNode = ({ level, index, status, theme, onClick }) => {
 
     return (
         <div className="relative group flex flex-col items-center">
+            {showStartHint && (
+                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 pointer-events-none z-50 animate-in fade-in zoom-in duration-500">
+                    <div className="relative bg-white/95 backdrop-blur shadow-md border border-slate-200 rounded-2xl px-3 py-2 text-xs sm:text-sm text-slate-700 font-medium whitespace-nowrap">
+                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-slate-200 rotate-45"></div>
+                        <span className="relative z-10">Start here — click or tap this circle.</span>
+                    </div>
+                </div>
+            )}
             {/* The Node */}
             <div 
                 className={`${baseStyles} ${stateStyles}`}
