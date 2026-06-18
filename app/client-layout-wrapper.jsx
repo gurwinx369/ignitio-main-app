@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Loader from '@/layout/Loader';
-import { SmoothCursor } from "@/components/ui/smooth-cursor";
 import { AuthProvider } from "@/features/context/AuthContext";
 import { PostHogProvider } from './providers';
 
@@ -31,12 +30,11 @@ export default function ClientLayoutWrapper({ children, bodyClass }) {
     }, []);
 
     return (
-        <body className={`${bodyClass} ${isLoading ? "" : "cursor-none"}`}>
+        <body className={bodyClass}>
             {isLoading ? (
                 <Loader />
             ) : (
                 <>
-                    <SmoothCursor />
                     <AuthProvider>
                         <PostHogProvider>{children}</PostHogProvider>
                     </AuthProvider>

@@ -97,7 +97,7 @@ export function useKylePetPosition() {
     }
 
     if (typeof document !== 'undefined') {
-      document.body.style.cursor = 'none';
+      document.body.style.cursor = '';
       document.body.style.userSelect = '';
     }
 
