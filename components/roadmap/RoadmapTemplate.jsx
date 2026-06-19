@@ -10,8 +10,8 @@ import Profile from "@/layout/Profile";
 import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
 import KyleAssignmentModal from '@/layout/LevelContent/KyleAssignmentModal';
 import {
-  isKyleEnabledRoadmap,
-  isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
+    isKyleEnabledRoadmap,
+    isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
 } from "@/features/roadmaps/lib/roadmapCapabilities";
 
 export default function RoadmapTemplate({ roadmapData }) {
@@ -133,7 +133,7 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     useEffect(() => {
         if (typeof window === "undefined" || !roadmapData?.id) return;
-        
+
         const passedMap = {};
         roadmapData.days.forEach(day => {
             if (localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true") {
@@ -315,7 +315,7 @@ export default function RoadmapTemplate({ roadmapData }) {
             completedLevelId: levelId,
             nextLevel: isNextLevelUnlocked ? nextLevel : null
         });
-        
+
         // Do not auto-open assignment from inside LevelContent.
         // Assignment is intentionally opened only from the roadmap CTA after user returns.
     };
@@ -513,7 +513,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">Level Complete!</h3>
                         <p className="text-gray-600 mb-8 leading-relaxed">
-                            {completionPopup.nextLevel 
+                            {completionPopup.nextLevel
                                 ? "Great work. Continue to the next level or return to the roadmap."
                                 : "Great work. You completed the final available level."}
                         </p>
@@ -522,7 +522,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                                 <button
                                     onClick={() => {
                                         setCompletionPopup(null);
-                                        const dayIndex = roadmapData.days.findIndex(d => 
+                                        const dayIndex = roadmapData.days.findIndex(d =>
                                             d.levels.some(l => l.id === completionPopup.nextLevel.id)
                                         );
                                         if (dayIndex >= 0) setActiveDayIndex(dayIndex);
