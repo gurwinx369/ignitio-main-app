@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import RoadmapNode from './RoadmapNode';
 import RoadmapBackgroundLayer from './RoadmapBackgroundLayer';
 import { roadmapThemes } from './theme';
@@ -9,10 +9,31 @@ const RoadmapWorldView = ({
     completedLevels,
     color,
     onNodeClick,
-    difficulty = "beginner"
+    difficulty = "beginner",
+    roadmapId
 }) => {
     const baseTheme = roadmapThemes[difficulty] || roadmapThemes.beginner;
     const theme = color ? { ...baseTheme, accent: color } : baseTheme;
+
+    const [isHintDismissed, setIsHintDismissed] = useState(true);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const key = `ignitio:roadmap-start-hint:${roadmapId || window.location.pathname}`;
+            setIsHintDismissed(localStorage.getItem(key) === 'true');
+        }
+    }, [roadmapId]);
+
+    const handleNodeClick = (level, event) => {
+        if (!isHintDismissed) {
+            const key = `ignitio:roadmap-start-hint:${roadmapId || window.location.pathname}`;
+            localStorage.setItem(key, 'true');
+            setIsHintDismissed(true);
+        }
+        if (onNodeClick) {
+            onNodeClick(level, event);
+        }
+    };
 
     const NODE_HEIGHT = 72;
     const NODE_GAP = 96;
@@ -213,7 +234,8 @@ const RoadmapWorldView = ({
                                     index={index}
                                     status={status}
                                     theme={theme}
-                                    onClick={onNodeClick}
+                                    onClick={handleNodeClick}
+                                    showStartHint={!isHintDismissed && status === 'unlocked'}
                                 />
                             </div>
 
@@ -232,7 +254,8 @@ const RoadmapWorldView = ({
                                     index={index}
                                     status={status}
                                     theme={theme}
-                                    onClick={onNodeClick}
+                                    onClick={handleNodeClick}
+                                    showStartHint={!isHintDismissed && status === 'unlocked'}
                                 />
                             </div>
 
@@ -251,7 +274,8 @@ const RoadmapWorldView = ({
                                     index={index}
                                     status={status}
                                     theme={theme}
-                                    onClick={onNodeClick}
+                                    onClick={handleNodeClick}
+                                    showStartHint={!isHintDismissed && status === 'unlocked'}
                                 />
                             </div>
 

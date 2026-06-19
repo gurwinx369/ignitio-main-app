@@ -27,6 +27,7 @@ export default function RoadmapTemplate({ roadmapData }) {
     const [selectedLevel, setSelectedLevel] = useState(null);
     const [showCompletion, setShowCompletion] = useState(false);
     const [isRoadmapReady, setIsRoadmapReady] = useState(false);
+    const [completionPopup, setCompletionPopup] = useState(null);
 
     // Assignment gate state
     const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
@@ -197,6 +198,41 @@ export default function RoadmapTemplate({ roadmapData }) {
         return { isUnlocked: true, lockedReason: null };
     };
 
+    const getUnlockStateWithCompleted = (level, currentCompletedLevels) => {
+        if (!level) return { isUnlocked: false, lockedReason: "Not available" };
+
+        let globalUnlocked = false;
+        if (currentCompletedLevels.includes(level.id)) {
+            globalUnlocked = true;
+        } else {
+            const globalIndex = allLevels.findIndex(l => l.id === level.id);
+            if (globalIndex <= 0) {
+                globalUnlocked = true;
+            } else {
+                const prevLevel = allLevels[globalIndex - 1];
+                globalUnlocked = currentCompletedLevels.includes(prevLevel.id);
+            }
+        }
+
+        if (!globalUnlocked) {
+            return { isUnlocked: false, lockedReason: "Complete Previous Lesson First" };
+        }
+
+        if (hasAssignmentGate) {
+            const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === level.id));
+            if (dayIndex > 0) {
+                const prevPassed = arePreviousAssignmentsPassed(dayIndex);
+                if (!prevPassed) {
+                    const prevDay = roadmapData.days[dayIndex - 1];
+                    const prevDayNumber = Number(String(prevDay?.id || "").match(/\d+/)?.[0]) || dayIndex;
+                    return { isUnlocked: false, lockedReason: `Complete Day ${prevDayNumber} assignment first` };
+                }
+            }
+        }
+
+        return { isUnlocked: true, lockedReason: null };
+    };
+
     const closeLessonPopup = () => {
         setPopupLevel(null);
         setPopupAnchor(null);
@@ -251,19 +287,37 @@ export default function RoadmapTemplate({ roadmapData }) {
     };
 
     const handleVideoComplete = (levelId) => {
-        if (!completedLevels.includes(levelId)) {
-            const newCompleted = [...completedLevels, levelId];
+        // Duplicate protection: do not show a duplicate completion popup if already completed
+        if (completedLevels.includes(levelId)) return;
 
-            const sortedCompleted = newCompleted.sort((a, b) => {
-                return allLevels.findIndex(l => l.id === a) - allLevels.findIndex(l => l.id === b);
-            });
+        const updatedCompleted = [...completedLevels, levelId];
+        const sortedCompleted = updatedCompleted.sort((a, b) => {
+            return allLevels.findIndex(l => l.id === a) - allLevels.findIndex(l => l.id === b);
+        });
 
-            setCompletedLevels(sortedCompleted);
-            localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
+        setCompletedLevels(sortedCompleted);
+        localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
 
-            // Do not auto-open assignment from inside LevelContent.
-            // Assignment is intentionally opened only from the roadmap CTA after user returns.
+        // Calculate next level using fresh array
+        const globalIndex = allLevels.findIndex(l => l.id === levelId);
+        let nextLevel = null;
+        if (globalIndex >= 0 && globalIndex < allLevels.length - 1) {
+            nextLevel = allLevels[globalIndex + 1];
         }
+
+        let isNextLevelUnlocked = false;
+        if (nextLevel) {
+            const unlockState = getUnlockStateWithCompleted(nextLevel, sortedCompleted);
+            isNextLevelUnlocked = unlockState.isUnlocked;
+        }
+
+        setCompletionPopup({
+            completedLevelId: levelId,
+            nextLevel: isNextLevelUnlocked ? nextLevel : null
+        });
+        
+        // Do not auto-open assignment from inside LevelContent.
+        // Assignment is intentionally opened only from the roadmap CTA after user returns.
     };
 
     const dayNumber = Number(String(activeDay?.id || "").match(/\d+/)?.[0]) || activeDayIndex + 1;
@@ -279,6 +333,7 @@ export default function RoadmapTemplate({ roadmapData }) {
         if (selectedLevel) {
             return (
                 <LevelContent
+                    key={`${roadmapData.id}-${selectedLevel.id}`}
                     level={selectedLevel}
                     onBack={() => setSelectedLevel(null)}
                     onComplete={handleVideoComplete}
@@ -410,6 +465,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                                         color={activeDay.color}
                                         onNodeClick={handleNodeClick}
                                         difficulty={activeDay.id}
+                                        roadmapId={roadmapData.id}
                                     />
                                 </div>
                             )}
@@ -446,6 +502,51 @@ export default function RoadmapTemplate({ roadmapData }) {
     return (
         <>
             {renderContent()}
+
+            {completionPopup && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center transform transition-all animate-in zoom-in-95 duration-300 border border-gray-100">
+                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                            <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Level Complete!</h3>
+                        <p className="text-gray-600 mb-8 leading-relaxed">
+                            {completionPopup.nextLevel 
+                                ? "Great work. Continue to the next level or return to the roadmap."
+                                : "Great work. You completed the final available level."}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            {completionPopup.nextLevel && (
+                                <button
+                                    onClick={() => {
+                                        setCompletionPopup(null);
+                                        const dayIndex = roadmapData.days.findIndex(d => 
+                                            d.levels.some(l => l.id === completionPopup.nextLevel.id)
+                                        );
+                                        if (dayIndex >= 0) setActiveDayIndex(dayIndex);
+                                        setSelectedLevel(completionPopup.nextLevel);
+                                    }}
+                                    className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold shadow-sm transition-all active:scale-95"
+                                >
+                                    Start Next Level
+                                </button>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setCompletionPopup(null);
+                                    setSelectedLevel(null);
+                                }}
+                                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all active:scale-95"
+                            >
+                                Back to Roadmap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <KyleAssignmentModal
                 open={showAssignmentModal && !selectedLevel}
                 roadmapId={roadmapData.id}
