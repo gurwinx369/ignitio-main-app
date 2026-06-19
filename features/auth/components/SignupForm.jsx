@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -11,17 +11,18 @@ export default function SignupForm() {
   const [focusedInput, setFocusedInput] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isHandlingAuthActionRef = useRef(false);
 
   const { signup, loginWithGoogle, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (user && !isHandlingAuthActionRef.current) {
       router.replace("/home");
     }
   }, [user, router]);
 
-  if (user) {
+  if (user && !isHandlingAuthActionRef.current) {
     return <Loader />;
   }
 
@@ -36,6 +37,7 @@ export default function SignupForm() {
       return;
     }
 
+    isHandlingAuthActionRef.current = true;
     const result = await signup(form.email, form.password);
 
     if (result.success) {
@@ -45,15 +47,17 @@ export default function SignupForm() {
         router.replace("/home/onboarding");
       }
     } else {
+      isHandlingAuthActionRef.current = false;
       setError(result.error || "Check your email or password.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignup = async () => {
     setError("");
     setLoading(true);
 
+    isHandlingAuthActionRef.current = true;
     const result = await loginWithGoogle();
 
     if (result.success) {
@@ -64,12 +68,14 @@ export default function SignupForm() {
       }
     } else if (result.error === null) {
       // Cancelled popup
+      isHandlingAuthActionRef.current = false;
       setLoading(false);
       return;
     } else {
+      isHandlingAuthActionRef.current = false;
       setError(result.error || "Failed to sign up with Google");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleKeyPress = (e) => {

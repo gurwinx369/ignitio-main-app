@@ -22,6 +22,62 @@ function parseJSON(raw) {
   return JSON.parse(cleaned);
 }
 
+const QUIZ_OPTION_KEYS = ["A", "B", "C"];
+
+function normalizeAnswerKey(value) {
+  return String(value || "").trim().toUpperCase().charAt(0);
+}
+
+function shuffleArray(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function shuffleQuizOptions(quiz) {
+  const correctKey = normalizeAnswerKey(quiz.correctAnswer);
+
+  const items = QUIZ_OPTION_KEYS.map((key) => ({
+    originalKey: key,
+    text: String(quiz.options?.[key] || "").trim(),
+    isCorrect: key === correctKey,
+  }));
+
+  if (!QUIZ_OPTION_KEYS.includes(correctKey)) {
+    throw new Error("Invalid quiz correctAnswer");
+  }
+
+  if (items.some((item) => !item.text)) {
+    throw new Error("Invalid quiz options");
+  }
+
+  const shuffled = shuffleArray(items);
+
+  const options = {};
+  let correctAnswer = null;
+
+  shuffled.forEach((item, index) => {
+    const newKey = QUIZ_OPTION_KEYS[index];
+    options[newKey] = item.text;
+    if (item.isCorrect) {
+      correctAnswer = newKey;
+    }
+  });
+
+  if (!correctAnswer) {
+    throw new Error("Failed to determine shuffled correct answer");
+  }
+
+  return {
+    ...quiz,
+    options,
+    correctAnswer,
+  };
+}
+
 // Combines all level contexts into one block for day-level operations.
 function buildDayContext(levels) {
   return levels
@@ -143,7 +199,8 @@ export async function generateQuiz({ concept, transcript, role }) {
     generationConfig: { temperature: 0 },
   });
 
-  return parseJSON(result.response.text());
+  const quiz = parseJSON(result.response.text());
+  return shuffleQuizOptions(quiz);
   // Shape: { question, options: { A, B, C }, correctAnswer, explanation }
 }
 

@@ -43,16 +43,24 @@ export default function Dashboard() {
           });
           if (res.ok) {
             const data = await res.json();
+            if (data.user?.requiresOnboarding) {
+              router.replace("/home/onboarding");
+              return;
+            }
             role = data.user?.role || "other";
           } else {
-            role = localStorage.getItem("profession") || "other";
+            if (res.status === 404) {
+              router.replace("/home/onboarding");
+              return;
+            }
+            role = "other";
           }
         } catch (error) {
           console.error("Failed to fetch user role:", error);
-          role = localStorage.getItem("profession") || "other";
+          role = "other";
         }
       } else {
-        role = localStorage.getItem("profession") || "other";
+        role = "other";
       }
       setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
