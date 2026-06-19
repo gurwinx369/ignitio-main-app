@@ -14,12 +14,25 @@ if (!admin.apps.length) {
     }
 }
 
-// ✅ Determine base URL based on environment
+// Determine base URL based on environment, always stripped of trailing slash
 const getAppUrl = () => {
-    if (process.env.NODE_ENV === "production") {
-        return process.env.NEXT_PUBLIC_APP_URL;
+    const raw =
+        process.env.NODE_ENV === "production"
+            ? process.env.NEXT_PUBLIC_APP_URL
+            : process.env.NEXT_PUBLIC_DEV_URL || "http://localhost:5000";
+
+    // Strip trailing slash so URL concatenation never produces double-slashes
+    return raw ? raw.replace(/\/+$/, "") : null;
+};
+
+// Validate that a constructed URL is well-formed before passing to Firebase
+const isValidUrl = (url) => {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
     }
-    return process.env.NEXT_PUBLIC_DEV_URL || "http://localhost:5000";
 };
 
 // Passive-aggressive welcome messages (rotated randomly)
@@ -83,13 +96,23 @@ export async function POST(request) {
         // Randomly select a welcome message
         const selectedMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
 
+        // Construct and validate asset URLs before building the FCM payload
+        const imageUrl = `${appUrl}/ignitio-logo.png`;
+        if (!isValidUrl(imageUrl)) {
+            console.error("Constructed imageUrl is not a valid URL:", imageUrl);
+            return NextResponse.json(
+                { error: "Server misconfiguration: could not construct a valid image URL", status: 500 },
+                { status: 500 }
+            );
+        }
+
         // Construct the welcome notification message
         const message = {
             token,
             notification: {
                 title: selectedMessage.title,
                 body: selectedMessage.body,
-                imageUrl: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL required by FCM
+                imageUrl, // Absolute URL required by FCM
             },
             data: {
                 type: "welcome",
@@ -99,11 +122,11 @@ export async function POST(request) {
             },
             webpush: {
                 fcmOptions: {
-                    link: `${appUrl}/home/`, // ✅ Absolute URL
+                    link: `${appUrl}/home/`,
                 },
                 notification: {
-                    icon: `${appUrl}/ignitio-logo.png`,  // ✅ Absolute URL
-                    badge: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL
+                    icon: imageUrl,
+                    badge: imageUrl,
                     requireInteraction: true,
                     tag: "welcome-notification",
                     renotify: false,
