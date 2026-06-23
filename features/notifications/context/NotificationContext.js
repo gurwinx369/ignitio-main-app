@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
   requestNotificationPermission,
   onForegroundMessage,
@@ -12,6 +13,11 @@ import axios from "axios";
 const NotificationContext = createContext({});
 
 export const useNotification = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error("useNotification must be used within NotificationProvider");
+  }
+  return context;
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error("useNotification must be used within NotificationProvider");
@@ -77,11 +83,13 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (permission !== "granted" || !user?.uid) return;
 
-    axios.post("/api/v1/notifications/heartbeat", {
-      firebaseUID: user.uid,
-    }).catch(() => {
-      // Fire-and-forget — heartbeat failure is non-critical
-    });
+    axios
+      .post("/api/v1/notifications/heartbeat", {
+        firebaseUID: user.uid,
+      })
+      .catch(() => {
+        // Fire-and-forget — heartbeat failure is non-critical
+      });
   }, [permission, user?.uid]);
 
   const requestPermission = async (email) => {
@@ -90,7 +98,21 @@ export const NotificationProvider = ({ children }) => {
       console.error("Email is required to save notification token");
       return null;
     }
+    const requestPermission = async (email) => {
+      // Check if email is provided for token saving
+      if (!email) {
+        console.error("Email is required to save notification token");
+        return null;
+      }
 
+      const fcmToken = await requestNotificationPermission();
+      if (fcmToken) {
+        setToken(fcmToken);
+        setPermission("granted");
+        await saveTokenToBackend(fcmToken, email);
+      }
+      return fcmToken;
+    };
     const fcmToken = await requestNotificationPermission();
     if (fcmToken) {
       setToken(fcmToken);
@@ -108,13 +130,22 @@ export const NotificationProvider = ({ children }) => {
       });
       // Axios resolves response successfully if status is 2xx
     } catch (error) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message;
       console.error("Error saving token:", errorMessage);
     }
   };
 
   const value = { token, notification, permission, requestPermission };
+  const value = { token, notification, permission, requestPermission };
 
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  );
   return (
     <NotificationContext.Provider value={value}>
       {children}

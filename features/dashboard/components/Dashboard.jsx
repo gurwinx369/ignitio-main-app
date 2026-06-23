@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { usePostHog } from 'posthog-js/react';
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import Profile from "@/layout/Profile";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
@@ -15,7 +16,15 @@ import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 
 export default function Dashboard() {
   const router = useRouter();
+  const pathname = usePathname();
+  const posthog = usePostHog();
   const { user } = useAuth();
+
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
 
   const redirects = {
     GitGithub: "/home/roadmaps/git-github",
@@ -43,16 +52,24 @@ export default function Dashboard() {
           });
           if (res.ok) {
             const data = await res.json();
+            if (data.user?.requiresOnboarding) {
+              router.replace("/home/onboarding");
+              return;
+            }
             role = data.user?.role || "other";
           } else {
-            role = localStorage.getItem("profession") || "other";
+            if (res.status === 404) {
+              router.replace("/home/onboarding");
+              return;
+            }
+            role = "other";
           }
         } catch (error) {
           console.error("Failed to fetch user role:", error);
-          role = localStorage.getItem("profession") || "other";
+          role = "other";
         }
       } else {
-        role = localStorage.getItem("profession") || "other";
+        role = "other";
       }
       setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
@@ -229,15 +246,23 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => {
-              if (activeRoadmap) {
-                router.push(activeRoadmap.route);
-              } else {
-                router.push("/home");
-              }
+              if (isNavigating) return;
+              const targetRoute = activeRoadmap ? activeRoadmap.route : "/home";
+              if (pathname === targetRoute) return;
+              
+              setIsNavigating(true);
+              posthog?.capture("dashboard_navigation_clicked", {
+                target_route: targetRoute,
+                roadmap_id: activeRoadmap ? activeRoadmap.id : null,
+              });
+              router.push(targetRoute);
+              
+              setTimeout(() => setIsNavigating(false), 3000);
             }}
-            className="px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+            disabled={isNavigating}
+            className={`px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${isNavigating ? "opacity-75 cursor-not-allowed" : ""}`}
           >
-            {activeRoadmap ? "Continue Learning" : "Explore Roadmaps"}
+            {isNavigating ? "Loading..." : (activeRoadmap ? "Continue Learning" : "Explore Roadmaps")}
           </button>
         </div>
 

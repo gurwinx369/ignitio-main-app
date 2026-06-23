@@ -27,6 +27,36 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const clearTargetedStorage = () => {
+        try {
+            const prefixes = [
+                "profession", "completedLevels", "completed_levels_", "progress_",
+                "assignment_passed_", "quiz_gate_completed_", "quiz_gate_bypassed_",
+                "video_timer_", "segment_watch_", "segment_intervals_", "ignitio:last_active_roadmap"
+            ];
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && prefixes.some(p => key.startsWith(p))) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            
+            const sessionKeysToRemove = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && key.startsWith("quiz_gate_bypassed_")) {
+                    sessionKeysToRemove.push(key);
+                }
+            }
+            sessionKeysToRemove.forEach(k => sessionStorage.removeItem(k));
+        } catch (e) {
+            console.error("Cleanup error:", e);
+        }
+    };
+
     useEffect(() => {
         // Set persistence to LOCAL
         setPersistence(auth, browserLocalPersistence)
@@ -40,6 +70,13 @@ export const AuthProvider = ({ children }) => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             // console.log("Auth state changed:", user ? user.email : "No user");
             if (user) {
+                const storedUid = localStorage.getItem("ignitio:active_uid");
+                if (storedUid && storedUid !== user.uid) {
+                    clearTargetedStorage();
+                    localStorage.setItem("ignitio:active_uid", user.uid);
+                } else if (!storedUid) {
+                    localStorage.setItem("ignitio:active_uid", user.uid);
+                }
                 setUser(user);
             } else {
                 setUser(null);
@@ -59,6 +96,10 @@ export const AuthProvider = ({ children }) => {
                 password
             );
             console.log("Signup successful:", result.user.email);
+            
+            clearTargetedStorage();
+            localStorage.setItem("ignitio:active_uid", result.user.uid);
+            
             return { success: true, user: result.user, authMode: "new_signup" };
         } catch (error) {
             if (error.code === "auth/email-already-in-use") {
@@ -130,6 +171,11 @@ export const AuthProvider = ({ children }) => {
             
             const additionalUserInfo = getAdditionalUserInfo(result);
             const authMode = additionalUserInfo?.isNewUser ? "new_signup" : "existing_login";
+
+            if (authMode === "new_signup") {
+                clearTargetedStorage();
+                localStorage.setItem("ignitio:active_uid", result.user.uid);
+            }
 
             return { success: true, user: result.user, authMode };
         } catch (error) {

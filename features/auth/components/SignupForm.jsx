@@ -1,27 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
+import { usePostHog } from 'posthog-js/react';
 export default function SignupForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [focusedInput, setFocusedInput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState("");
+  const isHandlingAuthActionRef = useRef(false);
+  const posthog = usePostHog();
 
   const { signup, loginWithGoogle, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (user && !isHandlingAuthActionRef.current) {
       router.replace("/home");
     }
   }, [user, router]);
 
-  if (user) {
+  if (user && !isHandlingAuthActionRef.current) {
     return <Loader />;
   }
 
@@ -36,6 +40,7 @@ export default function SignupForm() {
       return;
     }
 
+    isHandlingAuthActionRef.current = true;
     const result = await signup(form.email, form.password);
 
     if (result.success) {
@@ -45,15 +50,17 @@ export default function SignupForm() {
         router.replace("/home/onboarding");
       }
     } else {
+      isHandlingAuthActionRef.current = false;
       setError(result.error || "Check your email or password.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignup = async () => {
     setError("");
     setLoading(true);
 
+    isHandlingAuthActionRef.current = true;
     const result = await loginWithGoogle();
 
     if (result.success) {
@@ -64,12 +71,14 @@ export default function SignupForm() {
       }
     } else if (result.error === null) {
       // Cancelled popup
+      isHandlingAuthActionRef.current = false;
       setLoading(false);
       return;
     } else {
+      isHandlingAuthActionRef.current = false;
       setError(result.error || "Failed to sign up with Google");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleKeyPress = (e) => {
@@ -300,12 +309,22 @@ export default function SignupForm() {
                     Already have an account?{" "}
                     <Link
                       href="/auth/login"
-                      className="font-semibold hover:underline transition-colors duration-200"
+                      onClick={(e) => {
+                          if (isNavigating) {
+                              e.preventDefault();
+                              return;
+                          }
+                          setIsNavigating(true);
+                          posthog?.capture("auth_navigation_clicked", { target: "login" });
+                      }}
+                      className="font-semibold hover:underline transition-colors duration-200 inline-flex items-center gap-1"
                       style={{
                         color: "#00A9FF",
+                        opacity: isNavigating ? 0.6 : 1,
+                        cursor: isNavigating ? "not-allowed" : "pointer"
                       }}
                     >
-                      Login here
+                      {isNavigating ? "Loading..." : "Login here"}
                     </Link>
                   </p>
                 </div>

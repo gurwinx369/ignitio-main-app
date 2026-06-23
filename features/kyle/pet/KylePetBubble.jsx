@@ -1,6 +1,9 @@
 import React from 'react';
+import { usePostHog } from 'posthog-js/react';
 
 export default function KylePetBubble({ message, onClose, isLeftAligned, onFocusTip, onAskKyle, onResetPosition, onHideKyle }) {
+  const posthog = usePostHog();
+  
   if (!message) return null;
 
   return (
@@ -23,32 +26,44 @@ export default function KylePetBubble({ message, onClose, isLeftAligned, onFocus
           <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
             {onFocusTip && (
               <button
-                onClick={onFocusTip}
-                className="text-xs font-medium px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors whitespace-nowrap"
+                onClick={(e) => {
+                  posthog?.capture("kyle_action_clicked", { action: "focus_tip" });
+                  onFocusTip(e);
+                }}
+                className="text-xs font-medium px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors whitespace-nowrap active:scale-95"
               >
                 Focus Tip
               </button>
             )}
             {onAskKyle && (
               <button
-                onClick={onAskKyle}
-                className="text-xs font-medium px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
+                onClick={(e) => {
+                  posthog?.capture("kyle_action_clicked", { action: "ask_kyle" });
+                  onAskKyle(e);
+                }}
+                className="text-xs font-medium px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors whitespace-nowrap active:scale-95"
               >
                 Ask Kyle
               </button>
             )}
             {onResetPosition && (
               <button
-                onClick={onResetPosition}
-                className="text-xs font-medium px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
+                onClick={(e) => {
+                  posthog?.capture("kyle_action_clicked", { action: "reset_position" });
+                  onResetPosition(e);
+                }}
+                className="text-xs font-medium px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors whitespace-nowrap active:scale-95"
               >
                 Reset Position
               </button>
             )}
             {onHideKyle && (
               <button
-                onClick={onHideKyle}
-                className="text-xs font-medium px-3 py-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors whitespace-nowrap"
+                onClick={(e) => {
+                  posthog?.capture("kyle_action_clicked", { action: "hide_kyle" });
+                  onHideKyle(e);
+                }}
+                className="text-xs font-medium px-3 py-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors whitespace-nowrap active:scale-95"
               >
                 Hide Kyle
               </button>

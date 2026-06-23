@@ -78,13 +78,15 @@ RULES
 - No trick questions. Test genuine understanding of the core idea taught.
 - The correct answer must be clearly correct based on the transcript — not guessable, not ambiguous.
 - Keep each option short and distinct.
+- Do not always place the correct answer in option A.
+- Do not mention option letters in the explanation. Explain why the correct concept is right.
 
 RESPONSE FORMAT
 Return valid JSON only. No markdown. No explanation outside the JSON object.
 {
   "question": "...",
   "options": { "A": "...", "B": "...", "C": "..." },
-  "correctAnswer": "A",
+  "correctAnswer": "<one of A, B, or C>",
   "explanation": "..."
 }`;
 }

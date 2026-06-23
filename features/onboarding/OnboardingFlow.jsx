@@ -16,30 +16,26 @@ const saveToDatabase = async (data) => {
         if (!data.selectedTechField || data.selectedTechField.length < 2) {
             throw new Error("At least 2 learning fields must be selected");
         }
-        //console.log(Selected tech fields: data?.selectedTechField);
-        // Prepare payload
-        const payload = {
-                email: data?.email || "email not found",
-                firebaseUID: data?.firebaseUID || "UID not found",
-                questions: {
-                    selectedTechField: data?.selectedTechField,
-                    selectedProject: data?.projectDescription || "", // Empty string if skipped
-                },
-                roadmaps: {
-                    name: "Git and Github" //for mvp only in next version it should be selected by the user to choose between the roadmaps
-                },
-                badge:
-                    data?.badge || {
-                        name: "Beginner",
-                        badgeUrl: "default badge"
-                    }
-            }
-        ;
+        const mapFieldsToRole = (fields) => {
+            const f = fields.join(" ").toLowerCase();
+            if (f.includes("ui/ux")) return "designer";
+            if (f.includes("development") || f.includes("cloud") || f.includes("cybersecurity")) return "developer";
+            if (f.includes("gen ai") || f.includes("ai/ml")) return "developer";
+            return "other";
+        };
 
-        // Make API call
-        const response = await axios.post("/api/v1/user", payload, {
+        const payload = {
+            email: data.email,
+            role: mapFieldsToRole(data.selectedTechField)
+        };
+
+        const token = await data.user.getIdToken();
+
+        // Make API call to v2
+        const response = await axios.post("/api/v2/user", payload, {
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             timeout: 10000, // 10 second timeout
         });
@@ -171,6 +167,7 @@ export default function OnboardingFlow() {
 
             // Call saveToDatabase with proper error handling
             const result = await saveToDatabase({
+                user: user,
                 firebaseUID: uid,
                 email: email,
                 selectedTechField: selectedFields,

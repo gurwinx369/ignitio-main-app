@@ -124,20 +124,43 @@ export async function POST(request) {
       }
     }
 
+    const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
+
     if (existingProfile) {
-      return NextResponse.json(
-        {
-          message: "User profile found",
-          user: {
-            id: existingProfile._id,
-            email: existingProfile.email,
-            onboardingComplete: existingProfile.onboardingComplete,
-            createdAt: existingProfile.createdAt,
+      const hasValidRole = VALID_ROLES.includes(existingProfile.role);
+
+      if (hasValidRole) {
+        return NextResponse.json(
+          {
+            message: "User profile found",
+            user: {
+              id: existingProfile._id,
+              email: existingProfile.email,
+              onboardingComplete: existingProfile.onboardingComplete,
+              createdAt: existingProfile.createdAt,
+            },
+            existing: true,
           },
-          existing: true,
-        },
-        { status: 200 },
-      );
+          { status: 200 },
+        );
+      } else {
+        existingProfile.role = role;
+        existingProfile.onboardingComplete = true;
+        await existingProfile.save();
+        return NextResponse.json(
+          {
+            message: "User profile updated",
+            user: {
+              id: existingProfile._id,
+              email: existingProfile.email,
+              onboardingComplete: existingProfile.onboardingComplete,
+              createdAt: existingProfile.createdAt,
+            },
+            existing: true,
+          },
+          { status: 200 },
+        );
+      }
     }
 
     // Step 5: Atomic create
@@ -246,6 +269,10 @@ export async function GET(request) {
         { status: 404 },
       );
     }
+
+    const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
+    const hasValidRole = VALID_ROLES.includes(userProfile.role);
+    userProfile.requiresOnboarding = !hasValidRole;
 
     return NextResponse.json(
       { message: "User profile found", user: userProfile },
