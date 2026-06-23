@@ -1,12 +1,15 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { PlayCircle, Clock, CheckCircle2, ArrowRight, BarChart } from "lucide-react";
 import { roadmapThemes } from './theme';
+import { usePostHog } from 'posthog-js/react';
 
 const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onStart, onClose, difficulty = "beginner", anchor }) => {
     const theme = roadmapThemes[difficulty] || roadmapThemes.beginner;
+    const posthog = usePostHog();
 
     const [posStyle, setPosStyle] = useState({});
     const [isPositioned, setIsPositioned] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
     const panelRef = useRef(null);
 
     useLayoutEffect(() => {
@@ -139,16 +142,31 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
                     style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
                 >
                     <button
-                        onClick={() => isUnlocked && onStart(level)}
-                        disabled={!isUnlocked}
+                        onClick={() => {
+                            if (!isUnlocked || isStarting) return;
+                            setIsStarting(true);
+                            posthog?.capture("lesson_start_clicked", {
+                                level_id: level.id,
+                                level_title: level.title,
+                                roadmap_difficulty: difficulty
+                            });
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    onStart(level);
+                                    // Reset state after a short delay in case onStart doesn't unmount
+                                    setTimeout(() => setIsStarting(false), 2000);
+                                });
+                            });
+                        }}
+                        disabled={!isUnlocked || isStarting}
                         className={`group w-full flex items-center justify-center gap-2 py-4 rounded-2xl transition-all shadow-md font-bold text-lg 
                             ${!isUnlocked 
                                 ? 'opacity-50 cursor-not-allowed bg-gray-400 text-white' 
-                                : 'text-white active:scale-95 hover:shadow-lg hover:scale-[1.02]'}`}
+                                : 'text-white active:scale-95 hover:shadow-lg hover:scale-[1.02]'} ${isStarting ? 'opacity-80' : ''}`}
                         style={{ backgroundColor: isUnlocked ? theme.accent : undefined }}
                     >
-                        {!isUnlocked ? disabledMessage : (isCompleted ? "Review Lesson" : "Start Lesson")}
-                        {isUnlocked && <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />}
+                        {!isUnlocked ? disabledMessage : (isStarting ? "Opening lesson..." : (isCompleted ? "Review Lesson" : "Start Lesson"))}
+                        {isUnlocked && !isStarting && <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />}
                     </button>
                 </div>
             </div>

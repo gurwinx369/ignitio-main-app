@@ -48,6 +48,7 @@ export const kylePetConfig = {
   drag: {
     clickThresholdPx: 6,
     viewportPaddingPx: 12,
+    mobileSafeBottomPaddingPx: 110,
   },
 
   bubble: {
