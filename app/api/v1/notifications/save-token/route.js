@@ -33,7 +33,7 @@ export async function POST(request) {
         //FIX 4: Was updating ALL users — added { _id: user._id } filter
         const saveNotificationInUserSchema = await UserProfile.findByIdAndUpdate(
             user._id,
-            { notificationID: addNotification._id },
+            { notification: addNotification._id },
             { new: true }
         );
 

@@ -6,6 +6,8 @@ import {
   onForegroundMessage,
   displayNotification,
 } from "@/lib/firebase/firebase-messaging";
+import { useAuth } from "@/features/context/AuthContext";
+import axios from "axios";
 
 const NotificationContext = createContext({});
 
@@ -18,6 +20,7 @@ export const useNotification = () => {
 };
 
 export const NotificationProvider = ({ children }) => {
+  const { user } = useAuth();
   const [token, setToken] = useState(null);
   const [notification, setNotification] = useState(null);
   const [permission, setPermission] = useState("default");
@@ -70,6 +73,17 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [permission]);
 
+  // Fire heartbeat once on mount when notifications are already granted
+  useEffect(() => {
+    if (permission !== "granted" || !user?.uid) return;
+
+    axios.post("/api/v1/notifications/heartbeat", {
+      firebaseUID: user.uid,
+    }).catch(() => {
+      // Fire-and-forget — heartbeat failure is non-critical
+    });
+  }, [permission, user?.uid]);
+
   const requestPermission = async (email) => {
     // Check if email is provided for token saving
     if (!email) {
@@ -88,17 +102,14 @@ export const NotificationProvider = ({ children }) => {
 
   const saveTokenToBackend = async (fcmToken, email) => {
     try {
-      const response = await fetch("/api/v1/notifications/save-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: fcmToken, email: email }),
+      const response = await axios.post("/api/v1/notifications/save-token", {
+        token: fcmToken,
+        email: email,
       });
-      const data = await response.json();
-      if (!response.ok) {
-        console.error("Failed to save token:", data.error || data.message);
-      }
+      // Axios resolves response successfully if status is 2xx
     } catch (error) {
-      console.error("Error saving token:", error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      console.error("Error saving token:", errorMessage);
     }
   };
 

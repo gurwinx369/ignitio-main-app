@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
 
+const NotificationHistoryEntrySchema = new mongoose.Schema({
+    id: { type: String, required: true },
+    sentAt: { type: Date, required: true },
+    messageIndex: { type: Number, required: true },
+}, { _id: false });
+
 const UserNotificationSchema = new mongoose.Schema({
     userID: {
         type: String,
@@ -20,6 +26,16 @@ const UserNotificationSchema = new mongoose.Schema({
     notificationsEnabled: {
         type: Boolean,
         default: true,
+    },
+    notificationsSent: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 2,
+    },
+    notificationHistory: {
+        type: [NotificationHistoryEntrySchema],
+        default: [],
     },
 }, {
     timestamps: true,
