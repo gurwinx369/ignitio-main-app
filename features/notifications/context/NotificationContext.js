@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
 import {
   requestNotificationPermission,
   onForegroundMessage,
@@ -13,11 +12,6 @@ import axios from "axios";
 const NotificationContext = createContext({});
 
 export const useNotification = () => {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error("useNotification must be used within NotificationProvider");
-  }
-  return context;
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error("useNotification must be used within NotificationProvider");
@@ -98,21 +92,7 @@ export const NotificationProvider = ({ children }) => {
       console.error("Email is required to save notification token");
       return null;
     }
-    const requestPermission = async (email) => {
-      // Check if email is provided for token saving
-      if (!email) {
-        console.error("Email is required to save notification token");
-        return null;
-      }
 
-      const fcmToken = await requestNotificationPermission();
-      if (fcmToken) {
-        setToken(fcmToken);
-        setPermission("granted");
-        await saveTokenToBackend(fcmToken, email);
-      }
-      return fcmToken;
-    };
     const fcmToken = await requestNotificationPermission();
     if (fcmToken) {
       setToken(fcmToken);
@@ -139,13 +119,7 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const value = { token, notification, permission, requestPermission };
-  const value = { token, notification, permission, requestPermission };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
   return (
     <NotificationContext.Provider value={value}>
       {children}
