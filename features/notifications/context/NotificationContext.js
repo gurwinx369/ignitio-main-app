@@ -22,7 +22,6 @@ export const NotificationProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);
   const [permission, setPermission] = useState("default");
 
-  // ✅ FIX: Split into two separate effects so SW registration is never skipped
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       const timer = setTimeout(() => {
@@ -33,7 +32,6 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // ✅ FIX: SW registration now lives in its own effect — always runs
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/firebase-messaging-sw.js")
@@ -50,16 +48,18 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (permission === "granted") {
       const unsubscribe = onForegroundMessage((payload) => {
-        console.log("Foreground notification:", payload);
         setNotification(payload);
 
-        const title = payload.notification?.title || "New Notification";
+        // With data-only FCM messages, all fields live in payload.data
+        const data = payload.data || {};
+        const title = data.title || "New Notification";
         const options = {
-          body: payload.notification?.body || "",
-          icon: payload.notification?.icon || "/ignitio-logo.png",
-          badge: "/ignitio-logo.png",
-          tag: payload.data?.tag || "notification",
-          data: payload.data,
+          body: data.body || "",
+          icon: data.icon || "/ignitio-logo.png",
+          badge: data.badge || "/ignitio-logo.png",
+          tag: data.tag || "ignitio-notification",
+          data: { url: data.url || "/" },
+          requireInteraction: data.requireInteraction === "true",
         };
         displayNotification(title, options);
       });

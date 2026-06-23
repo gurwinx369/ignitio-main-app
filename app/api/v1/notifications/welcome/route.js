@@ -81,31 +81,32 @@ export async function POST(request) {
     const selectedMessage =
       welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
 
-    // Construct the welcome notification message
+    // Construct the welcome notification message.
+    // IMPORTANT: We use a data-only payload (no top-level "notification" block).
+    // On mobile Chrome, a top-level notification block hands control to the browser's
+    // native push handler, which silently drops the notification on many devices.
+    // A data-only message forces routing through the service worker's onBackgroundMessage,
+    // which calls showNotification directly — the only path that works on all platforms.
     const message = {
       token,
-      notification: {
+      data: {
         title: selectedMessage.title,
         body: selectedMessage.body,
-        imageUrl: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL required by FCM
-      },
-      data: {
+        icon: `${appUrl}/ignitio-logo.png`,
+        badge: `${appUrl}/ignitio-logo.png`,
         type: "welcome",
-        url: "/home/",
+        url: `${appUrl}/home/`,
         isFirstNotification: "true",
         timestamp: new Date().toISOString(),
+        tag: "welcome-notification",
+        requireInteraction: "true",
       },
       webpush: {
-        fcmOptions: {
-          link: `${appUrl}/home/`, // ✅ Absolute URL
+        headers: {
+          Urgency: "high",
         },
-        notification: {
-          icon: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL
-          badge: `${appUrl}/ignitio-logo.png`, // ✅ Absolute URL
-          requireInteraction: true,
-          tag: "welcome-notification",
-          renotify: false,
-          vibrate: [200, 100, 200],
+        fcmOptions: {
+          link: `${appUrl}/home/`,
         },
       },
     };

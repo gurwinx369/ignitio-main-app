@@ -1,63 +1,70 @@
 // public/firebase-messaging-sw.js
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js",
+);
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js",
+);
 
 // Initialize Firebase in the service worker
 firebase.initializeApp({
-    apiKey: "AIzaSyDIEt3oa0WdFy5YQyTC-Uf-cgTSHCIGVPc",
-    authDomain: "ignitio-7e45a.firebaseapp.com",
-    projectId: "ignitio-7e45a",
-    storageBucket: "ignitio-7e45a.firebasestorage.app",
-    messagingSenderId: "309371567173",
-    appId: "1:309371567173:web:543ba289b46646bc86772c",
-    measurementId: "G-3FWXQWYZRC"
+  apiKey: "AIzaSyDIEt3oa0WdFy5YQyTC-Uf-cgTSHCIGVPc",
+  authDomain: "ignitio-7e45a.firebaseapp.com",
+  projectId: "ignitio-7e45a",
+  storageBucket: "ignitio-7e45a.firebasestorage.app",
+  messagingSenderId: "309371567173",
+  appId: "1:309371567173:web:543ba289b46646bc86772c",
+  measurementId: "G-3FWXQWYZRC",
 });
 
-// Retrieve an instance of Firebase Messaging
+// Retrieve an instance of Firebase Messaging so the SDK intercepts push events.
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background messages (app in background or closed).
+// All notification fields come from payload.data because we send data-only FCM messages.
+// This is required for cross-platform reliability — mobile Chrome silently drops
+// notification-type messages without invoking this handler at all.
 messaging.onBackgroundMessage((payload) => {
-    console.log('Background message received:', payload);
+  const data = payload.data || {};
 
-    const notificationTitle = payload.notification?.title || 'New Notification';
-    const notificationOptions = {
-        body: payload.notification?.body || 'You have a new message',
-        icon: payload.notification?.icon || '/ignitio-logo.png',
-        badge: '/ignitio-logo.png',
-        tag: payload.data?.tag || 'default-tag',
-        data: payload.data,
-        requireInteraction: false,
-        vibrate: [200, 100, 200]
-    };
+  const title = data?.title || "New Notification";
+  const options = {
+    body: data?.body || "",
+    icon: data?.icon || "/ignitio-logo.png",
+    badge: data?.badge || "/ignitio-logo.png",
+    tag: data?.tag || "ignitio-notification",
+    // Store the full data object so notificationclick can use it
+    data: {
+      url: data?.url || "/",
+      ...data,
+    },
+    requireInteraction: data?.requireInteraction === "true",
+    vibrate: [200, 100, 200],
+  };
 
-    return self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(title, options);
 });
 
-// Handle notification click
-self.addEventListener('notificationclick', (event) => {
-    console.log('Notification clicked:', event);
+// Handle notification click — navigate to the URL stored in notification data
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
 
-    event.notification.close();
+  const urlToOpen = event.notification.data?.url || "/";
 
-    // Get the URL to open (from notification data or default)
-    const urlToOpen = event.notification.data?.url || '/';
-
-    // Open or focus the client
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clientList) => {
-                // Check if there's already a window open
-                for (let i = 0; i < clientList.length; i++) {
-                    const client = clientList[i];
-                    if (client.url === urlToOpen && 'focus' in client) {
-                        return client.focus();
-                    }
-                }
-                // If no window is open, open a new one
-                if (clients.openWindow) {
-                    return clients.openWindow(urlToOpen);
-                }
-            })
-    );
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Focus an already-open tab at the target URL if one exists
+        for (const client of clientList) {
+          if (client.url === urlToOpen && "focus" in client) {
+            return client.focus();
+          }
+        }
+        // Otherwise open a new tab
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      }),
+  );
 });
