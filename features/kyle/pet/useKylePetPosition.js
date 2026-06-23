@@ -39,11 +39,15 @@ export function useKylePetPosition() {
     const { width, height } = getViewportDimensions();
     const padding = drag.viewportPaddingPx;
     
+    // On mobile, keep Kyle safely above bottom navigation/CTAs
+    const isMobile = width <= breakpoint.mobileMaxWidth;
+    const bottomPadding = isMobile ? Math.max(padding, drag.mobileSafeBottomPaddingPx || 110) : padding;
+    
     return {
       x: Math.max(padding, Math.min(pos.x, width - s - padding)),
-      y: Math.max(padding, Math.min(pos.y, height - s - padding)),
+      y: Math.max(padding, Math.min(pos.y, height - s - bottomPadding)),
     };
-  }, [drag.viewportPaddingPx]);
+  }, [drag.viewportPaddingPx, breakpoint.mobileMaxWidth]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
