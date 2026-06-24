@@ -7,9 +7,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const connectDB = async () => {
   // Validate env at call time — dotenv should be configured at app entry point, not here
-  const uri = process.env.MONGO_URI?.trim().replace(/\r/g, "");
+  const uri = process.env.MONGO_URI_DEV?.trim().replace(/\r/g, "");
   if (!uri) {
-    throw new Error("MONGO_URI is not defined in environment variables");
+    throw new Error("MONGO_URI_DEV is not defined in environment variables");
   }
 
   // Reuse existing connection — critical in Next.js due to hot reloading
