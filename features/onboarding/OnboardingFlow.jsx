@@ -40,25 +40,33 @@ const saveToDatabase = async (data) => {
             timeout: 10000, // 10 second timeout
         });
 
-        console.log("Data saved successfully:", response.data);
+        if (process.env.NODE_ENV === "development") {
+            console.log("Data saved successfully");
+        }
         return response.data;
 
     } catch (err) {
         // Enhanced error handling
         if (err.response) {
             // Server responded with error status
-            console.error("Server Error:", err.response.status, err.response.data);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Server Error:", err?.response?.status || err?.message || "unknown error");
+            }
             throw new Error(
                 err.response.data?.message ||
                 `Server error: ${err.response.status}`
             );
         } else if (err.request) {
             // Request made but no response received
-            console.error("Network Error: No response from server");
+            if (process.env.NODE_ENV === "development") {
+                console.error("Network Error: No response from server");
+            }
             throw new Error("Network error. Please check your connection.");
         } else {
             // Error in request setup or validation
-            console.error("Error:", err.message);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Error:", err?.message || "unknown error");
+            }
             throw new Error(err.message);
         }
     }
@@ -182,7 +190,9 @@ export default function OnboardingFlow() {
 
         } catch (error) {
             // Handle errors gracefully
-            console.error("Failed to complete onboarding:", error);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Failed to complete onboarding:", error?.message || "unknown error");
+            }
 
             // Show user-friendly error message
             alert(`Failed to save your progress: ${error.message}. Please try again.`);

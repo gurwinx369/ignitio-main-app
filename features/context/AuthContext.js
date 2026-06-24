@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
             });
 
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            // console.log("Auth state changed:", user ? user.email : "No user");
+
             if (user) {
                 const storedUid = localStorage.getItem("ignitio:active_uid");
                 if (storedUid && storedUid !== user.uid) {
@@ -89,13 +89,15 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (email, password) => {
         try {
-            console.log("Attempting signup with email:", email);
+
             const result = await createUserWithEmailAndPassword(
                 auth,
                 email,
                 password
             );
-            console.log("Signup successful:", result.user.email);
+            if (process.env.NODE_ENV === "development") {
+                console.log("Signup successful");
+            }
             
             clearTargetedStorage();
             localStorage.setItem("ignitio:active_uid", result.user.uid);
@@ -104,17 +106,22 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             if (error.code === "auth/email-already-in-use") {
                 try {
-                    console.info("Signup: Email already in use, attempting login fallback...");
-                    const loginResult = await signInWithEmailAndPassword(auth, email, password);
-                    console.log("Fallback login successful:", loginResult.user.email);
+                    if (process.env.NODE_ENV === "development") {
+                        console.info("Signup: Email already in use, attempting login fallback...");
+                        console.log("Fallback login successful");
+                    }
                     return { success: true, user: loginResult.user, authMode: "existing_login" };
                 } catch (loginError) {
-                    console.error("Fallback login error:", loginError.code, loginError.message);
+                    if (process.env.NODE_ENV === "development") {
+                        console.error("Fallback login error:", loginError?.code, loginError?.message);
+                    }
                     return { success: false, error: "Check your email or password." };
                 }
             }
 
-            console.error("Signup error:", error.code, error.message);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Signup error:", error?.code, error?.message);
+            }
 
             let errorMessage = "Check your email or password.";
 
@@ -134,12 +141,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            console.log("Attempting login with email:", email);
+
             const result = await signInWithEmailAndPassword(auth, email, password);
-            console.log("Login successful:", result.user.email);
+            if (process.env.NODE_ENV === "development") {
+                console.log("Login successful");
+            }
             return { success: true, user: result.user };
         } catch (error) {
-            console.error("Login error:", error.code, error.message);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Login error:", error?.code, error?.message);
+            }
             let errorMessage = "Check your email or password.";
 
             if (error.code === "auth/invalid-email") {
@@ -158,7 +169,9 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithGoogle = async () => {
         try {
-            console.log("Attempting Google login");
+            if (process.env.NODE_ENV === "development") {
+                console.log("Attempting Google login");
+            }
 
             // Configure Google provider with custom parameters
             googleProvider.setCustomParameters({
@@ -167,7 +180,9 @@ export const AuthProvider = ({ children }) => {
 
             // Use signInWithPopup with proper error handling
             const result = await signInWithPopup(auth, googleProvider);
-            console.log("Google login successful:", result.user.email);
+            if (process.env.NODE_ENV === "development") {
+                console.log("Google login successful");
+            }
             
             const additionalUserInfo = getAdditionalUserInfo(result);
             const authMode = additionalUserInfo?.isNewUser ? "new_signup" : "existing_login";
@@ -179,12 +194,16 @@ export const AuthProvider = ({ children }) => {
 
             return { success: true, user: result.user, authMode };
         } catch (error) {
-            console.error("Google login error:", error.code, error.message);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Google login error:", error?.code, error?.message);
+            }
             let errorMessage = "Failed to sign in with Google";
 
             // Handle the case where popup was cancelled by another popup request
             if (error.code === "auth/cancelled-popup-request") {
-                console.log("Popup request was cancelled by a new request");
+                if (process.env.NODE_ENV === "development") {
+                    console.log("Popup request was cancelled by a new request");
+                }
                 // Don't show error for cancelled requests, just return null
                 return { success: false, error: null };
             } else if (error.code === "auth/popup-closed-by-user") {
@@ -205,12 +224,18 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            console.log("Attempting logout");
+            if (process.env.NODE_ENV === "development") {
+                console.log("Attempting logout");
+            }
             await signOut(auth);
-            console.log("Logout successful");
+            if (process.env.NODE_ENV === "development") {
+                console.log("Logout successful");
+            }
             return { success: true };
         } catch (error) {
-            console.error("Logout error:", error);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Logout error:", error?.message || "unknown error");
+            }
             return { success: false, error: error.message };
         }
     };

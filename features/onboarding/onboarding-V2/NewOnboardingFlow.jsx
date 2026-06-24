@@ -77,10 +77,7 @@ const saveToDatabase = async (data) => {
         }
     };
 
-    console.log("payload", payload);
-    console.log("badge", payload.badge);
-    console.log("questions", payload.questions);
-    console.log("roadmap", payload.roadmaps);
+
 
     const response = await axios.post("/api/v1/user", payload, {
       headers: {
@@ -89,19 +86,15 @@ const saveToDatabase = async (data) => {
       timeout: 10000,
     });
 
-    console.log("response", response?.data);
-    console.log("Data saved successfully:", response.data);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Data saved successfully");
+    }
     return response.data;
 
   } catch (err) {
-    console.log(
-      "error",
-      JSON.stringify(
-        err?.response?.data,
-        null,
-        2
-      )
-    );
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error saving data:", err?.response?.status || err?.message || "unknown error");
+    }
     throw err;
   }
 };
@@ -165,7 +158,9 @@ const NewOnboardingFlow = () => {
       localStorage.setItem('onboarding_completed', JSON.stringify(finalData));
       router.push('/home/onboarding/welcome');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      if (process.env.NODE_ENV === "development") {
+        console.error('Failed to complete onboarding:', error?.message || "unknown error");
+      }
 
       const errorMessage = error.response?.data?.message || error.message || '';
       const isEmailInUse = errorMessage.includes('auth/email-already-in-use') || errorMessage.includes('already exists');
