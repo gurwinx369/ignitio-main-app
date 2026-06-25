@@ -42,12 +42,16 @@ const NewOnboardingV3 = () => {
         timeout: 10000,
       });
 
-      console.log('Profile created successfully:', response.data);
+      if (process.env.NODE_ENV === "development") {
+        console.log('Profile created successfully');
+      }
 
       localStorage.setItem('profession', profession.toLowerCase());
       router.replace('/home');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      if (process.env.NODE_ENV === "development") {
+        console.error('Failed to complete onboarding:', error?.message || "unknown error");
+      }
       const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred.';
       setErrorToast({
         show: true,

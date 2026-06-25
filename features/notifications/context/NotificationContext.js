@@ -38,10 +38,11 @@ export const NotificationProvider = ({ children }) => {
       navigator.serviceWorker
         .register("/firebase-messaging-sw.js")
         .then((registration) => {
-          // console.log("Service Worker registered:", registration);
         })
         .catch((error) => {
-          console.error("Service Worker registration failed:", error);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Service Worker registration failed:", error?.message || "unknown error");
+          }
         });
     }
   }, []);
@@ -50,7 +51,9 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (permission === "granted") {
       const unsubscribe = onForegroundMessage((payload) => {
-        console.log("Foreground notification:", payload);
+        if (process.env.NODE_ENV === "development") {
+          console.log("Foreground notification received");
+        }
         setNotification(payload);
 
         const title = payload.notification?.title || "New Notification";
@@ -73,7 +76,9 @@ export const NotificationProvider = ({ children }) => {
   const requestPermission = async (email) => {
     // Check if email is provided for token saving
     if (!email) {
-      console.error("Email is required to save notification token");
+      if (process.env.NODE_ENV === "development") {
+        console.error("Email is required to save notification token");
+      }
       return null;
     }
 
@@ -95,10 +100,14 @@ export const NotificationProvider = ({ children }) => {
       });
       const data = await response.json();
       if (!response.ok) {
-        console.error("Failed to save token:", data.error || data.message);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Failed to save token:", data?.error || data?.message || "unknown error");
+        }
       }
     } catch (error) {
-      console.error("Error saving token:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error saving token:", error?.message || "unknown error");
+      }
     }
   };
 

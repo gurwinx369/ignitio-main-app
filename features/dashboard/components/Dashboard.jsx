@@ -65,7 +65,9 @@ export default function Dashboard() {
             role = "other";
           }
         } catch (error) {
-          console.error("Failed to fetch user role:", error);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Failed to fetch user role:", error?.message || "unknown error");
+          }
           role = "other";
         }
       } else {

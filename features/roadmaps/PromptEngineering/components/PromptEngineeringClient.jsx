@@ -29,7 +29,9 @@ export default function PromptEngineeringClient() {
                         role = localStorage.getItem("profession") || "other";
                     }
                 } catch (error) {
-                    console.error("Failed to fetch user role:", error);
+                    if (process.env.NODE_ENV === "development") {
+                        console.error("Failed to fetch user role:", error?.message || "unknown error");
+                    }
                     role = localStorage.getItem("profession") || "other";
                 }
             } else {

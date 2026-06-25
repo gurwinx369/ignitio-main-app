@@ -57,14 +57,18 @@ export default function NotificationModal() {
       const alreadySentWelcome = localStorage.getItem(
         "welcome_notification_sent",
       );
-      console.log("Already sent: ", alreadySentWelcome);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Already sent: ", alreadySentWelcome);
+      }
       if (!alreadySentWelcome) {
         const response = await axios({
           method: "POST",
           url: "/api/v1/notifications/welcome",
           data: { token: fcmToken },
         });
-        console.log("Welcome notification sent: ", response.data);
+        if (process.env.NODE_ENV === "development") {
+          console.log("Welcome notification sent");
+        }
         // ✅ Mark as sent so we don't send it again on future permission grants
         localStorage.setItem("welcome_notification_sent", "true");
       }
@@ -74,7 +78,9 @@ export default function NotificationModal() {
       handleClose();
     } catch (error) {
       setLoading(false);
-      console.error("Error enabling notifications:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error enabling notifications:", error?.message || "unknown error");
+      }
       // Show the actual error message if available
       const errorMessage =
         error?.message || "An error occurred while enabling notifications.";

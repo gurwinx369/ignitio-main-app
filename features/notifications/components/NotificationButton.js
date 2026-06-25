@@ -31,7 +31,9 @@ export default function NotificationButton() {
         );
       }
     } catch (error) {
-      console.error("Error enabling notifications:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error enabling notifications:", error?.message || "unknown error");
+      }
       // Show the actual error message if available
       const errorMessage =
         error?.message || "An error occurred while enabling notifications.";
@@ -57,12 +59,12 @@ export default function NotificationButton() {
                             body: "Hey, this notification is from notification send button",
                         },
                     });
-                    console.log("Getting data from the notification route: ", response.data);
+
                 } else {
                     alert("Failed to enable notifications. Please check your browser settings.");
                 }
             } catch (e) {
-                console.error("Error sending notification", e);
+
                 alert("Failed to send notification");
             } finally {
                 setLoading(false);
