@@ -25,10 +25,11 @@ export async function POST(request) {
       });
     }
 
-    const addNotification = await UserNotification.create({
-      userID: user._id,
-      fcmToken: token,
-    });
+    const addNotification = await UserNotification.findOneAndUpdate(
+      { userID: user._id },
+      { fcmToken: token },
+      { new: true, upsert: true }
+    );
 
     //FIX 4: Was updating ALL users — added { _id: user._id } filter
     const saveNotificationInUserSchema = await UserProfile.findByIdAndUpdate(

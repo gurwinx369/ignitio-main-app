@@ -2,7 +2,8 @@ import Dashboard from "@/features/dashboard/components/Dashboard";
 
 export const metadata = {
   title: "Dashboard",
-  description: "Manage your courses, view progress, and access customized programming roadmaps on Ignitio.",
+  description:
+    "Manage your courses, view progress, and access customized programming roadmaps on Ignitio.",
   robots: {
     index: false,
     follow: false,
@@ -12,7 +13,8 @@ export const metadata = {
   },
   openGraph: {
     title: "Dashboard | Ignitio",
-    description: "Manage your courses, view progress, and access customized programming roadmaps on Ignitio.",
+    description:
+      "Manage your courses, view progress, and access customized programming roadmaps on Ignitio.",
     url: "https://app.ignitio.cloud/home",
   },
 };

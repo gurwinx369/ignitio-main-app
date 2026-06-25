@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import {
   requestNotificationPermission,
   onForegroundMessage,
@@ -73,17 +73,65 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [permission]);
 
-  // Fire heartbeat once on mount when notifications are already granted
+  const lastHeartbeatTime = useRef(0);
+  const heartbeatTimeout = useRef(null);
+
+  // Track user activity and fire throttled heartbeats
   useEffect(() => {
     if (permission !== "granted" || !user?.uid) return;
 
-    axios
-      .post("/api/v1/notifications/heartbeat", {
-        firebaseUID: user.uid,
-      })
-      .catch(() => {
-        // Fire-and-forget — heartbeat failure is non-critical
-      });
+    const sendHeartbeat = () => {
+      const now = Date.now();
+      // Throttle to max 1 request per 5 minutes (300,000 ms)
+      if (now - lastHeartbeatTime.current < 300000) return;
+
+      lastHeartbeatTime.current = now;
+      axios
+        .post("/api/v1/notifications/heartbeat", {
+          firebaseUID: user.uid,
+        })
+        .catch((error) => {
+          // Fire-and-forget — heartbeat failure is non-critical
+          console.log("Error message: ", error.message);
+        });
+    };
+
+    // Send initial heartbeat on mount/auth
+    sendHeartbeat();
+
+    // Debounce activity events
+    const handleActivity = () => {
+      if (heartbeatTimeout.current) {
+        clearTimeout(heartbeatTimeout.current);
+      }
+      heartbeatTimeout.current = setTimeout(() => {
+        if (document.visibilityState === "visible") {
+          sendHeartbeat();
+        }
+      }, 2000); // 2s debounce
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        sendHeartbeat();
+      }
+    };
+
+    // Attach activity listeners
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("scroll", handleActivity);
+    window.addEventListener("click", handleActivity);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (heartbeatTimeout.current) clearTimeout(heartbeatTimeout.current);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [permission, user?.uid]);
 
   const requestPermission = async (email) => {

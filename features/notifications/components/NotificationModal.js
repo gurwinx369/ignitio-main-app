@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useNotification } from "../context/NotificationContext";
 import { useAuth } from "@/features/context/AuthContext";
 import axios from "axios";
@@ -8,20 +9,22 @@ import axios from "axios";
 export default function NotificationModal() {
   const { permission, requestPermission } = useNotification();
   const { user } = useAuth();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [buttonPressed, setButtonPressed] = useState(false);
 
   useEffect(() => {
-    if (permission === "default") {
+    // Avoid triggering the modal if the user is in the onboarding flow
+    if (permission === "default" && pathname !== "/home/onboarding") {
       const timer = setTimeout(() => {
         setIsOpen(true);
         setIsVisible(true);
-      }, 100);
+      }, 1500); // 1.5s delay for a seamless landing experience
       return () => clearTimeout(timer);
     }
-  }, [permission]);
+  }, [permission, pathname]);
 
   useEffect(() => {
     if (permission === "granted" && isOpen) {
