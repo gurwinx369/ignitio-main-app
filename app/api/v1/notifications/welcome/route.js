@@ -18,7 +18,7 @@ if (!admin.apps.length) {
 // Determine base URL based on environment, always stripped of trailing slash
 const getAppUrl = () => {
   if (process.env.NODE_ENV === "production") {
-    return "https://ignitio-main-app-git-c6ca39-gurwinder-singhs-projects-01bbb3e5.vercel.app";
+    return process.env.NEXT_PUBLIC_APP_URL;
   }
   return process.env.NEXT_PUBLIC_DEV_URL || "http://localhost:5000";
 };
