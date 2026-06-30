@@ -13,12 +13,16 @@ import {
     isKyleEnabledRoadmap,
     isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
 } from "@/features/roadmaps/lib/roadmapCapabilities";
+import { useAuth } from "@/features/context/AuthContext";
+import { fetchRoadmapProgress, migrateRoadmapProgress, patchRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
+import { readLocalRoadmapProgress, writeLocalRoadmapProgress } from "@/lib/roadmaps/progress.migration";
 import CertificateUnlockedModal from '@/features/certificates/CertificateUnlockedModal';
 import { checkCertificateUnlock, getEligibleCertificates } from '@/features/certificates/certificateMilestones';
 import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/certificates/certificateStorage';
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
+    const { user } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
     const [activeDayIndex, setActiveDayIndex] = useState(0);
 
@@ -47,8 +51,27 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const ROADMAP_SKELETON_MIN_MS = 450;
 
+    const completionToastTimerRef = useRef(null);
+
+    const triggerCompletionToast = () => {
+        setShowCompletion(true);
+        if (completionToastTimerRef.current) {
+            clearTimeout(completionToastTimerRef.current);
+        }
+        completionToastTimerRef.current = setTimeout(() => {
+            setShowCompletion(false);
+        }, 2500);
+    };
+
     useEffect(() => {
-        setIsRoadmapReady(false);
+        return () => {
+            if (completionToastTimerRef.current) {
+                clearTimeout(completionToastTimerRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             setIsRoadmapReady(true);
         }, ROADMAP_SKELETON_MIN_MS);
@@ -60,73 +83,72 @@ export default function RoadmapTemplate({ roadmapData }) {
     }, [roadmapData.days]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
             setIsMounted(true);
 
-            const legacyKeys = [
-                `progress_${roadmapData.id}_beginner`,
-                `progress_${roadmapData.id}_intermediate`,
-                `progress_${roadmapData.id}_advanced`,
-                `progress_${roadmapData.id}_day1`,
-                `progress_${roadmapData.id}_day2`,
-                `progress_${roadmapData.id}_day3`
-            ];
-
-            let allCompletedIds = new Set();
-
-            // 1. Read legacy keys
-            legacyKeys.forEach(key => {
-                const saved = localStorage.getItem(key);
-                if (saved) {
-                    try {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(id => allCompletedIds.add(id));
-                        }
-                    } catch (e) { }
-                }
-            });
-
-            // 2. Read canonical key
-            const canonicalKey = `completed_levels_${roadmapData.id}`;
-            const canonicalSaved = localStorage.getItem(canonicalKey);
-            if (canonicalSaved) {
-                try {
-                    const parsed = JSON.parse(canonicalSaved);
-                    if (Array.isArray(parsed)) {
-                        parsed.forEach(id => allCompletedIds.add(id));
-                    }
-                } catch (e) { }
+            if (!user) {
+                // If user is missing, fallback to local storage entirely
+                const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
+                setCompletedLevels(localProgress.completedLevels);
+                prevCompletedCount.current = localProgress.completedLevels.length;
+                writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: localProgress.completedLevels });
+                return;
             }
 
-            // 3. Sort according to roadmapData
-            const sortedCompleted = Array.from(allCompletedIds).sort((a, b) => {
-                return allLevels.findIndex(l => l.id === a) - allLevels.findIndex(l => l.id === b);
-            });
-
-            setCompletedLevels(sortedCompleted);
-            prevCompletedCount.current = sortedCompleted.length;
-
-            // 4. Write to canonical key (legacy keys are intentionally not deleted yet)
-            localStorage.setItem(canonicalKey, JSON.stringify(sortedCompleted));
+            try {
+                // 1. Attempt to fetch MongoDB progress
+                const res = await fetchRoadmapProgress({ user, roadmapSlug: roadmapData.id });
+                
+                if (res && res.source === "mongodb") {
+                    setCompletedLevels(res.progress.completedLevels || []);
+                    prevCompletedCount.current = (res.progress.completedLevels || []).length;
+                    
+                    // Sync fallback
+                    writeLocalRoadmapProgress({
+                        roadmapId: roadmapData.id,
+                        completedLevels: res.progress.completedLevels || [],
+                        passedAssignments: res.progress.passedAssignments || [],
+                    });
+                } else {
+                    // 2. Not found in MongoDB, run migration
+                    const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
+                    
+                    // Optimistic update
+                    setCompletedLevels(localProgress.completedLevels);
+                    prevCompletedCount.current = localProgress.completedLevels.length;
+                    
+                    const migrationPayload = {
+                        roadmapTitle: roadmapData.title || "",
+                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        totalLevels: allLevels.length,
+                        allLevelIds: allLevels.map(l => l.id),
+                        days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
+                        completedLevels: localProgress.completedLevels,
+                        passedAssignments: localProgress.passedAssignments,
+                    };
+                    
+                    const migrated = await migrateRoadmapProgress({ user, roadmapSlug: roadmapData.id, payload: migrationPayload });
+                    if (migrated && migrated.progress) {
+                        setCompletedLevels(migrated.progress.completedLevels || []);
+                        prevCompletedCount.current = (migrated.progress.completedLevels || []).length;
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to sync progress, using localStorage fallback", err);
+                const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
+                setCompletedLevels(localProgress.completedLevels);
+                prevCompletedCount.current = localProgress.completedLevels.length;
+                writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: localProgress.completedLevels });
+            }
 
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [roadmapData.id, allLevels]);
+    }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title]);
 
     useEffect(() => {
         if (!isMounted) return;
 
-        const prevCount = prevCompletedCount.current;
-        if (completedLevels.length > prevCount) {
-            setShowCompletion(true);
-            const timer = setTimeout(() => {
-                setShowCompletion(false);
-            }, 2500);
-            prevCompletedCount.current = completedLevels.length;
-            return () => clearTimeout(timer);
-        }
         prevCompletedCount.current = completedLevels.length;
 
         // Optionally store total globally like old code
@@ -141,14 +163,18 @@ export default function RoadmapTemplate({ roadmapData }) {
     useEffect(() => {
         if (typeof window === "undefined" || !roadmapData?.id) return;
 
-        const passedMap = {};
-        roadmapData.days.forEach(day => {
-            if (localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true") {
-                passedMap[day.id] = true;
-            }
-        });
-        setAssignmentPassedDays(passedMap);
-        setAssignmentStateLoaded(true);
+        const timer = setTimeout(() => {
+            const passedMap = {};
+            roadmapData.days.forEach(day => {
+                if (localStorage.getItem(`assignment_passed_${roadmapData.id}_${day.id}`) === "true") {
+                    passedMap[day.id] = true;
+                }
+            });
+            setAssignmentPassedDays(passedMap);
+            setAssignmentStateLoaded(true);
+        }, 0);
+        
+        return () => clearTimeout(timer);
     }, [roadmapData.id, roadmapData.days]);
 
     useEffect(() => {
@@ -290,18 +316,17 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const handlePrevDay = () => {
         closeLessonPopup();
+        setIsRoadmapReady(false);
         setActiveDayIndex(prev => Math.max(0, prev - 1));
     };
 
     const handleNextDay = () => {
         closeLessonPopup();
+        setIsRoadmapReady(false);
         setActiveDayIndex(prev => Math.min(roadmapData.days.length - 1, prev + 1));
     };
 
-    useEffect(() => {
-        setPopupLevel(null);
-        setPopupAnchor(null);
-    }, [activeDayIndex, roadmapData.id]);
+
 
     useEffect(() => {
         const activeButton = dayButtonRefs.current[activeDayIndex];
@@ -331,12 +356,31 @@ export default function RoadmapTemplate({ roadmapData }) {
         setPopupLevel(level);
     };
 
-    const handleStartLesson = (level) => {
+    const handleStartLesson = async (level) => {
         setPopupLevel(null);
         setSelectedLevel(level);
+
+        if (user) {
+            try {
+                await patchRoadmapProgress({
+                    user,
+                    roadmapSlug: roadmapData.id,
+                    payload: {
+                        action: "start_lesson",
+                        roadmapTitle: roadmapData.title || "",
+                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        totalLevels: allLevels.length,
+                        allLevelIds: allLevels.map(l => l.id),
+                        levelId: level.id
+                    }
+                });
+            } catch (e) {
+                console.warn("Failed to patch start_lesson", e);
+            }
+        }
     };
 
-    const handleVideoComplete = (levelId) => {
+    const handleVideoComplete = async (levelId) => {
         // Duplicate protection: do not show a duplicate completion popup if already completed
         if (completedLevels.includes(levelId)) return;
 
@@ -346,7 +390,33 @@ export default function RoadmapTemplate({ roadmapData }) {
         });
 
         setCompletedLevels(sortedCompleted);
-        localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
+        writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: sortedCompleted });
+        triggerCompletionToast();
+
+        if (user) {
+            try {
+                const res = await patchRoadmapProgress({
+                    user,
+                    roadmapSlug: roadmapData.id,
+                    payload: {
+                        action: "complete_level",
+                        roadmapTitle: roadmapData.title || "",
+                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        totalLevels: allLevels.length,
+                        allLevelIds: allLevels.map(l => l.id),
+                        days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
+                        levelId
+                    }
+                });
+                
+                if (res && res.progress) {
+                    // Reconcile state in case backend ordering differs slightly
+                    setCompletedLevels(res.progress.completedLevels || []);
+                }
+            } catch (e) {
+                console.warn("Failed to patch complete_level", e);
+            }
+        }
 
         let certificate = checkCertificateUnlock({
             roadmapData,
@@ -504,6 +574,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                                             }}
                                             onClick={() => {
                                                 closeLessonPopup();
+                                                setIsRoadmapReady(false);
                                                 setActiveDayIndex(index);
                                             }}
                                             className={`whitespace-nowrap px-6 py-2.5 rounded-full font-semibold text-sm transition-all duration-300 ${isActive ? 'bg-slate-900 text-white shadow-md transform scale-[1.02]' : 'bg-white/60 backdrop-blur-md text-gray-600 hover:bg-white hover:text-slate-900 border border-gray-200/50 hover:shadow-sm'}`}
@@ -528,7 +599,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                         <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
                             <div>
                                 <h3 className="font-bold text-orange-900 text-lg">Day {dayNumber} Assignment Pending</h3>
-                                <p className="text-orange-700 text-sm">Pass the assignment to unlock the next day's lessons.</p>
+                                <p className="text-orange-700 text-sm">Pass the assignment to unlock the next day&apos;s lessons.</p>
                             </div>
                             <button
                                 onClick={() => setShowAssignmentModal(true)}
@@ -643,7 +714,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                 dayNumber={dayNumber}
                 levels={activeDay?.levels || []}
                 isFinalDay={activeDayIndex === roadmapData.days.length - 1}
-                onPassed={() => {
+                onPassed={async () => {
                     const passedDayId = activeDay?.id;
                     if (passedDayId) {
                         localStorage.setItem(`assignment_passed_${roadmapData.id}_${passedDayId}`, "true");
@@ -651,6 +722,25 @@ export default function RoadmapTemplate({ roadmapData }) {
                             ...prev,
                             [passedDayId]: true,
                         }));
+                        
+                        if (user) {
+                            try {
+                                await patchRoadmapProgress({
+                                    user,
+                                    roadmapSlug: roadmapData.id,
+                                    payload: {
+                                        action: "pass_assignment",
+                                        roadmapTitle: roadmapData.title || "",
+                                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                                        totalLevels: allLevels.length,
+                                        allLevelIds: allLevels.map(l => l.id),
+                                        dayId: passedDayId
+                                    }
+                                });
+                            } catch (e) {
+                                console.warn("Failed to patch pass_assignment", e);
+                            }
+                        }
                         
                         let certificate = checkCertificateUnlock({
                             roadmapData,
