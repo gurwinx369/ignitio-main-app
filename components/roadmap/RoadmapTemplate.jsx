@@ -13,6 +13,9 @@ import {
     isKyleEnabledRoadmap,
     isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
 } from "@/features/roadmaps/lib/roadmapCapabilities";
+import CertificateUnlockedModal from '@/features/certificates/CertificateUnlockedModal';
+import { checkCertificateUnlock } from '@/features/certificates/certificateMilestones';
+import { saveUnlockedCertificate } from '@/features/certificates/certificateStorage';
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
@@ -28,6 +31,7 @@ export default function RoadmapTemplate({ roadmapData }) {
     const [showCompletion, setShowCompletion] = useState(false);
     const [isRoadmapReady, setIsRoadmapReady] = useState(false);
     const [completionPopup, setCompletionPopup] = useState(null);
+    const [unlockedCertificate, setUnlockedCertificate] = useState(null);
 
     // Assignment gate state
     const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
@@ -298,6 +302,44 @@ export default function RoadmapTemplate({ roadmapData }) {
         setCompletedLevels(sortedCompleted);
         localStorage.setItem(`completed_levels_${roadmapData.id}`, JSON.stringify(sortedCompleted));
 
+        let certificate = checkCertificateUnlock({
+            roadmapData,
+            completedLevels: sortedCompleted,
+            levelId,
+            triggerType: 'level'
+        });
+
+        if (certificate) {
+            const milestoneLevels = certificate.milestoneLevels || [];
+            const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
+            const quizCompletedCount = milestoneLevels.length;
+            
+            const dateObj = new Date(certificate.unlockedAt);
+            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
+
+            certificate = {
+                ...certificate,
+                quizCompletedCount,
+                durationMinutes,
+                providedOn
+            };
+
+            if (process.env.NODE_ENV === "development") {
+                console.log("[Certificate unlock payload]", {
+                    certificateKey: certificate.certificateKey,
+                    milestoneLevelsCount: milestoneLevels.length,
+                    durationMinutes,
+                    quizCompletedCount,
+                    levelIds: milestoneLevels.map(l => l.id),
+                });
+            }
+
+            const saved = saveUnlockedCertificate(certificate);
+            if (saved) {
+                setUnlockedCertificate(certificate);
+            }
+        }
+
         // Calculate next level using fresh array
         const globalIndex = allLevels.findIndex(l => l.id === levelId);
         let nextLevel = null;
@@ -563,11 +605,56 @@ export default function RoadmapTemplate({ roadmapData }) {
                             ...prev,
                             [passedDayId]: true,
                         }));
+                        
+                        let certificate = checkCertificateUnlock({
+                            roadmapData,
+                            completedLevels,
+                            dayId: passedDayId,
+                            triggerType: 'day'
+                        });
+
+                        if (certificate) {
+                            const milestoneLevels = certificate.milestoneLevels || [];
+                            const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
+                            const quizCompletedCount = milestoneLevels.length;
+                            
+                            const dateObj = new Date(certificate.unlockedAt);
+                            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
+
+                            certificate = {
+                                ...certificate,
+                                quizCompletedCount,
+                                durationMinutes,
+                                providedOn
+                            };
+
+                            if (process.env.NODE_ENV === "development") {
+                                console.log("[Certificate unlock payload]", {
+                                    certificateKey: certificate.certificateKey,
+                                    milestoneLevelsCount: milestoneLevels.length,
+                                    durationMinutes,
+                                    quizCompletedCount,
+                                    levelIds: milestoneLevels.map(l => l.id),
+                                });
+                            }
+
+                            const saved = saveUnlockedCertificate(certificate);
+                            if (saved) {
+                                setUnlockedCertificate(certificate);
+                            }
+                        }
                     }
                     setShowAssignmentModal(false);
                 }}
                 onClose={() => setShowAssignmentModal(false)}
             />
+
+            {unlockedCertificate && (
+                <CertificateUnlockedModal
+                    certificate={unlockedCertificate}
+                    onClose={() => setUnlockedCertificate(null)}
+                />
+            )}
         </>
     );
 }

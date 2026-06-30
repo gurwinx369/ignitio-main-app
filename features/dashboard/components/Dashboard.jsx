@@ -13,6 +13,7 @@ import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
+import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -267,6 +268,9 @@ export default function Dashboard() {
             {isNavigating ? "Loading..." : (activeRoadmap ? "Continue Learning" : "Explore Roadmaps")}
           </button>
         </div>
+
+        {/* Certificates Section */}
+        <CertificateDashboardSection />
 
         {/* Explore Topics */}
         <div>
