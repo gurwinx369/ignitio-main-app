@@ -158,3 +158,59 @@ export function checkCertificateUnlock({ roadmapData, completedLevels, levelId, 
 
   return null;
 }
+
+export function getEligibleCertificates({ roadmapData, completedLevels, assignmentPassedDays = {} }) {
+  if (!roadmapData || !completedLevels) return [];
+
+  const eligible = [];
+
+  for (const rule of CERTIFICATE_RULES) {
+    const isLevelBased = rule.certificateKey === "dsa-level-1";
+
+    let triggerType = isLevelBased ? "level" : "day";
+    let dayId = null;
+    let levelId = null;
+
+    if (rule.certificateKey === "dsa-level-1") {
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      levelId = firstLevel?.id;
+      if (!levelId || !completedLevels.includes(levelId)) continue;
+    }
+
+    if (rule.certificateKey === "prompt-day-1") dayId = "day1";
+    if (rule.certificateKey === "prompt-day-2") dayId = "day2";
+    if (rule.certificateKey === "prompt-day-3") dayId = "day3";
+    if (rule.certificateKey === "dsa-day-10") dayId = "day10";
+    if (rule.certificateKey === "dsa-day-20") dayId = "day20";
+    if (rule.certificateKey === "dsa-day-23") dayId = "day23";
+
+    if (!isLevelBased && !assignmentPassedDays[dayId]) continue;
+
+    const isMet = rule.condition({
+      roadmapData,
+      completedLevels,
+      triggerType,
+      dayId,
+      levelId
+    });
+
+    if (!isMet) continue;
+
+    const family = getRoadmapFamily(roadmapData.id);
+    const stats = rule.getStats ? rule.getStats(roadmapData) : { dayNumber: 1, milestoneLevels: [] };
+
+    eligible.push({
+      certificateKey: rule.certificateKey,
+      roadmapId: roadmapData.id,
+      roadmapFamily: family,
+      roadmapTitle: roadmapData.title || roadmapData.name || "Roadmap",
+      milestoneTitle: rule.milestoneTitle,
+      template: rule.template,
+      unlockedAt: new Date().toISOString(),
+      dayNumber: stats.dayNumber,
+      milestoneLevels: stats.milestoneLevels
+    });
+  }
+
+  return eligible;
+}

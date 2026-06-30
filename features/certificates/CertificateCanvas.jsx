@@ -6,7 +6,7 @@ export const CERTIFICATE_WIDTH = 735;
 export const CERTIFICATE_HEIGHT = 934;
 
 const TEMPLATE_TEXT_POSITIONS = {
-  providedOn: { top: 54, left: 594, width: 900 },
+  providedOn: { top: 53, left: 594, width: 900 },
   day: { top: 660, left: 125, width: 120 },
   quizzes: { top: 660, left: 515, width: 80 },
   minutes: { top: 790, left: 300, width: 110 },
@@ -39,6 +39,8 @@ export default function CertificateCanvas({ certificate, canvasId }) {
   const quizCount = certificate.quizCompletedCount || 0;
   const duration = certificate.durationMinutes || 0;
 
+  const labelText = certificate.certificateKey === "dsa-level-1" ? "Level 1" : `Day ${dayNumber}`;
+
   return (
     <div
       id={canvasId}
@@ -62,7 +64,7 @@ export default function CertificateCanvas({ certificate, canvasId }) {
             {providedOn}
           </div>
           <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.day, fontSize: '17px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
-            Day {dayNumber}
+            {labelText}
           </div>
           <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.quizzes, fontSize: '18px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
             {quizCount}
@@ -110,7 +112,7 @@ export default function CertificateCanvas({ certificate, canvasId }) {
                 <div className="p-2 bg-orange-500/20 rounded-lg border border-orange-500/30">
                   <Flame className="w-6 h-6 text-orange-500" />
                 </div>
-                <p className="text-xl font-bold text-white">Day {dayNumber}</p>
+                <p className="text-xl font-bold text-white">{labelText}</p>
               </div>
 
               <div className="w-px h-12 bg-white/20"></div>

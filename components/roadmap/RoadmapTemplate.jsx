@@ -14,8 +14,8 @@ import {
     isAssignmentGatedRoadmap as isAssignmentGatedRoadmapType,
 } from "@/features/roadmaps/lib/roadmapCapabilities";
 import CertificateUnlockedModal from '@/features/certificates/CertificateUnlockedModal';
-import { checkCertificateUnlock } from '@/features/certificates/certificateMilestones';
-import { saveUnlockedCertificate } from '@/features/certificates/certificateStorage';
+import { checkCertificateUnlock, getEligibleCertificates } from '@/features/certificates/certificateMilestones';
+import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/certificates/certificateStorage';
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
@@ -35,7 +35,10 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     // Assignment gate state
     const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
+    const [assignmentStateLoaded, setAssignmentStateLoaded] = useState(false);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+    
+    const certificateBackfillRan = useRef(false);
 
     const prevCompletedCount = useRef(0);
     const roadmapViewportRef = useRef(null);
@@ -145,7 +148,50 @@ export default function RoadmapTemplate({ roadmapData }) {
             }
         });
         setAssignmentPassedDays(passedMap);
+        setAssignmentStateLoaded(true);
     }, [roadmapData.id, roadmapData.days]);
+
+    useEffect(() => {
+        certificateBackfillRan.current = false;
+    }, [roadmapData.id]);
+
+    useEffect(() => {
+        if (!isMounted) return;
+        if (!roadmapData?.id) return;
+        if (!assignmentStateLoaded) return;
+        if (certificateBackfillRan.current) return;
+
+        certificateBackfillRan.current = true;
+
+        const eligibleCertificates = getEligibleCertificates({
+            roadmapData,
+            completedLevels,
+            assignmentPassedDays,
+        });
+
+        eligibleCertificates.forEach((certificate) => {
+            if (hasUnlockedCertificate(certificate.certificateKey, certificate.roadmapFamily)) {
+                return;
+            }
+
+            const milestoneLevels = certificate.milestoneLevels || [];
+            const durationMinutes = milestoneLevels.reduce(
+                (acc, lvl) => acc + Number(lvl.durationInMinutes || 0),
+                0
+            );
+            const quizCompletedCount = milestoneLevels.length;
+
+            const dateObj = new Date(certificate.unlockedAt);
+            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString("default", { month: "long" })} ${dateObj.getFullYear()}`;
+
+            saveUnlockedCertificate({
+                ...certificate,
+                quizCompletedCount,
+                durationMinutes,
+                providedOn,
+            });
+        });
+    }, [isMounted, roadmapData, completedLevels, assignmentPassedDays, assignmentStateLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !roadmapData?.id) return;

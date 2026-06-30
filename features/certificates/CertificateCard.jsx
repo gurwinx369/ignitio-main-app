@@ -35,14 +35,14 @@ export default function CertificateCard({ certificate, onUpdate }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
       {/* Hidden Canvas for generation */}
-      <div className="fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none">
+      <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
         <CertificateCanvas certificate={certificate} canvasId={canvasId} />
       </div>
 
       <div className="p-5 flex-grow">
         <div className="flex justify-between items-start mb-4">
           <div className="p-2 bg-[#00a9ff]/10 text-[#00a9ff] rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>
           </div>
           {certificate.downloaded ? (
             <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-700 rounded-full">
@@ -59,7 +59,7 @@ export default function CertificateCard({ certificate, onUpdate }) {
           {certificate.milestoneTitle}
         </h3>
         <p className="text-sm text-gray-500 mb-4">{certificate.roadmapTitle}</p>
-        
+
         <p className="text-xs text-gray-400 font-medium">Unlocked: {dateStr}</p>
       </div>
 
