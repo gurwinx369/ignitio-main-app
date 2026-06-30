@@ -98,21 +98,52 @@ const LevelContent = ({
     level.startSec !== undefined && level.endSec !== undefined && level.videoId;
 
   // Compute canMarkComplete from localStorage - recomputes when level changes
-  const storedWatchTime = isSegmentBased
-    ? parseFloat(
-        localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || "0",
-      )
-    : 0;
   const segmentDuration = isSegmentBased ? level.endSec - level.startSec : 0;
   const thresholdSeconds = segmentDuration * 0.5;
-  const storedWatchTimeForLegacy = level.durationInMinutes
-    ? parseInt(
-        localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || "0",
-        10,
-      )
+
+  // Security: cross-validate segment_watch against segment_intervals.
+  // segment_watch is the fast-path scalar. segment_intervals is the authoritative interval array.
+  // We take the MINIMUM of both — so forging only one key is insufficient.
+  const rawStoredWatchTime = isSegmentBased
+    ? parseFloat(localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || "0")
     : 0;
+
+  const storedWatchTime = (() => {
+    if (!isSegmentBased) return 0;
+    // Clamp the scalar to maximum possible segment duration
+    const clamped = Math.min(rawStoredWatchTime, segmentDuration);
+    // Cross-check against intervals (harder to forge consistently)
+    try {
+      const intervalsRaw = localStorage.getItem(`segment_intervals_${roadmapType}_${level.id}`);
+      if (intervalsRaw) {
+        const parsed = JSON.parse(intervalsRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const intervalsTotal = parsed.reduce((sum, iv) => {
+            if (typeof iv.start === "number" && typeof iv.end === "number" && iv.end > iv.start) {
+              // Each interval cannot exceed the segment duration
+              return sum + Math.min(iv.end - iv.start, segmentDuration);
+            }
+            return sum;
+          }, 0);
+          // Trust whichever is lower — defeats single-key tampering
+          return Math.min(clamped, intervalsTotal);
+        }
+      }
+    } catch {
+      // Corrupted intervals — fall back to scalar only
+    }
+    return clamped;
+  })();
+
   const fiftyPercentDurationLegacy = level.durationInMinutes
     ? level.durationInMinutes * 60 * 1000 * 0.5
+    : 0;
+  // Security: clamp legacy timer to the actual 50% cap
+  const rawStoredWatchTimeForLegacy = level.durationInMinutes
+    ? parseInt(localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || "0", 10)
+    : 0;
+  const storedWatchTimeForLegacy = level.durationInMinutes
+    ? Math.min(rawStoredWatchTimeForLegacy, fiftyPercentDurationLegacy)
     : 0;
 
   // Initial value computed from storage

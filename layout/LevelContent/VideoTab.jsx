@@ -3,7 +3,9 @@ import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 
 const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
-    const thresholdCalledRef = useRef(false);
+    // Initialize to true if parent already reports threshold met (e.g. after page refresh)
+    // This prevents onThresholdMet from firing again on mount when state is restored from localStorage
+    const thresholdCalledRef = useRef(hasMetWatchThreshold || hasWatched);
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
@@ -76,6 +78,26 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
     // Derived: threshold reached based on watched seconds
     const thresholdReached = watchedSeconds >= watchThreshold;
 
+    // Belt-and-suspenders: if lazy init returned empty but localStorage has data, restore it.
+    // This handles cases where the lazy initializer ran before localStorage was accessible.
+    useEffect(() => {
+        if (isSegmentBased && watchedIntervals.length === 0) {
+            try {
+                const stored = localStorage.getItem(watchIntervalsKey);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    const merged = mergeIntervals(parsed);
+                    if (merged.length > 0) {
+                        setWatchedIntervals(merged);
+                    }
+                }
+            } catch (e) {
+                // Corrupted storage — silently ignore, fresh start
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // mount only
+
     // Save watch intervals to localStorage whenever they change
     useEffect(() => {
         if (isSegmentBased && watchedIntervals.length > 0) {
@@ -83,6 +105,7 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
             localStorage.setItem(watchTimeKey, watchedSeconds.toString());
 
             // Call onThresholdMet only once when threshold is first crossed
+            // Guard: thresholdCalledRef starts as true if parent already confirmed threshold met
             if (watchedSeconds >= watchThreshold && !thresholdCalledRef.current && !hasWatched) {
                 thresholdCalledRef.current = true;
                 onThresholdMet?.();
@@ -131,25 +154,29 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
         return match ? match[1] : '';
     };
 
+    const handlePlayerReady = useCallback(() => {
+        setIsLoaded(true);
+    }, []);
+
     // Render segment-based view
     if (isSegmentBased) {
         return (
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-                <div className="space-y-6 sm:space-y-8">
-                    {/* Video Player */}
-                    <div className="bg-gray-300 rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-xl">
+                <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 mb-8 mt-2">
+                    <div className="aspect-video w-full bg-black relative">
                         <YouTubeSegmentPlayer
                             videoId={level.videoId}
                             startSec={level.startSec}
                             endSec={level.endSec}
                             onWatchTimeUpdate={handleWatchTimeUpdate}
-                            onReady={() => setIsLoaded(true)}
+                            onReady={handlePlayerReady}
                             autoplay={true}
                             isVisible={isVisible}
                             shouldPauseVideo={shouldPauseVideo}
                         />
                     </div>
-
+                </div>
+                <div className="space-y-6 sm:space-y-8">
                     {/* Video Info */}
                     <div className="space-y-3 sm:space-y-4">
                         <div className="flex items-center justify-between">
