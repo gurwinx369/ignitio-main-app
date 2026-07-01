@@ -11,6 +11,7 @@ import {
   sanitizeStringArray,
   getNow,
 } from "@/lib/roadmaps/progress.helpers";
+import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 
@@ -38,6 +39,8 @@ export async function GET(request, { params }) {
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+
+    await normalizeUserProfileRetentionFields(user._id);
 
     const progress = await RoadmapProgress.findOne({
       firebaseUID: decodedToken.uid,
@@ -105,6 +108,8 @@ export async function POST(request, { params }) {
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+
+    await normalizeUserProfileRetentionFields(user._id);
 
     const existingProgress = await RoadmapProgress.findOne({
       firebaseUID: decodedToken.uid,
@@ -226,6 +231,8 @@ export async function PATCH(request, { params }) {
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+
+    await normalizeUserProfileRetentionFields(user._id);
 
     let progress = await RoadmapProgress.findOne({
       firebaseUID: decodedToken.uid,
