@@ -32,7 +32,8 @@ export const AuthProvider = ({ children }) => {
             const prefixes = [
                 "profession", "completedLevels", "completed_levels_", "progress_",
                 "assignment_passed_", "quiz_gate_completed_", "quiz_gate_bypassed_",
-                "video_timer_", "segment_watch_", "segment_intervals_", "ignitio:last_active_roadmap"
+                "video_timer_", "segment_watch_", "segment_intervals_", "ignitio:last_active_roadmap",
+                "ignitio:certificates"
             ];
             
             const keysToRemove = [];
@@ -108,8 +109,15 @@ export const AuthProvider = ({ children }) => {
                 try {
                     if (process.env.NODE_ENV === "development") {
                         console.info("Signup: Email already in use, attempting login fallback...");
+                    }
+                    const loginResult = await signInWithEmailAndPassword(auth, email, password);
+                    if (process.env.NODE_ENV === "development") {
                         console.log("Fallback login successful");
                     }
+
+                    clearTargetedStorage();
+                    localStorage.setItem("ignitio:active_uid", loginResult.user.uid);
+
                     return { success: true, user: loginResult.user, authMode: "existing_login" };
                 } catch (loginError) {
                     if (process.env.NODE_ENV === "development") {
