@@ -22,10 +22,13 @@ export async function GET(request) {
 
     return NextResponse.json(summary, { status: 200 });
   } catch (error) {
-    console.error('Retention cron error:', error);
-    return NextResponse.json({
-      error: 'Failed to run retention cron',
-      details: error.message,
-    }, { status: 500 });
+    console.error('[Retention cron] Failed:', {
+      name: error?.name,
+      message: error?.message,
+    });
+    return NextResponse.json(
+      { error: 'Failed to run retention cron' },
+      { status: 500 }
+    );
   }
 }

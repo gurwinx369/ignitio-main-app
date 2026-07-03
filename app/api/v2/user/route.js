@@ -120,8 +120,13 @@ export async function POST(request) {
     if (!existingProfile) {
       existingProfile = await UserProfile.findOne({ email: tokenEmail });
       if (existingProfile && existingProfile.firebaseUID !== decodedToken.uid) {
+        // Use updateOne to avoid full-document validation on legacy profiles
+        await UserProfile.updateOne(
+          { _id: existingProfile._id },
+          { $set: { firebaseUID: decodedToken.uid } },
+          { timestamps: false }
+        );
         existingProfile.firebaseUID = decodedToken.uid;
-        await existingProfile.save();
       }
     }
 
@@ -146,9 +151,12 @@ export async function POST(request) {
           { status: 200 },
         );
       } else {
-        existingProfile.role = role;
-        existingProfile.onboardingComplete = true;
-        await existingProfile.save();
+        // Use updateOne to avoid full-document validation on legacy profiles
+        await UserProfile.updateOne(
+          { _id: existingProfile._id },
+          { $set: { role, onboardingComplete: true } },
+          { timestamps: false }
+        );
         await normalizeUserProfileRetentionFields(existingProfile._id);
         return NextResponse.json(
           {
@@ -156,7 +164,7 @@ export async function POST(request) {
             user: {
               id: existingProfile._id,
               email: existingProfile.email,
-              onboardingComplete: existingProfile.onboardingComplete,
+              onboardingComplete: true,
               createdAt: existingProfile.createdAt,
             },
             existing: true,
@@ -191,11 +199,15 @@ export async function POST(request) {
   } catch (err) {
     if (err.code === 11000) {
       // Race condition fallback
-      const duplicateProfile = await UserProfile.findOne({ email: tokenEmail });
+      const duplicateProfile = await UserProfile.findOne({ email: tokenEmail }).lean();
       if (duplicateProfile) {
         if (duplicateProfile.firebaseUID !== decodedToken.uid) {
-          duplicateProfile.firebaseUID = decodedToken.uid;
-          await duplicateProfile.save();
+          // Use updateOne to avoid full-document validation on legacy profiles
+          await UserProfile.updateOne(
+            { _id: duplicateProfile._id },
+            { $set: { firebaseUID: decodedToken.uid } },
+            { timestamps: false }
+          );
         }
         await normalizeUserProfileRetentionFields(duplicateProfile._id);
         return NextResponse.json(
@@ -257,13 +269,21 @@ export async function GET(request) {
 
     if (!userProfile && tokenEmail) {
       // Fallback: search by email to heal stale firebaseUID
-      const profileToHeal = await UserProfile.findOne({ email: tokenEmail }).select("-__v");
-      
+      // Use updateOne to avoid full-document validation on legacy profiles
+      const profileToHeal = await UserProfile.findOne({ email: tokenEmail })
+        .select("-__v")
+        .lean();
+
       if (profileToHeal) {
-        profileToHeal.firebaseUID = decodedToken.uid;
-        await profileToHeal.save();
-        
-        userProfile = profileToHeal.toObject();
+        await UserProfile.updateOne(
+          { _id: profileToHeal._id },
+          { $set: { firebaseUID: decodedToken.uid } },
+          { timestamps: false }
+        );
+        // Re-query lean with healed firebaseUID
+        userProfile = await UserProfile.findById(profileToHeal._id)
+          .select("-__v")
+          .lean();
       }
     }
 
@@ -286,6 +306,24 @@ export async function GET(request) {
     );
   } catch (err) {
     console.error("[GET /api/v2/user] DB error:", err.name);
+
+    // Log detailed Mongoose ValidationError fields for diagnostics.
+    // Never log tokens, Authorization header, or decoded Firebase token.
+    if (err.name === "ValidationError") {
+      console.error("[GET /api/v2/user] ValidationError message:", err.message);
+      const failingFields = Object.keys(err.errors || {});
+      console.error("[GET /api/v2/user] Failing fields:", failingFields);
+      for (const key of failingFields) {
+        const fieldErr = err.errors[key];
+        console.error(`[GET /api/v2/user] Field "${key}":`, {
+          path: fieldErr.path,
+          kind: fieldErr.kind,
+          value: fieldErr.value,
+          message: fieldErr.message,
+        });
+      }
+    }
+
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 },

@@ -162,7 +162,7 @@ const UserProfileSchema = new Schema(
     },
     notification: {
       type: Schema.Types.ObjectId,
-      ref: "Notification",
+      ref: "UserNotification",
     },
     email: {
       type: String,
