@@ -3,6 +3,7 @@ import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { adminAuth } from "@/lib/firebase/firebase-admin";
+import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
 
 // SECTION 1: ZOD VALIDATORS
 // Mirrors the schema exactly.
@@ -130,6 +131,7 @@ export async function POST(request) {
       const hasValidRole = VALID_ROLES.includes(existingProfile.role);
 
       if (hasValidRole) {
+        await normalizeUserProfileRetentionFields(existingProfile._id);
         return NextResponse.json(
           {
             message: "User profile found",
@@ -147,6 +149,7 @@ export async function POST(request) {
         existingProfile.role = role;
         existingProfile.onboardingComplete = true;
         await existingProfile.save();
+        await normalizeUserProfileRetentionFields(existingProfile._id);
         return NextResponse.json(
           {
             message: "User profile updated",
@@ -194,6 +197,7 @@ export async function POST(request) {
           duplicateProfile.firebaseUID = decodedToken.uid;
           await duplicateProfile.save();
         }
+        await normalizeUserProfileRetentionFields(duplicateProfile._id);
         return NextResponse.json(
           {
             message: "User profile found",
@@ -269,6 +273,8 @@ export async function GET(request) {
         { status: 404 },
       );
     }
+
+    await normalizeUserProfileRetentionFields(userProfile._id);
 
     const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
     const hasValidRole = VALID_ROLES.includes(userProfile.role);

@@ -207,14 +207,23 @@ const UserProfileSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    last_learning_active_on: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    retentionUnsubscribed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    retentionUnsubscribedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
-
-//Middleware to update the last active on automatically
-UserProfileSchema.pre("save", function () {
-  this.last_active_on = Date.now();
-});
 
 // INDEXES
 // Compound index for the most common ops query
