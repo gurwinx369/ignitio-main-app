@@ -33,9 +33,17 @@ export async function GET(request) {
       );
     }
 
-    user.retentionUnsubscribed = true;
-    user.retentionUnsubscribedAt = new Date();
-    await user.save();
+    // Use updateOne to avoid full-document validation on legacy profiles
+    await UserProfile.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          retentionUnsubscribed: true,
+          retentionUnsubscribedAt: new Date(),
+        },
+      },
+      { timestamps: false }
+    );
 
     return new NextResponse(
       `<html>
