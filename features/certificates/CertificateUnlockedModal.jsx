@@ -43,9 +43,13 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
 
   /* ─── Reveal timer ───────────────────────────────────────── */
   useEffect(() => {
-    if (prefersReducedMotion) {
+    if (!prefersReducedMotion) return;
+
+    const id = window.setTimeout(() => {
       setRevealComplete(true);
-    }
+    }, 0);
+
+    return () => window.clearTimeout(id);
   }, [prefersReducedMotion]);
 
   /* ─── Preview scale ──────────────────────────────────────── */

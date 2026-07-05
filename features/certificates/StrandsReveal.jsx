@@ -37,7 +37,7 @@ function generateSparks(count = 14) {
 }
 
 export default function StrandsReveal({ durationMs = 2800, onComplete }) {
-  const [phase, setPhase] = useState("idle");
+  const [phase, setPhase] = useState("roadmap");
   const timerRefs = useRef([]);
   const completedRef = useRef(false);
   const sparks = useMemo(() => generateSparks(14), []);
@@ -72,7 +72,6 @@ export default function StrandsReveal({ durationMs = 2800, onComplete }) {
       timers.push(id);
     };
 
-    setPhase("roadmap");
     t(ms(0.22), () => setPhase("xp"));
     t(ms(0.42), () => setPhase("unlock"));
     t(ms(0.58), () => setPhase("card"));
