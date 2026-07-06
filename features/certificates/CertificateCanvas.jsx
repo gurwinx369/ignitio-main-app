@@ -30,12 +30,12 @@ export default function CertificateCanvas({ certificate, canvasId }) {
   const providedOn = certificate.providedOn || dateStr;
 
   // Fallbacks for backward compatibility
-  let dayNumberFallback = 1;
-  if (certificate.certificateKey) {
-    const match = certificate.certificateKey.match(/\d+/);
-    if (match) dayNumberFallback = parseInt(match[0], 10);
-  }
-  const dayNumber = certificate.dayNumber || dayNumberFallback;
+  const certificateDayMatch = certificate.certificateKey?.match(/\d+/);
+  const fallbackDayNumber = certificateDayMatch
+    ? Number.parseInt(certificateDayMatch[0], 10)
+    : 1;
+
+  const dayNumber = certificate.dayNumber || fallbackDayNumber;
   const quizCount = certificate.quizCompletedCount || 0;
   const duration = certificate.durationMinutes || 0;
 

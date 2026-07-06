@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Download, Copy } from 'lucide-react';
+import { Download, Share2 } from 'lucide-react';
 import { downloadCertificateAsPng } from './certificateDownload';
 import { markCertificateDownloaded } from './certificateStorage';
 import CertificateCanvas from './CertificateCanvas';
+import { shareCertificate } from './certificateShare';
 
 export default function CertificateCard({ certificate, onUpdate }) {
   const [downloading, setDownloading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
   const canvasId = `dash-cert-${certificate.certificateKey}`;
 
   const dateStr = new Date(certificate.unlockedAt).toLocaleDateString('en-US', {
@@ -25,15 +27,21 @@ export default function CertificateCard({ certificate, onUpdate }) {
     setDownloading(false);
   };
 
-  const handleCopyCaption = () => {
-    const caption = `I just completed a milestone on Ignitio 🚀\n\nIgnitio helps learners build real progress through structured roadmaps, XP, assignments, and AI mentor guidance.\n\nStart learning: https://ignitio.cloud`;
-    navigator.clipboard.writeText(caption);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleShare = async () => {
+    setSharing(true);
+    await shareCertificate({
+      canvasId,
+      certificate,
+      onMessage: (msg) => {
+        setShareMessage(msg);
+        setTimeout(() => setShareMessage(""), 2500);
+      }
+    });
+    setSharing(false);
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full relative">
       {/* Hidden Canvas for generation */}
       <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
         <CertificateCanvas certificate={certificate} canvasId={canvasId} />
@@ -63,26 +71,29 @@ export default function CertificateCard({ certificate, onUpdate }) {
         <p className="text-xs text-gray-400 font-medium">Unlocked: {dateStr}</p>
       </div>
 
-      <div className="border-t border-gray-100 p-4 bg-gray-50 flex gap-3">
+      <div className="border-t border-gray-100 p-4 bg-gray-50 flex gap-3 relative">
         <button
           onClick={handleDownload}
           disabled={downloading}
-          className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+          className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
           {downloading ? '...' : 'Download'}
         </button>
         <button
-          onClick={handleCopyCaption}
-          className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
-          title="Copy sharing caption"
+          onClick={handleShare}
+          disabled={sharing}
+          className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+          title="Share achievement"
         >
-          {copied ? (
-            <span className="text-green-600 font-semibold px-1">Copied!</span>
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
+          <Share2 className="w-4 h-4" />
+          {sharing ? '...' : 'Share'}
         </button>
+        {shareMessage && (
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-10">
+            {shareMessage}
+          </div>
+        )}
       </div>
     </div>
   );
