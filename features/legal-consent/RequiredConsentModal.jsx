@@ -12,7 +12,6 @@ export default function RequiredConsentModal() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [guardianConfirmed, setGuardianConfirmed] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -30,8 +29,7 @@ export default function RequiredConsentModal() {
         const parsed = JSON.parse(savedData);
         if (
           parsed.acceptedTerms &&
-          parsed.acceptedPrivacy &&
-          parsed.guardianConfirmed
+          parsed.acceptedPrivacy
         ) {
           setIsOpen(false);
           return;
@@ -59,14 +57,13 @@ export default function RequiredConsentModal() {
 
   const handleContinue = () => {
     if (!user || !user.uid) return;
-    if (!acceptedTerms || !guardianConfirmed) return;
+    if (!acceptedTerms) return;
 
     try {
       const storageKey = `${CONSENT_STORAGE_PREFIX}:${user.uid}`;
       const consentRecord = {
         acceptedTerms: true,
         acceptedPrivacy: true,
-        guardianConfirmed: true,
         termsVersion: CONSENT_VERSION,
         privacyVersion: CONSENT_VERSION,
         acceptedAt: new Date().toISOString()
@@ -84,7 +81,7 @@ export default function RequiredConsentModal() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div 
+      <div
         className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl shadow-2xl overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
@@ -102,7 +99,7 @@ export default function RequiredConsentModal() {
         <div className="p-6 space-y-5 flex-1 overflow-y-auto">
           <label className="flex items-start gap-3 cursor-pointer group">
             <div className="pt-0.5">
-              <input 
+              <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
@@ -117,19 +114,9 @@ export default function RequiredConsentModal() {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <div className="pt-0.5">
-              <input 
-                type="checkbox"
-                checked={guardianConfirmed}
-                onChange={(e) => setGuardianConfirmed(e.target.checked)}
-                className="w-5 h-5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary focus:ring-offset-2 dark:bg-zinc-800 transition-colors"
-              />
-            </div>
-            <div className="text-sm text-zinc-700 dark:text-zinc-300">
-              I confirm that I am 18 years or older, or I have permission from my parent/legal guardian to use Ignitio.
-            </div>
-          </label>
+          <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 px-1">
+            By continuing, you confirm that you meet Ignitio’s eligibility requirements.
+          </div>
 
           <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -147,9 +134,9 @@ export default function RequiredConsentModal() {
         </div>
 
         <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
-          <Button 
-            onClick={handleContinue} 
-            disabled={!acceptedTerms || !guardianConfirmed}
+          <Button
+            onClick={handleContinue}
+            disabled={!acceptedTerms}
             className="w-full sm:w-auto"
           >
             Continue to Ignitio
