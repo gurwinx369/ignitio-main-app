@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/features/context/AuthContext";
-import { Loader2, User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail } from "lucide-react";
+import { Loader2, User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -77,6 +78,14 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      {/* Back Button */}
+      <div className="mb-6">
+        <Link href="/home" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 hover:shadow-md">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center shadow-sm">
@@ -93,7 +102,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Account Details */}
         <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -128,7 +137,7 @@ export default function ProfilePage() {
         <div className={`border rounded-3xl p-6 shadow-sm md:col-span-2 ${isAtRisk ? 'bg-orange-50 border-orange-200' : 'bg-[#fffaf3] border-[#f1e4d2]'}`}>
           <div className="flex justify-between items-start mb-6">
             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <Flame className={`w-4 h-4 ${streak?.todayCompleted ? 'text-orange-500' : 'text-slate-400'}`} /> 
+              <Flame className={`w-4 h-4 ${streak?.todayCompleted ? 'text-orange-500' : 'text-slate-400'}`} />
               Learning Streak
             </h2>
             {isAtRisk && (
@@ -137,7 +146,7 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="bg-white/60 p-4 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
               <p className="text-3xl font-black text-orange-500 mb-1">{streak?.currentCount || 0}</p>
@@ -231,7 +240,7 @@ export default function ProfilePage() {
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
           <Award className="w-4 h-4" /> Your Collection
         </h2>
-        
+
         {badges && badges.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {badges.map((badge, idx) => (
