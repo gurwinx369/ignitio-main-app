@@ -77,6 +77,7 @@ export async function GET(request) {
       lastCompletedDateLocal: rawStreak.lastCompletedDateLocal || null,
       timezone: rawStreak.timezone || "Asia/Kolkata",
       freezeBank: rawStreak.freezeBank || 0,
+      freezeCredits: rawStreak.freezeCredits || [],
       onboardingGraceUsed: rawStreak.onboardingGraceUsed || false,
       onboardingStartDate: rawStreak.onboardingStartDate || null,
       earnBack: rawStreak.earnBack || {

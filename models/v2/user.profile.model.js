@@ -227,6 +227,14 @@ const UserProfileSchema = new Schema(
       lastCompletedDateLocal: { type: String, default: null },
       timezone: { type: String, default: "Asia/Kolkata" },
       freezeBank: { type: Number, default: 0, min: 0, max: 2 },
+      freezeCredits: [{
+        earnedAtUTC: { type: Date, required: true },
+        earnedDateLocal: { type: String, required: true },
+        expiresAtUTC: { type: Date, required: true },
+        usedAtUTC: { type: Date, default: null },
+        usedForDateLocal: { type: String, default: null },
+        earnedForStreakCount: { type: Number, required: true }
+      }],
       onboardingGraceUsed: { type: Boolean, default: false },
       onboardingStartDate: { type: String, default: null },
       earnBack: {
