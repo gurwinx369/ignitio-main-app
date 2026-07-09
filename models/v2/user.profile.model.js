@@ -221,6 +221,21 @@ const UserProfileSchema = new Schema(
       type: Date,
       default: null,
     },
+    streak: {
+      currentCount: { type: Number, default: 0 },
+      longestCount: { type: Number, default: 0 },
+      lastCompletedDateLocal: { type: String, default: null },
+      timezone: { type: String, default: "Asia/Kolkata" },
+      freezeBank: { type: Number, default: 0, min: 0, max: 2 },
+      onboardingGraceUsed: { type: Boolean, default: false },
+      onboardingStartDate: { type: String, default: null },
+      earnBack: {
+        active: { type: Boolean, default: false },
+        deadline: { type: Date, default: null },
+        lessonsCompletedInWindow: { type: Number, default: 0 },
+        countAtRisk: { type: Number, default: 0 }
+      }
+    }
   },
   { timestamps: true },
 );

@@ -4,6 +4,7 @@ import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { adminAuth } from "@/lib/firebase/firebase-admin";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
+import { getLocalDateString } from "@/lib/users/streak.service";
 
 // SECTION 1: ZOD VALIDATORS
 // Mirrors the schema exactly.
@@ -175,12 +176,19 @@ export async function POST(request) {
     }
 
     // Step 5: Atomic create
+    const now = new Date();
+    const todayLocal = getLocalDateString(now, "Asia/Kolkata");
+    
     const userProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid, // from verified token, never from body
       email: tokenEmail,
       role,
       onboardingComplete: true,
-      completedAt: new Date(),
+      completedAt: now,
+      streak: {
+        timezone: "Asia/Kolkata",
+        onboardingStartDate: todayLocal,
+      }
     });
 
     return NextResponse.json(
