@@ -1,8 +1,9 @@
 "use client"
 import {useState} from 'react';
-import {LogOut, X} from 'lucide-react';
+import {LogOut, X, User} from 'lucide-react';
 import {useAuth} from '@/features/context/AuthContext';
-import Image from "next/image"
+import Image from "next/image";
+import { useRouter } from 'next/navigation';
 
 const UserIcon = () => (
     <svg
@@ -24,8 +25,15 @@ export default function ProfileDropdown({ compact = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const {user, logout} = useAuth();
     const {photoURL, displayName} = user;
+    const router = useRouter();
+
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
+    };
+
+    const handleProfileClick = () => {
+        setIsOpen(false);
+        router.push('/home/profile');
     };
 
     const handleDiscordClick = () => {
@@ -77,6 +85,20 @@ export default function ProfileDropdown({ compact = false }) {
 
                 {/* Menu Options */}
                 <div className="p-3 sm:p-4 flex flex-col gap-1">
+                    {/* Profile Option */}
+                    <button
+                        onClick={handleProfileClick}
+                        className="w-full flex items-center gap-4 p-2 rounded-2xl hover:bg-white/50 transition-all duration-200 group"
+                    >
+                        <div
+                            className="w-12 h-12 flex items-center justify-center rounded-xl bg-[#071225] group-hover:scale-105 transition-transform duration-200 shrink-0 shadow-md">
+                            <User className="w-5 h-5 text-white" strokeWidth={2}/>
+                        </div>
+                        <span className="text-lg font-bold text-[#071225]">
+                            Profile
+                        </span>
+                    </button>
+
                     {/* Discord Option */}
                     <button
                         onClick={handleDiscordClick}
