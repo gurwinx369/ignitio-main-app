@@ -5,7 +5,6 @@ export const ROADMAP_PROGRESS_STATUS = {
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
 };
-
 const RoadmapProgressSchema = new Schema(
   {
     userId: {
@@ -58,6 +57,22 @@ const RoadmapProgressSchema = new Schema(
       type: [String],
       default: [],
     },
+    yesterdayCompletedLevels: {
+      type: [
+        {
+          levelId: { type: String, required: true },
+          days: { type: String, required: true },
+          title: { type: String, required: true },
+          concept: { type: String, required: true },
+          transcript: { type: String, required: true },
+        },
+      ],
+      default: [],
+    },
+    lastActiveLevelsCompleted: {
+      type: [String],
+      default: [],
+    },
     lastActiveLevelId: {
       type: String,
       default: null,
@@ -88,7 +103,10 @@ const RoadmapProgressSchema = new Schema(
 );
 
 // Compound index for uniqueness per user per roadmap
-RoadmapProgressSchema.index({ firebaseUID: 1, roadmapSlug: 1 }, { unique: true });
+RoadmapProgressSchema.index(
+  { firebaseUID: 1, roadmapSlug: 1 },
+  { unique: true },
+);
 
 export const RoadmapProgress =
   mongoose.models.RoadmapProgress ||
