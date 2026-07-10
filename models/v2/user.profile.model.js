@@ -177,6 +177,15 @@ const UserProfileSchema = new Schema(
     },
     badges: [{ type: Schema.Types.ObjectId, ref: "Badge" }],
 
+    profile: {
+      displayName: { type: String, default: "" },
+      bio: { type: String, default: "" },
+      avatarUrl: { type: String, default: "" },
+      avatarPreset: { type: String, default: "default" },
+      bannerColor: { type: String, default: "cyan" },
+      avatarFrame: { type: String, default: "cyan" }
+    },
+
     role: {
       type: String,
       enum: Object.values(USER_ROLES),

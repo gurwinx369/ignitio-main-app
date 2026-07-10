@@ -15,7 +15,7 @@ export async function GET(request) {
 
   try {
     const user = await UserProfile.findOne({ firebaseUID: decodedToken.uid })
-      .select("email role roadmap_name createdAt streak badges");
+      .select("email role roadmap_name createdAt streak badges profile");
 
 
     if (!user) {
@@ -111,6 +111,12 @@ export async function GET(request) {
           roadmapsCompleted,
         },
         badges: safeBadges,
+        displayName: user.profile?.displayName || "",
+        bio: user.profile?.bio || "",
+        avatarUrl: user.profile?.avatarUrl || "",
+        avatarPreset: user.profile?.avatarPreset || "default",
+        bannerColor: user.profile?.bannerColor || "cyan",
+        avatarFrame: user.profile?.avatarFrame || "cyan",
         // TODO: Certificates are currently generated client-side and stored in localStorage; migrate to MongoDB in a future PR.
         cards: [],
       }
@@ -121,3 +127,97 @@ export async function GET(request) {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function PATCH(request) {
+  await connectToDB();
+
+  const { decodedToken, error, status } = await verifyFirebaseToken(request);
+  if (error) {
+    return NextResponse.json({ message: error }, { status });
+  }
+
+  try {
+    const body = await request.json();
+    const { displayName, bio, avatarUrl, avatarPreset, bannerColor, avatarFrame } = body;
+
+    // Validation
+    if (displayName !== undefined) {
+      if (typeof displayName !== 'string') return NextResponse.json({ message: "displayName must be a string" }, { status: 400 });
+      if (displayName.trim().length > 40) return NextResponse.json({ message: "displayName cannot exceed 40 characters" }, { status: 400 });
+    }
+
+    if (bio !== undefined) {
+      if (typeof bio !== 'string') return NextResponse.json({ message: "bio must be a string" }, { status: 400 });
+      if (bio.length > 180) return NextResponse.json({ message: "bio cannot exceed 180 characters" }, { status: 400 });
+    }
+
+    if (avatarUrl !== undefined) {
+      if (typeof avatarUrl !== 'string') return NextResponse.json({ message: "avatarUrl must be a string" }, { status: 400 });
+      if (avatarUrl.length > 500) return NextResponse.json({ message: "avatarUrl cannot exceed 500 characters" }, { status: 400 });
+      if (avatarUrl !== "" && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
+        return NextResponse.json({ message: "avatarUrl must be a valid http/https URL or empty string" }, { status: 400 });
+      }
+    }
+
+    if (avatarPreset !== undefined) {
+      const allowedAvatarPresets = ["default", "spark", "phoenix", "learner", "builder", "creator"];
+      if (!allowedAvatarPresets.includes(avatarPreset)) {
+        return NextResponse.json({ message: "Invalid avatarPreset" }, { status: 400 });
+      }
+    }
+
+    if (bannerColor !== undefined) {
+      const allowedBannerColors = ["cyan", "blue", "purple", "orange", "green", "slate"];
+      if (!allowedBannerColors.includes(bannerColor)) {
+        return NextResponse.json({ message: "Invalid bannerColor" }, { status: 400 });
+      }
+    }
+
+    if (avatarFrame !== undefined) {
+      const allowedAvatarFrames = ["cyan", "blue", "purple", "orange", "green", "slate", "gold"];
+      if (!allowedAvatarFrames.includes(avatarFrame)) {
+        return NextResponse.json({ message: "Invalid avatarFrame" }, { status: 400 });
+      }
+    }
+
+    // Build update object
+    const update = {};
+    if (displayName !== undefined) update["profile.displayName"] = displayName.trim();
+    if (bio !== undefined) update["profile.bio"] = bio;
+    if (avatarUrl !== undefined) update["profile.avatarUrl"] = avatarUrl;
+    if (avatarPreset !== undefined) update["profile.avatarPreset"] = avatarPreset;
+    if (bannerColor !== undefined) update["profile.bannerColor"] = bannerColor;
+    if (avatarFrame !== undefined) update["profile.avatarFrame"] = avatarFrame;
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ message: "No valid fields to update" }, { status: 400 });
+    }
+
+    const updatedUser = await UserProfile.findOneAndUpdate(
+      { firebaseUID: decodedToken.uid },
+      { $set: update },
+      { new: true }
+    ).select("profile");
+
+    if (!updatedUser) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      profile: {
+        displayName: updatedUser.profile?.displayName || "",
+        bio: updatedUser.profile?.bio || "",
+        avatarUrl: updatedUser.profile?.avatarUrl || "",
+        avatarPreset: updatedUser.profile?.avatarPreset || "default",
+        bannerColor: updatedUser.profile?.bannerColor || "cyan",
+        avatarFrame: updatedUser.profile?.avatarFrame || "cyan",
+      }
+    }, { status: 200 });
+
+  } catch (err) {
+    console.error("[PATCH Profile] Error", err);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
+
