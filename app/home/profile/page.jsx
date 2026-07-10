@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/features/context/AuthContext";
-import { Loader2, User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft } from "lucide-react";
+import { User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getUnlockedCertificates } from "@/features/certificates/certificateStorage";
+import CertificateCard from "@/features/certificates/CertificateCard";
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [localCertificates, setLocalCertificates] = useState([]);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -44,11 +47,53 @@ export default function ProfilePage() {
     fetchProfile();
   }, [user, authLoading]);
 
+  const loadCertificates = () => {
+    const certs = getUnlockedCertificates();
+    certs.sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
+    setLocalCertificates(certs);
+  };
+
+  useEffect(() => {
+    if (!loading) {
+      loadCertificates();
+    }
+  }, [loading]);
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-12 h-12 text-cyan-600 animate-spin mb-4" />
-        <p className="text-slate-600 font-medium">Loading profile...</p>
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 animate-pulse">
+        {/* Back Button Skeleton */}
+        <div className="w-32 h-10 bg-slate-200 rounded-full mb-6"></div>
+
+        {/* Banner Skeleton */}
+        <div className="w-full h-32 md:h-48 bg-slate-200 rounded-3xl mb-12"></div>
+        
+        {/* Header Skeleton */}
+        <div className="relative -mt-20 ml-6 md:ml-10 flex items-end gap-4 mb-8">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-300 border-4 border-white"></div>
+          <div className="pb-2 space-y-2">
+            <div className="h-8 w-48 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Account Details Skeleton */}
+          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
+          
+          {/* Streak Skeleton */}
+          <div className="bg-slate-100 rounded-3xl p-6 md:col-span-2 h-48 border border-slate-200"></div>
+        </div>
+        
+        {/* Bio Skeleton */}
+        <div className="bg-slate-100 rounded-3xl p-6 h-24 w-full border border-slate-200"></div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
+          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
+        </div>
+
+        {/* Collection Skeleton */}
+        <div className="bg-slate-100 rounded-3xl p-6 h-64 w-full border border-slate-200"></div>
       </div>
     );
   }
@@ -66,7 +111,7 @@ export default function ProfilePage() {
 
   if (!profileData) return null;
 
-  const { email, role, currentRoadmap, joinedAt, streak, stats, badges } = profileData;
+  const { email, role, currentRoadmap, joinedAt, streak, stats, bio } = profileData;
 
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown";
@@ -86,23 +131,29 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center shadow-sm">
-          {user.photoURL ? (
-            <Image src={user.photoURL} alt="Avatar" width={64} height={64} className="rounded-full object-cover" />
-          ) : (
-            <User className="w-8 h-8" strokeWidth={2.5} />
-          )}
+      {/* Banner / Header */}
+      <div className="relative mb-12">
+        <div className="w-full h-32 md:h-48 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-3xl overflow-hidden shadow-sm flex items-center justify-center">
+           {/* Placeholder for future banner customization */}
+           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+           <ImageIcon className="w-12 h-12 text-white/40 mix-blend-overlay" />
         </div>
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Your Profile</h1>
-          <p className="text-slate-500 font-medium">{user.displayName || "Adventurer"}</p>
+        
+        <div className="absolute -bottom-8 left-6 md:left-10 flex items-end gap-4">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center shadow-md border-4 border-white overflow-hidden">
+            {user.photoURL ? (
+              <Image src={user.photoURL} alt="Avatar" width={96} height={96} className="rounded-full object-cover w-full h-full" />
+            ) : (
+              <User className="w-10 h-10 md:w-12 md:h-12" strokeWidth={2.5} />
+            )}
+          </div>
+          <div className="pb-2">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">{user.displayName || "Adventurer"}</h1>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
         {/* Account Details */}
         <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -183,6 +234,18 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Bio Section */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <BookOpen className="w-4 h-4" /> Bio
+        </h2>
+        {bio ? (
+          <p className="text-slate-700 leading-relaxed">{bio}</p>
+        ) : (
+          <p className="text-slate-400 italic">Add a short bio to personalize your profile.</p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Learning Stats */}
         <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
@@ -235,28 +298,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Badges Section */}
+      {/* Cards/Certificates Section */}
       <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
           <Award className="w-4 h-4" /> Your Collection
         </h2>
 
-        {badges && badges.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {badges.map((badge, idx) => (
-              <div key={idx} className="bg-white p-4 rounded-2xl border border-[#f1e4d2]/50 shadow-sm text-center group hover:-translate-y-1 transition-transform duration-200">
-                <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full mb-3 overflow-hidden relative">
-                  {badge.imageURL ? (
-                    <Image src={badge.imageURL} alt={badge.name} fill className="object-cover" />
-                  ) : (
-                    <Award className="w-8 h-8 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />
-                  )}
-                </div>
-                <h3 className="text-sm font-bold text-slate-800 mb-1">{badge.name}</h3>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold">
-                  {badge.unlockedAt ? formatDate(badge.unlockedAt) : 'Unlocked'}
-                </p>
-              </div>
+        {localCertificates && localCertificates.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {localCertificates.map((cert) => (
+              <CertificateCard
+                key={`${cert.roadmapFamily}-${cert.certificateKey}`}
+                certificate={cert}
+                onUpdate={loadCertificates}
+              />
             ))}
           </div>
         ) : (

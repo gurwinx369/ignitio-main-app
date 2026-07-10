@@ -111,6 +111,8 @@ export async function GET(request) {
           roadmapsCompleted,
         },
         badges: safeBadges,
+        // TODO: Certificates are currently generated client-side and stored in localStorage; migrate to MongoDB in a future PR.
+        cards: [],
       }
     }, { status: 200 });
 
