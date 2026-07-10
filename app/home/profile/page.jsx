@@ -1,43 +1,80 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/features/context/AuthContext";
-import { User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft, Image as ImageIcon, Edit2, X, Check, Loader2 } from "lucide-react";
+import { User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft, Edit2, X, Check, Loader2, } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getUnlockedCertificates } from "@/features/certificates/certificateStorage";
 import CertificateCard from "@/features/certificates/CertificateCard";
 
-const BANNER_COLORS = {
-  cyan: "from-cyan-100 via-sky-100 to-blue-100",
-  blue: "from-blue-100 via-sky-100 to-cyan-100",
-  purple: "from-violet-100 via-purple-100 to-fuchsia-100",
-  orange: "from-orange-100 via-amber-100 to-yellow-100",
-  green: "from-emerald-100 via-green-100 to-teal-100",
-  slate: "from-slate-100 via-slate-50 to-zinc-100"
-  /*cyan: { New format
+const BANNER_PRESETS = {
+  cyan: {
     label: "Cyan",
     gradient: "from-cyan-100 via-sky-100 to-blue-100",
-    image: "/profile/banners/cyan-game.webp",
+    image: "/profile/banners/banner1.webp",
+  },
+  blue: {
+    label: "Blue",
+    gradient: "from-blue-100 via-sky-100 to-cyan-100",
+    image: "/profile/banners/banner2.webp",
+  },
+  purple: {
+    label: "Purple",
+    gradient: "from-violet-100 via-purple-100 to-fuchsia-100",
+    image: "/profile/banners/banner3.webp",
+  },
+  /*orange: {
+    label: "Orange",
+    gradient: "from-orange-100 via-amber-100 to-yellow-100",
+    image: "/profile/banners/banner4.webp",
+  },
+  green: {
+    label: "Green",
+    gradient: "from-emerald-100 via-green-100 to-teal-100",
+    image: "/profile/banners/green-game.webp",
+  },
+  slate: {
+    label: "Slate",
+    gradient: "from-slate-100 via-slate-50 to-zinc-100",
+    image: "/profile/banners/slate-game.webp",
   },*/
 };
 
 const AVATAR_PRESETS = {
-  /*default: {
+  default: {
     label: "Default",
     className: "bg-cyan-100 text-cyan-700",
     image: null,
+  },
+  spark: {
+    label: "Spark",
+    className: "bg-amber-100 text-amber-700",
+    image: "/profile/avatars/profile1.webp",
+  },
+  phoenix: {
+    label: "Phoenix",
+    className: "bg-orange-100 text-orange-700",
+    image: "/profile/avatars/profile2.webp",
+  },
+  learner: {
+    label: "Learner",
+    className: "bg-emerald-100 text-emerald-700",
+    image: "/profile/avatars/profile3.webp",
+  },
+  builder: {
+    label: "Builder",
+    className: "bg-blue-100 text-blue-700",
+    image: "/profile/avatars/profile4.webp",
+  },
+  /*creator: {
+    label: "Creator",
+    className: "bg-purple-100 text-purple-700",
+    image: "/profile/avatars/profile5.webp",
   },*/
-  default: "bg-cyan-100 text-cyan-700",
-  spark: "bg-amber-100 text-amber-700",
-  phoenix: "bg-orange-100 text-orange-700",
-  learner: "bg-emerald-100 text-emerald-700",
-  builder: "bg-blue-100 text-blue-700",
-  creator: "bg-purple-100 text-purple-700"
 };
 
 const AVATAR_FRAMES = {
-  //cyan: "/profile/rings/cyan-ring.png",
   cyan: "border-cyan-200 shadow-cyan-100",
   blue: "border-blue-200 shadow-blue-100",
   purple: "border-purple-200 shadow-purple-100",
@@ -49,12 +86,14 @@ const AVATAR_FRAMES = {
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
+
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [localCertificates, setLocalCertificates] = useState([]);
 
-  // Edit State
+  const [localCertificates, setLocalCertificates] = useState([]);
+  const [syncedToMongo, setSyncedToMongo] = useState(false);
+
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
@@ -64,17 +103,19 @@ export default function ProfilePage() {
     avatarUrl: "",
     avatarPreset: "default",
     bannerColor: "cyan",
-    avatarFrame: "cyan"
+    avatarFrame: "cyan",
   });
 
   useEffect(() => {
     async function fetchProfile() {
       if (authLoading) return;
+
       if (!user) {
         setError("User not authenticated");
         setLoading(false);
         return;
       }
+
       try {
         const token = await user.getIdToken();
         const res = await fetch("/api/v2/profile", {
@@ -99,17 +140,89 @@ export default function ProfilePage() {
     fetchProfile();
   }, [user, authLoading]);
 
-  const loadCertificates = () => {
+  const loadCertificates = useCallback(() => {
     const certs = getUnlockedCertificates();
     certs.sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
     setLocalCertificates(certs);
-  };
+    return certs;
+  }, []);
+
+  const mapMongoCertificateToCard = (cert) => ({
+    certificateKey: cert.certificateKey,
+    roadmapFamily: cert.roadmapFamily || cert.roadmapSlug || "",
+    roadmapTitle: cert.roadmapTitle || "",
+    milestoneTitle: cert.title,
+    unlockedAt: cert.unlockedAt,
+    downloaded: false,
+    dayId: cert.dayId,
+    dayTitle: cert.dayTitle,
+    description: cert.description,
+    imageKey: cert.imageKey,
+    metadata: cert.metadata,
+  });
+
+  const syncLocalCertsToMongo = useCallback(
+    async (localCerts) => {
+      if (!user || !localCerts || localCerts.length === 0) {
+        setSyncedToMongo(true);
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+
+        const payload = localCerts.map((cert) => ({
+          certificateKey: cert.certificateKey,
+          certificateType: "day_completion",
+          roadmapFamily: cert.roadmapFamily || "",
+          roadmapSlug: cert.roadmapSlug || cert.roadmapFamily || cert.certificateKey || "unknown",
+          roadmapTitle: cert.roadmapTitle || "",
+          dayId: cert.dayId || cert.certificateKey,
+          dayTitle: cert.dayTitle || "",
+          title: cert.milestoneTitle || cert.title || cert.certificateKey,
+          description: cert.description || "",
+          imageKey: cert.imageKey || "",
+          unlockedAt: cert.unlockedAt,
+          metadata: {
+            completedLevelsCount: cert.completedLevelsCount || 0,
+            totalLevelsInDay: cert.totalLevelsInDay || 0,
+          },
+        }));
+
+        const res = await fetch("/api/v2/certificates", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+
+          if (data.certificates && data.certificates.length > 0) {
+            setProfileData((prev) => ({
+              ...prev,
+              cards: data.certificates,
+            }));
+          }
+        }
+      } catch {
+        // Best-effort sync. Do not block profile UI.
+      } finally {
+        setSyncedToMongo(true);
+      }
+    },
+    [user],
+  );
 
   useEffect(() => {
-    if (!loading) {
-      loadCertificates();
-    }
-  }, [loading]);
+    if (loading || !profileData || syncedToMongo) return;
+
+    const local = loadCertificates();
+    syncLocalCertsToMongo(local);
+  }, [loading, profileData, syncedToMongo, loadCertificates, syncLocalCertsToMongo]);
 
   const handleEditClick = () => {
     setEditForm({
@@ -118,7 +231,7 @@ export default function ProfilePage() {
       avatarUrl: profileData.avatarUrl || "",
       avatarPreset: profileData.avatarPreset || "default",
       bannerColor: profileData.bannerColor || "cyan",
-      avatarFrame: profileData.avatarFrame || "cyan"
+      avatarFrame: profileData.avatarFrame || "cyan",
     });
     setEditError("");
     setIsEditing(true);
@@ -127,23 +240,29 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     setEditError("");
+
     try {
       const token = await user.getIdToken();
+
       const res = await fetch("/api/v2/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(editForm),
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         throw new Error(data.message || "Failed to save profile");
       }
 
-      setProfileData({ ...profileData, ...data.profile });
+      setProfileData((prev) => ({
+        ...prev,
+        ...data.profile,
+      }));
       setIsEditing(false);
     } catch (err) {
       setEditError(err.message);
@@ -154,34 +273,34 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 animate-pulse">
-        <div className="w-32 h-10 bg-slate-200 rounded-full mb-6"></div>
-        <div className="w-full h-32 md:h-48 bg-slate-200 rounded-3xl mb-12"></div>
-        <div className="relative -mt-20 ml-6 md:ml-10 flex items-end gap-4 mb-8">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-300 border-4 border-white"></div>
-          <div className="pb-2 space-y-2">
-            <div className="h-8 w-48 bg-slate-200 rounded"></div>
+      <div className="mx-auto max-w-5xl animate-pulse space-y-8 px-4 py-8">
+        <div className="mb-6 h-10 w-32 rounded-full bg-slate-200" />
+        <div className="mb-12 h-32 w-full rounded-3xl bg-slate-200 md:h-48" />
+        <div className="relative -mt-20 mb-8 ml-6 flex items-end gap-4 md:ml-10">
+          <div className="h-20 w-20 rounded-full border-4 border-white bg-slate-300 md:h-24 md:w-24" />
+          <div className="space-y-2 pb-2">
+            <div className="h-8 w-48 rounded bg-slate-200" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
-          <div className="bg-slate-100 rounded-3xl p-6 md:col-span-2 h-48 border border-slate-200"></div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="h-48 rounded-3xl border border-slate-200 bg-slate-100 p-6" />
+          <div className="h-48 rounded-3xl border border-slate-200 bg-slate-100 p-6 md:col-span-2" />
         </div>
-        <div className="bg-slate-100 rounded-3xl p-6 h-24 w-full border border-slate-200"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
-          <div className="bg-slate-100 rounded-3xl p-6 h-48 border border-slate-200"></div>
+        <div className="h-24 w-full rounded-3xl border border-slate-200 bg-slate-100 p-6" />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="h-48 rounded-3xl border border-slate-200 bg-slate-100 p-6" />
+          <div className="h-48 rounded-3xl border border-slate-200 bg-slate-100 p-6" />
         </div>
-        <div className="bg-slate-100 rounded-3xl p-6 h-64 w-full border border-slate-200"></div>
+        <div className="h-64 w-full rounded-3xl border border-slate-200 bg-slate-100 p-6" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100 max-w-md text-center">
-          <h2 className="text-xl font-bold mb-2">Oops!</h2>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center">
+        <div className="max-w-md rounded-2xl border border-red-100 bg-red-50 p-6 text-center text-red-600">
+          <h2 className="mb-2 text-xl font-bold">Oops!</h2>
           <p>{error}</p>
         </div>
       </div>
@@ -190,204 +309,365 @@ export default function ProfilePage() {
 
   if (!profileData) return null;
 
-  const { email, role, currentRoadmap, joinedAt, streak, stats, bio, displayName, avatarUrl, avatarPreset, bannerColor, avatarFrame } = profileData;
+  const {
+    email,
+    role,
+    currentRoadmap,
+    joinedAt,
+    streak,
+    stats,
+    bio,
+    displayName,
+    avatarUrl,
+    avatarPreset,
+    bannerColor,
+    avatarFrame,
+  } = profileData;
 
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown";
+
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   const isAtRisk = streak?.status === "at_risk";
-  const displayBannerClass = BANNER_COLORS[bannerColor || "cyan"] || BANNER_COLORS.cyan;
-  const displayAvatarPresetClass = AVATAR_PRESETS[avatarPreset || "default"] || AVATAR_PRESETS.default;
-  const displayAvatarFrameClass = AVATAR_FRAMES[avatarFrame || "cyan"] || AVATAR_FRAMES.cyan;
-  const nameToDisplay = displayName || user.displayName || "Adventurer";
 
-  const renderAvatar = (url, presetClass, fbPhoto) => {
+  const selectedBanner =
+    BANNER_PRESETS[bannerColor || "cyan"] || BANNER_PRESETS.cyan;
+
+  const selectedAvatarPreset =
+    AVATAR_PRESETS[avatarPreset || "default"] || AVATAR_PRESETS.default;
+
+  const displayAvatarFrameClass =
+    AVATAR_FRAMES[avatarFrame || "cyan"] || AVATAR_FRAMES.cyan;
+
+  const nameToDisplay = displayName || user?.displayName || "Adventurer";
+
+  const renderAvatar = (url, preset, fbPhoto) => {
     if (url) {
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={url} alt="Avatar" className="rounded-full object-cover w-full h-full" />;
+      return (
+        <img
+          src={url}
+          alt="Avatar"
+          className="h-full w-full rounded-full object-cover"
+        />
+      );
     }
+
     if ((!avatarPreset || avatarPreset === "default") && fbPhoto) {
-      return <Image src={fbPhoto} alt="Avatar" width={96} height={96} className="rounded-full object-cover w-full h-full" />;
+      return (
+        <Image
+          src={fbPhoto}
+          alt="Avatar"
+          width={96}
+          height={96}
+          className="h-full w-full rounded-full object-cover"
+        />
+      );
     }
+
+    if (preset?.image) {
+      return (
+        <Image
+          src={preset.image}
+          alt={preset.label || "Avatar"}
+          width={96}
+          height={96}
+          className="h-full w-full rounded-full object-cover"
+        />
+      );
+    }
+
     return (
-      <div className={`w-full h-full flex items-center justify-center ${presetClass}`}>
-        <User className="w-10 h-10 md:w-12 md:h-12" strokeWidth={2.5} />
+      <div
+        className={`flex h-full w-full items-center justify-center ${preset?.className || AVATAR_PRESETS.default.className
+          }`}
+      >
+        <User className="h-10 w-10 md:h-12 md:w-12" strokeWidth={2.5} />
       </div>
     );
   };
 
+  const mongoCards = profileData.cards || [];
+  const normalizedCards =
+    mongoCards.length > 0
+      ? mongoCards.map(mapMongoCertificateToCard)
+      : localCertificates;
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-      {/* Back Button */}
-      <div className="mb-6 flex justify-between items-center">
-        <Link href="/home" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 hover:shadow-md">
-          <ArrowLeft className="w-4 h-4" />
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <Link
+          href="/home"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 hover:shadow-md"
+        >
+          <ArrowLeft className="h-4 w-4" />
           Back to Home
         </Link>
-        <button onClick={handleEditClick} className="inline-flex items-center gap-2 rounded-full bg-cyan-600 text-white px-5 py-2.5 text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-cyan-700 hover:shadow-md">
-          <Edit2 className="w-4 h-4" />
+
+        <button
+          type="button"
+          onClick={handleEditClick}
+          className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-cyan-700 hover:shadow-md"
+        >
+          <Edit2 className="h-4 w-4" />
           Edit Profile
         </button>
       </div>
 
-      {/* Banner / Header */}
-      <div className="relative mb-12">
-        <div className={`w-full h-32 md:h-48 bg-gradient-to-r ${displayBannerClass} rounded-3xl overflow-hidden shadow-sm flex items-center justify-center`}>
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-          <ImageIcon className="w-12 h-12 text-white/40 mix-blend-overlay" />
+      <div className="relative mb-14">
+        <div
+          className={`relative h-36 w-full overflow-hidden rounded-3xl bg-gradient-to-r shadow-sm md:h-52 ${selectedBanner.gradient}`}
+          style={{
+            backgroundImage: selectedBanner.image
+              ? `linear-gradient(to right, rgba(255,255,255,0.10), rgba(255,255,255,0.06)), url("${selectedBanner.image}")`
+              : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        >
+          <div className="absolute inset-0 bg-white/5" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/35 to-transparent" />
         </div>
 
-        <div className="absolute -bottom-8 left-6 md:left-10 flex items-end gap-4">
-          <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full shadow-md border-4 bg-white overflow-hidden ${displayAvatarFrameClass}`}>
-            {renderAvatar(avatarUrl, displayAvatarPresetClass, user.photoURL)}
+        <div className="absolute -bottom-10 left-6 flex max-w-[calc(100%-3rem)] items-end gap-4 md:left-10">
+          <div
+            className={`h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 bg-white p-1 shadow-xl md:h-24 md:w-24 ${displayAvatarFrameClass}`}
+          >
+            <div className="h-full w-full overflow-hidden rounded-full">
+              {renderAvatar(avatarUrl, selectedAvatarPreset, user?.photoURL)}
+            </div>
           </div>
-          <div className="pb-2">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">{nameToDisplay}</h1>
+
+          <div className="min-w-0 pb-2">
+            <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+              {nameToDisplay}
+            </h1>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Account Details */}
-        <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <User className="w-4 h-4" /> Account
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="rounded-3xl border border-[#f1e4d2] bg-[#fffaf3] p-6 shadow-sm">
+          <h2 className="mb-6 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <User className="h-4 w-4" /> Account
           </h2>
+
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
+              <Mail className="mt-0.5 h-5 w-5 text-slate-400" />
               <div>
-                <p className="text-xs text-slate-500 font-medium">Email</p>
-                <p className="text-slate-800 font-semibold truncate max-w-[200px]" title={email}>{email}</p>
+                <p className="text-xs font-medium text-slate-500">Email</p>
+                <p
+                  className="max-w-[200px] truncate font-semibold text-slate-800"
+                  title={email}
+                >
+                  {email}
+                </p>
               </div>
             </div>
+
             <div className="flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-slate-400 mt-0.5" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 text-slate-400" />
               <div>
-                <p className="text-xs text-slate-500 font-medium">Role</p>
-                <p className="text-slate-800 font-semibold capitalize">{role || "Student"}</p>
+                <p className="text-xs font-medium text-slate-500">Role</p>
+                <p className="font-semibold capitalize text-slate-800">
+                  {role || "Student"}
+                </p>
               </div>
             </div>
+
             <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-slate-400 mt-0.5" />
+              <Clock className="mt-0.5 h-5 w-5 text-slate-400" />
               <div>
-                <p className="text-xs text-slate-500 font-medium">Joined</p>
-                <p className="text-slate-800 font-semibold">{formatDate(joinedAt)}</p>
+                <p className="text-xs font-medium text-slate-500">Joined</p>
+                <p className="font-semibold text-slate-800">
+                  {formatDate(joinedAt)}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Streak Details */}
-        <div className={`border rounded-3xl p-6 shadow-sm md:col-span-2 ${isAtRisk ? 'bg-orange-50 border-orange-200' : 'bg-[#fffaf3] border-[#f1e4d2]'}`}>
-          <div className="flex justify-between items-start mb-6">
-            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <Flame className={`w-4 h-4 ${streak?.todayCompleted ? 'text-orange-500' : 'text-slate-400'}`} />
+        <div
+          className={`rounded-3xl border p-6 shadow-sm md:col-span-2 ${isAtRisk
+            ? "border-orange-200 bg-orange-50"
+            : "border-[#f1e4d2] bg-[#fffaf3]"
+            }`}
+        >
+          <div className="mb-6 flex items-start justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+              <Flame
+                className={`h-4 w-4 ${streak?.todayCompleted ? "text-orange-500" : "text-slate-400"
+                  }`}
+              />
               Learning Streak
             </h2>
+
             {isAtRisk && (
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full uppercase tracking-wider">
+              <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-orange-700">
                 At Risk
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div className="bg-white/60 p-4 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
-              <p className="text-3xl font-black text-orange-500 mb-1">{streak?.currentCount || 0}</p>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Current</p>
+          <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
+            <div className="rounded-2xl border border-white/50 bg-white/60 p-4 shadow-sm backdrop-blur-sm">
+              <p className="mb-1 text-3xl font-black text-orange-500">
+                {streak?.currentCount || 0}
+              </p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Current
+              </p>
             </div>
-            <div className="bg-white/60 p-4 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
-              <p className="text-3xl font-black text-slate-700 mb-1">{streak?.longestCount || 0}</p>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Longest</p>
+
+            <div className="rounded-2xl border border-white/50 bg-white/60 p-4 shadow-sm backdrop-blur-sm">
+              <p className="mb-1 text-3xl font-black text-slate-700">
+                {streak?.longestCount || 0}
+              </p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Longest
+              </p>
             </div>
-            <div className="bg-white/60 p-4 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm">
-              <p className="text-3xl font-black text-cyan-600 mb-1">{streak?.freezeBank || 0}</p>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Freezes</p>
+
+            <div className="rounded-2xl border border-white/50 bg-white/60 p-4 shadow-sm backdrop-blur-sm">
+              <p className="mb-1 text-3xl font-black text-cyan-600">
+                {streak?.freezeBank || 0}
+              </p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Freezes
+              </p>
             </div>
-            <div className="bg-white/60 p-4 rounded-2xl border border-white/50 shadow-sm backdrop-blur-sm flex flex-col justify-center items-center">
+
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 p-4 shadow-sm backdrop-blur-sm">
               {streak?.todayCompleted ? (
-                <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
-                  <Clock className="w-5 h-5" />
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <Clock className="h-5 w-5" />
                 </div>
               )}
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 {streak?.todayCompleted ? "Done Today" : "Pending"}
               </p>
             </div>
           </div>
+
           {isAtRisk && streak?.earnBack && (
-            <div className="mt-4 text-sm text-orange-700 font-medium bg-orange-100/50 p-3 rounded-xl border border-orange-200/50">
-              Complete {2 - streak.earnBack.lessonsCompletedInWindow} more lesson(s) to save your streak of {streak.earnBack.countAtRisk}!
+            <div className="mt-4 rounded-xl border border-orange-200/50 bg-orange-100/50 p-3 text-sm font-medium text-orange-700">
+              Complete {2 - streak.earnBack.lessonsCompletedInWindow} more
+              lesson(s) to save your streak of {streak.earnBack.countAtRisk}!
             </div>
           )}
         </div>
       </div>
 
-      {/* Bio Section */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <BookOpen className="w-4 h-4" /> Bio
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+          <BookOpen className="h-4 w-4" /> Bio
         </h2>
+
         {bio ? (
-          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{bio}</p>
+          <p className="whitespace-pre-wrap leading-relaxed text-slate-700">
+            {bio}
+          </p>
         ) : (
-          <p className="text-slate-400 italic">Add a short bio to personalize your profile.</p>
+          <p className="italic text-slate-400">
+            Add a short bio to personalize your profile.
+          </p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Learning Stats */}
-        <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <BookOpen className="w-4 h-4" /> Lifetime Stats
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="rounded-3xl border border-[#f1e4d2] bg-[#fffaf3] p-6 shadow-sm">
+          <h2 className="mb-6 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <BookOpen className="h-4 w-4" /> Lifetime Stats
           </h2>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-white border border-[#f1e4d2]/50 shadow-sm">
-              <p className="text-2xl font-black text-slate-800">{stats?.completedLevels || 0}</p>
-              <p className="text-xs text-slate-500 font-medium mt-1">Lessons Completed</p>
+            <div className="rounded-2xl border border-[#f1e4d2]/50 bg-white p-4 shadow-sm">
+              <p className="text-2xl font-black text-slate-800">
+                {stats?.completedLevels || 0}
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Lessons Completed
+              </p>
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-[#f1e4d2]/50 shadow-sm">
-              <p className="text-2xl font-black text-slate-800">{stats?.passedAssignments || 0}</p>
-              <p className="text-xs text-slate-500 font-medium mt-1">Assignments Passed</p>
+
+            <div className="rounded-2xl border border-[#f1e4d2]/50 bg-white p-4 shadow-sm">
+              <p className="text-2xl font-black text-slate-800">
+                {stats?.passedAssignments || 0}
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Assignments Passed
+              </p>
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-[#f1e4d2]/50 shadow-sm">
-              <p className="text-2xl font-black text-slate-800">{stats?.roadmapsStarted || 0}</p>
-              <p className="text-xs text-slate-500 font-medium mt-1">Roadmaps Started</p>
+
+            <div className="rounded-2xl border border-[#f1e4d2]/50 bg-white p-4 shadow-sm">
+              <p className="text-2xl font-black text-slate-800">
+                {stats?.roadmapsStarted || 0}
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Roadmaps Started
+              </p>
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-[#f1e4d2]/50 shadow-sm">
-              <p className="text-2xl font-black text-slate-800">{stats?.roadmapsCompleted || 0}</p>
-              <p className="text-xs text-slate-500 font-medium mt-1">Roadmaps Finished</p>
+
+            <div className="rounded-2xl border border-[#f1e4d2]/50 bg-white p-4 shadow-sm">
+              <p className="text-2xl font-black text-slate-800">
+                {stats?.roadmapsCompleted || 0}
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Roadmaps Finished
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Current Roadmap */}
-        <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm flex flex-col">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <Award className="w-4 h-4" /> Current Roadmap
+        <div className="flex flex-col rounded-3xl border border-[#f1e4d2] bg-[#fffaf3] p-6 shadow-sm">
+          <h2 className="mb-6 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <Award className="h-4 w-4" /> Current Roadmap
           </h2>
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-white/50 rounded-2xl border border-white border-dashed">
+
+          <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-white bg-white/50 p-6 text-center">
             {currentRoadmap ? (
               <>
-                <div className="w-16 h-16 bg-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm rotate-3">
-                  <BookOpen className="w-8 h-8" />
+                <div className="mb-4 flex h-16 w-16 rotate-3 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-600 shadow-sm">
+                  <BookOpen className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2 capitalize">
-                  {currentRoadmap.replace(/-/g, ' ')}
+
+                <h3 className="mb-2 text-xl font-bold capitalize text-slate-800">
+                  {currentRoadmap.replace(/-/g, " ")}
                 </h3>
-                <p className="text-sm text-slate-500 font-medium">Keep up the great work!</p>
+
+                <p className="text-sm font-medium text-slate-500">
+                  Keep up the great work!
+                </p>
               </>
             ) : (
               <div className="text-slate-400">
-                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <BookOpen className="mx-auto mb-3 h-12 w-12 opacity-50" />
                 <p className="font-medium">No active roadmap</p>
               </div>
             )}
@@ -395,15 +675,14 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Cards/Certificates Section */}
-      <div className="bg-[#fffaf3] border border-[#f1e4d2] rounded-3xl p-6 shadow-sm">
-        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-          <Award className="w-4 h-4" /> Your Collection
+      <div className="rounded-3xl border border-[#f1e4d2] bg-[#fffaf3] p-6 shadow-sm">
+        <h2 className="mb-6 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+          <Award className="h-4 w-4" /> Your Collection
         </h2>
 
-        {localCertificates && localCertificates.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {localCertificates.map((cert) => (
+        {normalizedCards.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {normalizedCards.map((cert) => (
               <CertificateCard
                 key={`${cert.roadmapFamily}-${cert.certificateKey}`}
                 certificate={cert}
@@ -412,109 +691,173 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white/50 border border-white border-dashed rounded-2xl p-8 text-center">
-            <Award className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No cards unlocked yet. Complete lessons to start earning them.</p>
+          <div className="rounded-2xl border border-dashed border-white bg-white/50 p-8 text-center">
+            <Award className="mx-auto mb-3 h-12 w-12 text-slate-300" />
+            <p className="font-medium text-slate-500">
+              No cards unlocked yet. Complete lessons to start earning them.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden my-8">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h3 className="text-lg font-bold text-slate-800">Edit Profile</h3>
-              <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="my-8 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                Edit Profile
+              </h3>
+
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="space-y-6 p-6">
               {editError && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm border border-red-100">
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
                   {editError}
                 </div>
               )}
 
-              {/* Display Name */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Display Name</label>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Display Name
+                </label>
                 <input
                   type="text"
                   value={editForm.displayName}
-                  onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, displayName: e.target.value })
+                  }
                   maxLength={40}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-shadow"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="Your name"
                 />
               </div>
 
-              {/* Bio */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Bio</label>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Bio
+                </label>
                 <textarea
                   value={editForm.bio}
-                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, bio: e.target.value })
+                  }
                   maxLength={180}
                   rows={3}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-shadow resize-none"
+                  className="w-full resize-none rounded-xl border border-slate-200 px-4 py-2 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="Tell us about yourself..."
                 />
-                <p className="text-xs text-slate-500 text-right mt-1">{editForm.bio.length}/180</p>
+                <p className="mt-1 text-right text-xs text-slate-500">
+                  {editForm.bio.length}/180
+                </p>
               </div>
 
-              {/* Banner Preset */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Banner Color</label>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Banner
+                </label>
+
                 <div className="flex flex-wrap gap-3">
-                  {Object.entries(BANNER_COLORS).map(([key, bgClass]) => (
+                  {Object.entries(BANNER_PRESETS).map(([key, preset]) => (
                     <button
                       key={key}
-                      onClick={() => setEditForm({ ...editForm, bannerColor: key })}
-                      className={`w-12 h-12 rounded-xl bg-gradient-to-r ${bgClass} shadow-sm border-2 transition-transform hover:scale-105 flex items-center justify-center
-                        ${editForm.bannerColor === key ? 'border-cyan-600 scale-105' : 'border-transparent'}`}
+                      type="button"
+                      onClick={() =>
+                        setEditForm({ ...editForm, bannerColor: key })
+                      }
+                      title={preset.label}
+                      className={`relative flex h-12 w-20 items-center justify-center overflow-hidden rounded-xl border-2 bg-gradient-to-r shadow-sm transition-transform hover:scale-105 ${preset.gradient
+                        } ${editForm.bannerColor === key
+                          ? "scale-105 border-cyan-600"
+                          : "border-transparent"
+                        }`}
+                      style={{
+                        backgroundImage: preset.image
+                          ? `linear-gradient(to right, rgba(255,255,255,0.12), rgba(255,255,255,0.12)), url("${preset.image}")`
+                          : undefined,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
                     >
-                      {editForm.bannerColor === key && <Check className="w-5 h-5 text-white drop-shadow-md" />}
+                      {editForm.bannerColor === key && (
+                        <Check className="h-5 w-5 text-white drop-shadow-md" />
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Avatar URL */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Avatar URL (Optional)</label>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Avatar URL (Optional)
+                </label>
+
                 <input
                   type="text"
                   value={editForm.avatarUrl}
-                  onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, avatarUrl: e.target.value })
+                  }
                   maxLength={500}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-shadow text-sm"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="https://..."
                 />
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Clear this field to use avatar presets.
+                </p>
               </div>
 
-              {/* Avatar Preset */}
               {!editForm.avatarUrl && (
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Avatar Theme</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Avatar Theme
+                  </label>
+
                   <div className="flex flex-wrap gap-3">
-                    {Object.entries(AVATAR_PRESETS).map(([key, presetClass]) => (
+                    {Object.entries(AVATAR_PRESETS).map(([key, preset]) => (
                       <button
                         key={key}
-                        onClick={() => setEditForm({ ...editForm, avatarPreset: key })}
-                        className={`w-12 h-12 rounded-full shadow-sm border-2 transition-transform hover:scale-105 flex items-center justify-center overflow-hidden
-                          ${editForm.avatarPreset === key ? 'border-cyan-600 scale-105' : 'border-transparent'}
-                          ${presetClass}`}
+                        type="button"
+                        onClick={() =>
+                          setEditForm({ ...editForm, avatarPreset: key })
+                        }
+                        title={preset.label}
+                        className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 shadow-sm transition-transform hover:scale-105 ${editForm.avatarPreset === key
+                          ? "scale-105 border-cyan-600"
+                          : "border-transparent"
+                          } ${preset.className}`}
                       >
-                        {key === 'default' && user.photoURL ? (
-                          <Image src={user.photoURL} alt="Avatar" width={48} height={48} className="rounded-full object-cover w-full h-full" />
+                        {key === "default" && user?.photoURL ? (
+                          <Image
+                            src={user.photoURL}
+                            alt="Default avatar"
+                            width={48}
+                            height={48}
+                            className="h-full w-full rounded-full object-cover"
+                          />
+                        ) : preset.image ? (
+                          <Image
+                            src={preset.image}
+                            alt={preset.label}
+                            width={48}
+                            height={48}
+                            className="h-full w-full rounded-full object-cover"
+                          />
                         ) : (
-                          <User className="w-5 h-5" strokeWidth={2.5} />
+                          <User className="h-5 w-5" strokeWidth={2.5} />
                         )}
+
                         {editForm.avatarPreset === key && (
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                            <Check className="w-5 h-5 text-white" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Check className="h-5 w-5 text-white" />
                           </div>
                         )}
                       </button>
@@ -523,39 +866,51 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Avatar Frame */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Avatar Frame</label>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Avatar Frame
+                </label>
+
                 <div className="flex flex-wrap gap-3">
                   {Object.entries(AVATAR_FRAMES).map(([key, frameClass]) => (
                     <button
                       key={key}
-                      onClick={() => setEditForm({ ...editForm, avatarFrame: key })}
-                      className={`w-12 h-12 rounded-full border-4 shadow-sm transition-transform hover:scale-105 flex items-center justify-center bg-white
-                        ${frameClass}
-                        ${editForm.avatarFrame === key ? 'scale-110 ring-2 ring-cyan-500 ring-offset-2' : ''}`}
+                      type="button"
+                      onClick={() =>
+                        setEditForm({ ...editForm, avatarFrame: key })
+                      }
+                      title={key}
+                      className={`flex h-12 w-12 items-center justify-center rounded-full border-4 bg-white shadow-sm transition-transform hover:scale-105 ${frameClass} ${editForm.avatarFrame === key
+                        ? "scale-110 ring-2 ring-cyan-500 ring-offset-2"
+                        : ""
+                        }`}
                     >
-                      {editForm.avatarFrame === key && <Check className="w-5 h-5 text-slate-400" />}
+                      {editForm.avatarFrame === key && (
+                        <Check className="h-5 w-5 text-slate-400" />
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0 z-10">
+            <div className="sticky bottom-0 z-10 flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
               <button
+                type="button"
                 onClick={() => setIsEditing(false)}
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                className="rounded-xl px-5 py-2.5 font-semibold text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-50"
               >
                 Cancel
               </button>
+
               <button
+                type="button"
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl font-semibold text-white bg-cyan-600 hover:bg-cyan-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-cyan-700 disabled:opacity-50"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save Changes
               </button>
             </div>

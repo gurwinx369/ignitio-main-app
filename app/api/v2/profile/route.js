@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
+import { UserCertificate } from "@/models/v2/user.certificate.model";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { getStreakSummary, getLocalDateString } from "@/lib/users/streak.service";
 
@@ -95,6 +96,30 @@ export async function GET(request) {
     // Return empty badges for now per PR feedback
     const safeBadges = [];
 
+    // Fetch MongoDB certificates for this user
+    const mongoCerts = await UserCertificate
+      .find({ userId: user._id }, { _id: 0, certificateKey: 1, certificateType: 1, roadmapFamily: 1, roadmapSlug: 1, roadmapTitle: 1, dayId: 1, dayTitle: 1, title: 1, description: 1, imageKey: 1, unlockedAtUTC: 1, metadata: 1 })
+      .sort({ unlockedAtUTC: -1 })
+      .lean();
+
+    const safeCards = mongoCerts.map((c) => ({
+      certificateKey: c.certificateKey,
+      certificateType: c.certificateType,
+      roadmapFamily: c.roadmapFamily,
+      roadmapSlug: c.roadmapSlug,
+      roadmapTitle: c.roadmapTitle,
+      dayId: c.dayId,
+      dayTitle: c.dayTitle,
+      title: c.title,
+      description: c.description,
+      imageKey: c.imageKey,
+      unlockedAt: c.unlockedAtUTC instanceof Date ? c.unlockedAtUTC.toISOString() : (c.unlockedAtUTC || new Date().toISOString()),
+      metadata: {
+        completedLevelsCount: c.metadata?.completedLevelsCount ?? 0,
+        totalLevelsInDay: c.metadata?.totalLevelsInDay ?? 0,
+      },
+    }));
+
     return NextResponse.json({
       ok: true,
       profile: {
@@ -117,8 +142,7 @@ export async function GET(request) {
         avatarPreset: user.profile?.avatarPreset || "default",
         bannerColor: user.profile?.bannerColor || "cyan",
         avatarFrame: user.profile?.avatarFrame || "cyan",
-        // TODO: Certificates are currently generated client-side and stored in localStorage; migrate to MongoDB in a future PR.
-        cards: [],
+        cards: safeCards,
       }
     }, { status: 200 });
 
