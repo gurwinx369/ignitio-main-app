@@ -12,7 +12,7 @@ import {
   getNow,
 } from "@/lib/roadmaps/progress.helpers";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
-import { updateStreakOnLevelCompletion, getStreakSummary, getLocalDateString } from "@/lib/users/streak.service";
+import { updateStreakOnLevelCompletion, getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState } from "@/lib/users/streak.service";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 
@@ -322,11 +322,21 @@ export async function PATCH(request, { params }) {
 
     let streakSummary = null;
     if (data.action === "complete_level" && isNewLevelCompletion) {
+      // New level: updateStreakOnLevelCompletion runs lazy miss detection internally.
       streakSummary = await updateStreakOnLevelCompletion({
         userProfile: user,
         roadmapSlug,
         levelId: data.levelId,
       });
+    } else if (data.action === "complete_level") {
+      // Duplicate complete_level (level already in completedLevels on RoadmapProgress).
+      // Do NOT call updateStreakOnLevelCompletion — that would insert a LessonCompletion
+      // for a legacy-completed level and incorrectly credit a streak lesson.
+      // Still run lazy miss detection so app-open detection fires on this request too.
+      await evaluateAndApplyLazyStreakState(user, now);
+      const tz = user.streak?.timezone || "Asia/Kolkata";
+      const todayLocal = getLocalDateString(now, tz);
+      streakSummary = getStreakSummary(user.streak || {}, todayLocal, now);
     } else {
       const tz = user.streak?.timezone || "Asia/Kolkata";
       const todayLocal = getLocalDateString(now, tz);
