@@ -3,8 +3,9 @@ import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
 import { UserCertificate } from "@/models/v2/user.certificate.model";
+import { LessonCompletion } from "@/models/v2/lesson.completion.model";
 import { verifyFirebaseToken } from "@/lib/auth";
-import { getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState } from "@/lib/users/streak.service";
+import { getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState, addLocalDays, buildWeeklyStreakCalendar } from "@/lib/users/streak.service";
 
 export async function GET(request) {
   await connectToDB();
@@ -81,6 +82,23 @@ export async function GET(request) {
     const timezone = rawStreak.timezone || "Asia/Kolkata";
     const todayLocal = getLocalDateString(nowUTC, timezone);
     const streakSummary = getStreakSummary(rawStreak, todayLocal, nowUTC);
+
+    const [y, m, d] = todayLocal.split("-").map(Number);
+    const todayObj = new Date(Date.UTC(y, m - 1, d));
+    const dayOfWeek = todayObj.getUTCDay();
+    const weekStartLocal = addLocalDays(todayLocal, -dayOfWeek);
+    const weekEndLocal = addLocalDays(weekStartLocal, 6);
+
+    const completions = await LessonCompletion.find({
+      userId: user._id,
+      completedDateLocal: { $gte: weekStartLocal, $lte: weekEndLocal }
+    }).select("completedDateLocal").lean();
+
+    streakSummary.week = buildWeeklyStreakCalendar({
+      userProfile: user,
+      nowUTC,
+      completions
+    });
 
     // Return empty badges for now per PR feedback
     const safeBadges = [];
