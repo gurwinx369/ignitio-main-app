@@ -4,6 +4,10 @@ const MetadataSchema = new Schema(
   {
     completedLevelsCount: { type: Number, default: 0 },
     totalLevelsInDay: { type: Number, default: 0 },
+    quizCompletedCount: { type: Number, default: 0 },
+    durationMinutes: { type: Number, default: 0 },
+    dayNumber: { type: Number, default: 1 },
+    providedOn: { type: String, default: "" },
   },
   { _id: false }
 );

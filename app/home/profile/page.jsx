@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getUnlockedCertificates } from "@/features/certificates/certificateStorage";
 import CertificateCard from "@/features/certificates/CertificateCard";
+import { resolveCertificateTemplate } from "@/features/certificates/CertificateCanvas";
 
 const BANNER_PRESETS = {
   cyan: {
@@ -147,19 +148,29 @@ export default function ProfilePage() {
     return certs;
   }, []);
 
-  const mapMongoCertificateToCard = (cert) => ({
-    certificateKey: cert.certificateKey,
-    roadmapFamily: cert.roadmapFamily || cert.roadmapSlug || "",
-    roadmapTitle: cert.roadmapTitle || "",
-    milestoneTitle: cert.title,
-    unlockedAt: cert.unlockedAt,
-    downloaded: false,
-    dayId: cert.dayId,
-    dayTitle: cert.dayTitle,
-    description: cert.description,
-    imageKey: cert.imageKey,
-    metadata: cert.metadata,
-  });
+  const mapMongoCertificateToCard = (cert) => {
+    const meta = cert.metadata || {};
+    const resolved = resolveCertificateTemplate(cert);
+    return {
+      certificateKey: cert.certificateKey,
+      roadmapFamily: cert.roadmapFamily || cert.roadmapSlug || "",
+      roadmapTitle: cert.roadmapTitle || "",
+      milestoneTitle: cert.title,
+      unlockedAt: cert.unlockedAt,
+      downloaded: false,
+      dayId: cert.dayId,
+      dayTitle: cert.dayTitle,
+      description: cert.description,
+      imageKey: cert.imageKey || resolved,
+      template: resolved,
+      // Top-level display fields CertificateCanvas reads directly
+      providedOn: cert.providedOn || meta.providedOn || "",
+      dayNumber: cert.dayNumber ?? meta.dayNumber ?? 1,
+      quizCompletedCount: cert.quizCompletedCount ?? meta.quizCompletedCount ?? 0,
+      durationMinutes: cert.durationMinutes ?? meta.durationMinutes ?? 0,
+      metadata: meta,
+    };
+  };
 
   const syncLocalCertsToMongo = useCallback(
     async (localCerts) => {
@@ -181,11 +192,15 @@ export default function ProfilePage() {
           dayTitle: cert.dayTitle || "",
           title: cert.milestoneTitle || cert.title || cert.certificateKey,
           description: cert.description || "",
-          imageKey: cert.imageKey || "",
+          imageKey: cert.imageKey || cert.template || resolveCertificateTemplate(cert),
           unlockedAt: cert.unlockedAt,
           metadata: {
-            completedLevelsCount: cert.completedLevelsCount || 0,
-            totalLevelsInDay: cert.totalLevelsInDay || 0,
+            completedLevelsCount: Number(cert.completedLevelsCount || 0),
+            totalLevelsInDay: Number(cert.totalLevelsInDay || 0),
+            quizCompletedCount: Number(cert.quizCompletedCount || 0),
+            durationMinutes: Number(cert.durationMinutes || 0),
+            dayNumber: Number(cert.dayNumber || 1),
+            providedOn: cert.providedOn || "",
           },
         }));
 
@@ -575,12 +590,23 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {isAtRisk && streak?.earnBack && (
-            <div className="mt-4 rounded-xl border border-orange-200/50 bg-orange-100/50 p-3 text-sm font-medium text-orange-700">
-              Complete {2 - streak.earnBack.lessonsCompletedInWindow} more
-              lesson(s) to save your streak of {streak.earnBack.countAtRisk}!
-            </div>
-          )}
+          {streak?.earnBack?.active && streak.earnBack.countAtRisk > 0 && (() => {
+            const lessonsLeft =
+              typeof streak.earnBack.lessonsRemaining === "number"
+                ? streak.earnBack.lessonsRemaining
+                : Math.max(0, 2 - (streak.earnBack.lessonsCompletedInWindow || 0));
+            const countAtRisk = streak.earnBack.countAtRisk;
+            const streakLabel = `${countAtRisk}-day streak`;
+            const msg =
+              lessonsLeft === 1
+                ? `Complete 1 more lesson to restore your ${streakLabel}.`
+                : `Complete ${lessonsLeft} lessons in the next 48 hours to restore your ${streakLabel}.`;
+            return (
+              <div className="mt-4 rounded-xl border border-orange-200/50 bg-orange-100/50 p-3 text-sm font-medium text-orange-700">
+                {msg}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

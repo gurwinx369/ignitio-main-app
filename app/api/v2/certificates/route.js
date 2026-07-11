@@ -25,6 +25,7 @@ const SAFE_FIELDS = {
 };
 
 function toSafeCard(cert) {
+  const meta = cert.metadata || {};
   return {
     certificateKey: cert.certificateKey,
     certificateType: cert.certificateType,
@@ -39,11 +40,35 @@ function toSafeCard(cert) {
     unlockedAt: cert.unlockedAtUTC instanceof Date
       ? cert.unlockedAtUTC.toISOString()
       : cert.unlockedAtUTC || new Date().toISOString(),
+    // Top-level display fields for CertificateCanvas compatibility
+    providedOn: meta.providedOn || "",
+    dayNumber: meta.dayNumber ?? 1,
+    quizCompletedCount: meta.quizCompletedCount ?? 0,
+    durationMinutes: meta.durationMinutes ?? 0,
     metadata: {
-      completedLevelsCount: cert.metadata?.completedLevelsCount ?? 0,
-      totalLevelsInDay: cert.metadata?.totalLevelsInDay ?? 0,
+      completedLevelsCount: meta.completedLevelsCount ?? 0,
+      totalLevelsInDay: meta.totalLevelsInDay ?? 0,
+      quizCompletedCount: meta.quizCompletedCount ?? 0,
+      durationMinutes: meta.durationMinutes ?? 0,
+      dayNumber: meta.dayNumber ?? 1,
+      providedOn: meta.providedOn || "",
     },
   };
+}
+
+// ──────────────────────────────────────────────
+// Safe image key resolver
+// Only persists known template filenames; rejects arbitrary paths.
+// ──────────────────────────────────────────────
+const KNOWN_IMAGE_KEYS = ["prompt-day-1.png", "dsa-milestone.png"];
+const DEFAULT_IMAGE_KEY = "prompt-day-1.png";
+
+function resolveImageKey(raw) {
+  if (!raw) return DEFAULT_IMAGE_KEY;
+  if (KNOWN_IMAGE_KEYS.includes(raw)) return raw;
+  if (raw.startsWith("dsa")) return "dsa-milestone.png";
+  if (raw.includes("prompt") || raw.includes("day")) return "prompt-day-1.png";
+  return DEFAULT_IMAGE_KEY;
 }
 
 // ──────────────────────────────────────────────
@@ -64,6 +89,10 @@ const CertificateInputSchema = z.object({
   metadata: z.object({
     completedLevelsCount: z.number().int().min(0).optional().default(0),
     totalLevelsInDay: z.number().int().min(0).optional().default(0),
+    quizCompletedCount: z.number().int().min(0).optional().default(0),
+    durationMinutes: z.number().int().min(0).optional().default(0),
+    dayNumber: z.number().int().min(1).optional().default(1),
+    providedOn: z.string().max(80).optional().default(""),
   }).optional().default({}),
 });
 
@@ -160,6 +189,7 @@ export async function POST(request) {
             certificateType: cert.certificateType || "day_completion",
           },
           update: {
+            // Identity/ownership fields: set only on first insert
             $setOnInsert: {
               userId,
               firebaseUID,
@@ -167,17 +197,22 @@ export async function POST(request) {
               certificateType: cert.certificateType || "day_completion",
               roadmapFamily: cert.roadmapFamily || "",
               roadmapSlug: cert.roadmapSlug,
-              roadmapTitle: cert.roadmapTitle || "",
               dayId: cert.dayId,
+              unlockedAtUTC,
+            },
+            // Display/descriptive fields: always update so existing bad records are backfilled
+            $set: {
+              roadmapTitle: cert.roadmapTitle || "",
               dayTitle: cert.dayTitle || "",
               title: cert.title,
               description: cert.description || "",
-              imageKey: cert.imageKey || "",
-              unlockedAtUTC,
-              metadata: {
-                completedLevelsCount: cert.metadata?.completedLevelsCount ?? 0,
-                totalLevelsInDay: cert.metadata?.totalLevelsInDay ?? 0,
-              },
+              imageKey: resolveImageKey(cert.imageKey || cert.certificateKey || cert.dayId),
+              "metadata.completedLevelsCount": cert.metadata?.completedLevelsCount ?? 0,
+              "metadata.totalLevelsInDay": cert.metadata?.totalLevelsInDay ?? 0,
+              "metadata.quizCompletedCount": cert.metadata?.quizCompletedCount ?? 0,
+              "metadata.durationMinutes": cert.metadata?.durationMinutes ?? 0,
+              "metadata.dayNumber": cert.metadata?.dayNumber ?? 1,
+              "metadata.providedOn": cert.metadata?.providedOn || "",
             },
           },
           upsert: true,

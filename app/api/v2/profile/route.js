@@ -4,7 +4,7 @@ import { UserProfile } from "@/models/v2/user.profile.model";
 import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
 import { UserCertificate } from "@/models/v2/user.certificate.model";
 import { verifyFirebaseToken } from "@/lib/auth";
-import { getStreakSummary, getLocalDateString } from "@/lib/users/streak.service";
+import { getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState } from "@/lib/users/streak.service";
 
 export async function GET(request) {
   await connectToDB();
@@ -15,13 +15,19 @@ export async function GET(request) {
   }
 
   try {
+    // Must fetch as a Mongoose document (not lean) so evaluateAndApplyLazyStreakState
+    // can mutate streak in-place and persist only the streak subdocument.
     const user = await UserProfile.findOne({ firebaseUID: decodedToken.uid })
       .select("email role roadmap_name createdAt streak badges profile");
-
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+
+    // Lazy miss detection: per spec, evaluated on app open.
+    // May mutate user.streak and persist to DB if a state transition occurs.
+    const nowUTC = new Date();
+    await evaluateAndApplyLazyStreakState(user, nowUTC);
 
     const progresses = await RoadmapProgress.find({ firebaseUID: decodedToken.uid }).lean();
 
@@ -70,28 +76,11 @@ export async function GET(request) {
       }
     }
 
-    // Get streak summary with safe defaults
+    // Build streak summary from the (potentially just-mutated) streak subdocument.
     const rawStreak = user.streak || {};
-    const safeStreak = {
-      currentCount: rawStreak.currentCount || 0,
-      longestCount: rawStreak.longestCount || 0,
-      lastCompletedDateLocal: rawStreak.lastCompletedDateLocal || null,
-      timezone: rawStreak.timezone || "Asia/Kolkata",
-      freezeBank: rawStreak.freezeBank || 0,
-      freezeCredits: rawStreak.freezeCredits || [],
-      onboardingGraceUsed: rawStreak.onboardingGraceUsed || false,
-      onboardingStartDate: rawStreak.onboardingStartDate || null,
-      earnBack: rawStreak.earnBack || {
-        active: false,
-        deadline: null,
-        lessonsCompletedInWindow: 0,
-        countAtRisk: 0,
-      },
-    };
-
-    const now = new Date();
-    const todayLocal = getLocalDateString(now, safeStreak.timezone);
-    const streakSummary = getStreakSummary(safeStreak, todayLocal);
+    const timezone = rawStreak.timezone || "Asia/Kolkata";
+    const todayLocal = getLocalDateString(nowUTC, timezone);
+    const streakSummary = getStreakSummary(rawStreak, todayLocal, nowUTC);
 
     // Return empty badges for now per PR feedback
     const safeBadges = [];
@@ -102,23 +91,35 @@ export async function GET(request) {
       .sort({ unlockedAtUTC: -1 })
       .lean();
 
-    const safeCards = mongoCerts.map((c) => ({
-      certificateKey: c.certificateKey,
-      certificateType: c.certificateType,
-      roadmapFamily: c.roadmapFamily,
-      roadmapSlug: c.roadmapSlug,
-      roadmapTitle: c.roadmapTitle,
-      dayId: c.dayId,
-      dayTitle: c.dayTitle,
-      title: c.title,
-      description: c.description,
-      imageKey: c.imageKey,
-      unlockedAt: c.unlockedAtUTC instanceof Date ? c.unlockedAtUTC.toISOString() : (c.unlockedAtUTC || new Date().toISOString()),
-      metadata: {
-        completedLevelsCount: c.metadata?.completedLevelsCount ?? 0,
-        totalLevelsInDay: c.metadata?.totalLevelsInDay ?? 0,
-      },
-    }));
+    const safeCards = mongoCerts.map((c) => {
+      const meta = c.metadata || {};
+      return {
+        certificateKey: c.certificateKey,
+        certificateType: c.certificateType,
+        roadmapFamily: c.roadmapFamily,
+        roadmapSlug: c.roadmapSlug,
+        roadmapTitle: c.roadmapTitle,
+        dayId: c.dayId,
+        dayTitle: c.dayTitle,
+        title: c.title,
+        description: c.description,
+        imageKey: c.imageKey,
+        unlockedAt: c.unlockedAtUTC instanceof Date ? c.unlockedAtUTC.toISOString() : (c.unlockedAtUTC || new Date().toISOString()),
+        // Top-level display fields for CertificateCanvas compatibility
+        providedOn: meta.providedOn || "",
+        dayNumber: meta.dayNumber ?? 1,
+        quizCompletedCount: meta.quizCompletedCount ?? 0,
+        durationMinutes: meta.durationMinutes ?? 0,
+        metadata: {
+          completedLevelsCount: meta.completedLevelsCount ?? 0,
+          totalLevelsInDay: meta.totalLevelsInDay ?? 0,
+          quizCompletedCount: meta.quizCompletedCount ?? 0,
+          durationMinutes: meta.durationMinutes ?? 0,
+          dayNumber: meta.dayNumber ?? 1,
+          providedOn: meta.providedOn || "",
+        },
+      };
+    });
 
     return NextResponse.json({
       ok: true,
