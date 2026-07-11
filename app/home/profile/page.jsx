@@ -25,6 +25,7 @@ const BANNER_PRESETS = {
     gradient: "from-violet-100 via-purple-100 to-fuchsia-100",
     image: "/profile/banners/banner3.webp",
   },
+  // Frontend option is hidden until it is ready.
   /*orange: {
     label: "Orange",
     gradient: "from-orange-100 via-amber-100 to-yellow-100",
@@ -68,6 +69,8 @@ const AVATAR_PRESETS = {
     className: "bg-blue-100 text-blue-700",
     image: "/profile/avatars/profile4.webp",
   },
+  // creator is intentionally kept in the backend allowlist for upcoming avatar assets.
+  // Frontend option is hidden until profile5.webp is ready.
   /*creator: {
     label: "Creator",
     className: "bg-purple-100 text-purple-700",
