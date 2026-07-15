@@ -1,14 +1,17 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { usePostHog } from 'posthog-js/react';
+import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import Profile from "@/layout/Profile";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
 import { useAuth } from "@/features/context/AuthContext";
-import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
+import {
+  getPromptEngineeringRoadmapByRole,
+  promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData,
+} from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
@@ -27,6 +30,25 @@ export default function Dashboard() {
     setIsNavigating(false);
   }, [pathname]);
 
+  // Expose Firebase Auth token function to browser console
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.getFirebaseAuthToken = async () => {
+        if (!user) {
+          console.error("No user is currently signed in.");
+          return null;
+        }
+        try {
+          const token = await user.getIdToken();
+          console.log("Here is your Firebase Auth Token:", token);
+          return token;
+        } catch (error) {
+          console.error("Error getting Firebase Auth token:", error);
+        }
+      };
+    }
+  }, [user]);
+
   const redirects = {
     GitGithub: "/home/roadmaps/git-github",
     CPP: "/home/roadmaps/cpp",
@@ -36,7 +58,9 @@ export default function Dashboard() {
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
-  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(genericPromptEngineeringRoadmapData);
+  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
+    genericPromptEngineeringRoadmapData,
+  );
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
@@ -48,8 +72,8 @@ export default function Dashboard() {
           const token = await user.getIdToken();
           const res = await fetch("/api/v2/user", {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           });
           if (res.ok) {
             const data = await res.json();
@@ -67,7 +91,10 @@ export default function Dashboard() {
           }
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
-            console.error("Failed to fetch user role:", error?.message || "unknown error");
+            console.error(
+              "Failed to fetch user role:",
+              error?.message || "unknown error",
+            );
           }
           role = "other";
         }
@@ -109,9 +136,8 @@ export default function Dashboard() {
         id: selectedPromptRoadmap.id,
         title: selectedPromptRoadmap.title,
         route: redirects.PromptEngineering,
-        totalLevels: selectedPromptRoadmap.days.flatMap(
-          (day) => day.levels,
-        ).length,
+        totalLevels: selectedPromptRoadmap.days.flatMap((day) => day.levels)
+          .length,
         legacySections: [],
       },
     ];
@@ -121,9 +147,8 @@ export default function Dashboard() {
         id: selectedDsaRoadmap.id,
         title: selectedDsaRoadmap.title,
         route: "/home/roadmaps/dsa",
-        totalLevels: selectedDsaRoadmap.days.flatMap(
-          (day) => day.levels,
-        ).length,
+        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels)
+          .length,
         legacySections: [],
       });
     }
@@ -142,7 +167,7 @@ export default function Dashboard() {
           if (Array.isArray(parsed)) {
             completedLevelsCount = parsed.length;
           }
-        } catch (e) { }
+        } catch (e) {}
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -153,7 +178,7 @@ export default function Dashboard() {
               if (Array.isArray(parsed)) {
                 completedLevelsCount += parsed.length;
               }
-            } catch (e) { }
+            } catch (e) {}
           }
         }
       }
@@ -176,7 +201,9 @@ export default function Dashboard() {
 
     let lastActiveRoadmapId = null;
     try {
-      const savedLastActive = localStorage.getItem("ignitio:last_active_roadmap");
+      const savedLastActive = localStorage.getItem(
+        "ignitio:last_active_roadmap",
+      );
       if (savedLastActive) {
         const parsed = JSON.parse(savedLastActive);
         if (parsed && parsed.id) {
@@ -188,7 +215,9 @@ export default function Dashboard() {
     let activeRoadmapToSet = bestRoadmap;
 
     if (lastActiveRoadmapId) {
-      const foundLastActive = roadmapsData.find(r => r.id === lastActiveRoadmapId);
+      const foundLastActive = roadmapsData.find(
+        (r) => r.id === lastActiveRoadmapId,
+      );
       if (foundLastActive) {
         activeRoadmapToSet = foundLastActive;
       }
@@ -214,7 +243,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-
         {/* Header Section */}
         <div className="mb-12">
           <Profile />
@@ -252,20 +280,24 @@ export default function Dashboard() {
               if (isNavigating) return;
               const targetRoute = activeRoadmap ? activeRoadmap.route : "/home";
               if (pathname === targetRoute) return;
-              
+
               setIsNavigating(true);
               posthog?.capture("dashboard_navigation_clicked", {
                 target_route: targetRoute,
                 roadmap_id: activeRoadmap ? activeRoadmap.id : null,
               });
               router.push(targetRoute);
-              
+
               setTimeout(() => setIsNavigating(false), 3000);
             }}
             disabled={isNavigating}
             className={`px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${isNavigating ? "opacity-75 cursor-not-allowed" : ""}`}
           >
-            {isNavigating ? "Loading..." : (activeRoadmap ? "Continue Learning" : "Explore Roadmaps")}
+            {isNavigating
+              ? "Loading..."
+              : activeRoadmap
+                ? "Continue Learning"
+                : "Explore Roadmaps"}
           </button>
         </div>
 
@@ -289,8 +321,7 @@ export default function Dashboard() {
                 }
                 totalLevels={
                   roadmapProgress[selectedPromptRoadmap.id]?.total ||
-                  selectedPromptRoadmap.days.flatMap((day) => day.levels)
-                    .length
+                  selectedPromptRoadmap.days.flatMap((day) => day.levels).length
                 }
                 roadmapData={selectedPromptRoadmap}
               />
@@ -299,7 +330,9 @@ export default function Dashboard() {
               <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
                 <DsaCourseCard
                   onClick={handleRedirectDsa}
-                  levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+                  levelsFinished={
+                    roadmapProgress[selectedDsaRoadmap.id]?.completed || 0
+                  }
                   totalLevels={
                     roadmapProgress[selectedDsaRoadmap.id]?.total ||
                     selectedDsaRoadmap.days.flatMap((day) => day.levels).length

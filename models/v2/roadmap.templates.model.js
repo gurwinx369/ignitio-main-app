@@ -13,7 +13,7 @@ export const ROADMAP_GOAL = {
 // Mirrors the level shape in every PE/DSA data file.
 // _id: false — levels are always accessed via their parent day;
 // they are never queried standalone, so skip the overhead.
-const LevelSchema = new Schema(
+const DaySchema = new Schema(
   {
     id: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
@@ -30,13 +30,13 @@ const LevelSchema = new Schema(
 );
 
 // Mirrors the day shape: { id, title, color, levels[] }
-const DaySchema = new Schema(
+const WeekSchema = new Schema(
   {
     id: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true },
     color: { type: String, default: "#3b82f6", trim: true },
     levels: {
-      type: [LevelSchema],
+      type: [DaySchema],
       default: [],
       validate: {
         validator: (levels) => levels.length > 0,
@@ -75,7 +75,7 @@ const RoadmapTemplateSchema = new Schema(
       index: true,
     },
     days: {
-      type: [DaySchema],
+      type: [WeekSchema],
       default: [],
       validate: {
         validator: (days) => days.length > 0,

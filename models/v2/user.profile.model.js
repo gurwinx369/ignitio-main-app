@@ -176,7 +176,16 @@ const UserProfileSchema = new Schema(
       unique: true,
     },
     badges: [{ type: Schema.Types.ObjectId, ref: "Badge" }],
-
+    goal: {
+      type: String,
+      enum: ["internship_1_3_months", "build_product", "curiosity_general"],
+      required: true,
+    },
+    schedulePreference: {
+      windows: [TimeWindowSchema], // usually 1, but allow multiple (e.g. commuter who studies noon + night)
+      timezone: { type: String, required: true }, // IANA
+    },
+    dailyTimeBudgetMinutes: { type: Number, required: true },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
