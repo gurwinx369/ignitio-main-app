@@ -151,6 +151,78 @@ export const USER_ROLES = {
   OTHER: "other",
 };
 
+export const USER_GOALS = {
+  INTERNSHIP: "internship_1_3_months",
+  BUILD_PRODUCT: "build_product",
+  CURIOSITY: "curiosity_general",
+  NOT_SET: "not_set",
+};
+
+// Reusable learning availability window.
+// Minutes are easier for future cron/notification arithmetic than labels like "evening".
+const ScheduleWindowSchema = new Schema(
+  {
+    daysOfWeek: {
+      type: [Number], // 0 = Sunday, 6 = Saturday
+      default: [],
+      validate: {
+        validator: (days) =>
+          Array.isArray(days) && days.every((day) => day >= 0 && day <= 6),
+        message: "daysOfWeek values must be between 0 and 6.",
+      },
+    },
+    startMinute: {
+      type: Number,
+      min: 0,
+      max: 1439,
+      default: null,
+    },
+    endMinute: {
+      type: Number,
+      min: 0,
+      max: 1439,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
+ScheduleWindowSchema.pre("validate", function (next) {
+  const hasStart = typeof this.startMinute === "number";
+  const hasEnd = typeof this.endMinute === "number";
+
+  if (hasStart && hasEnd && this.endMinute <= this.startMinute) {
+    return next(new Error("endMinute must be after startMinute."));
+  }
+
+  next();
+});
+
+// Future onboarding v3 / notification scheduling data.
+// Kept optional/default-safe so current onboarding and existing users do not break.
+const SchedulePreferenceSchema = new Schema(
+  {
+    timezone: {
+      type: String,
+      default: "Asia/Kolkata",
+      trim: true,
+    },
+    windows: {
+      type: [ScheduleWindowSchema],
+      default: [],
+      validate: {
+        validator: (windows) => Array.isArray(windows) && windows.length <= 5,
+        message: "Maximum 5 schedule windows are allowed.",
+      },
+    },
+    isDefault: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { _id: false },
+);
+
 // USER PROFILE — final assembly
 const UserProfileSchema = new Schema(
   {
@@ -183,7 +255,43 @@ const UserProfileSchema = new Schema(
       avatarUrl: { type: String, default: "" },
       avatarPreset: { type: String, default: "default" },
       bannerColor: { type: String, default: "cyan" },
-      avatarFrame: { type: String, default: "cyan" }
+      avatarFrame: { type: String, default: "cyan" },
+    },
+
+    // Forward-compatible onboarding marker.
+    // Current users/default flow remain v2; future diagnostic onboarding can write v3.
+    onboardingVersion: {
+      type: String,
+      default: "v2",
+      trim: true,
+    },
+
+    // Future onboarding v3 learning goal.
+    // Optional by default so current onboarding/user creation does not need to send it.
+    goal: {
+      type: String,
+      enum: Object.values(USER_GOALS),
+      default: USER_GOALS.NOT_SET,
+      index: true,
+    },
+
+    // Future notification/pacing schedule.
+    // Used later for timezone-aware reminders and personalized learning windows.
+    schedulePreference: {
+      type: SchedulePreferenceSchema,
+      default: () => ({
+        timezone: "Asia/Kolkata",
+        windows: [],
+        isDefault: true,
+      }),
+    },
+
+    // Future onboarding v3 daily study capacity.
+    // Null means not collected yet.
+    dailyTimeBudgetMinutes: {
+      type: Number,
+      default: null,
+      min: 0,
     },
 
     role: {
@@ -236,23 +344,25 @@ const UserProfileSchema = new Schema(
       lastCompletedDateLocal: { type: String, default: null },
       timezone: { type: String, default: "Asia/Kolkata" },
       freezeBank: { type: Number, default: 0, min: 0, max: 2 },
-      freezeCredits: [{
-        earnedAtUTC: { type: Date, required: true },
-        earnedDateLocal: { type: String, required: true },
-        expiresAtUTC: { type: Date, required: true },
-        usedAtUTC: { type: Date, default: null },
-        usedForDateLocal: { type: String, default: null },
-        earnedForStreakCount: { type: Number, required: true }
-      }],
+      freezeCredits: [
+        {
+          earnedAtUTC: { type: Date, required: true },
+          earnedDateLocal: { type: String, required: true },
+          expiresAtUTC: { type: Date, required: true },
+          usedAtUTC: { type: Date, default: null },
+          usedForDateLocal: { type: String, default: null },
+          earnedForStreakCount: { type: Number, required: true },
+        },
+      ],
       onboardingGraceUsed: { type: Boolean, default: false },
       onboardingStartDate: { type: String, default: null },
       earnBack: {
         active: { type: Boolean, default: false },
         deadline: { type: Date, default: null },
         lessonsCompletedInWindow: { type: Number, default: 0 },
-        countAtRisk: { type: Number, default: 0 }
-      }
-    }
+        countAtRisk: { type: Number, default: 0 },
+      },
+    },
   },
   { timestamps: true },
 );

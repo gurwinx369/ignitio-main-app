@@ -178,7 +178,7 @@ export async function POST(request) {
     // Step 5: Atomic create
     const now = new Date();
     const todayLocal = getLocalDateString(now, "Asia/Kolkata");
-    
+
     const userProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid, // from verified token, never from body
       email: tokenEmail,
@@ -246,6 +246,28 @@ export async function POST(request) {
   }
 }
 
+// Helper to strip internal fields from the user document
+function toSafeUser(profile, requiresOnboarding = false) {
+  return {
+    id: profile._id?.toString(),
+    firebaseUID: profile.firebaseUID,
+    email: profile.email,
+    role: profile.role,
+    onboardingComplete: Boolean(profile.onboardingComplete),
+    requiresOnboarding,
+    createdAt: profile.createdAt,
+    completedAt: profile.completedAt,
+    onboardingVersion: profile.onboardingVersion ?? "v2",
+    goal: profile.goal ?? "not_set",
+    schedulePreference: profile.schedulePreference ?? {
+      timezone: "Asia/Kolkata",
+      windows: [],
+      isDefault: true,
+    },
+    dailyTimeBudgetMinutes: profile.dailyTimeBudgetMinutes ?? null,
+  };
+}
+
 // SECTION 4: GET — Fetch User Profile
 // A user can only fetch their own profile.
 // The UID from the token is the lookup key
@@ -306,10 +328,10 @@ export async function GET(request) {
 
     const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
     const hasValidRole = VALID_ROLES.includes(userProfile.role);
-    userProfile.requiresOnboarding = !hasValidRole;
+    const requiresOnboarding = !hasValidRole;
 
     return NextResponse.json(
-      { message: "User profile found", user: userProfile },
+      { message: "User profile found", user: toSafeUser(userProfile, requiresOnboarding) },
       { status: 200 },
     );
   } catch (err) {
