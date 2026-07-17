@@ -12,6 +12,7 @@ import {
   getNow,
 } from "@/lib/roadmaps/progress.helpers";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
+import { updateStreakOnLevelCompletion, getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState } from "@/lib/users/streak.service";
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 
@@ -253,6 +254,7 @@ export async function PATCH(request, { params }) {
 
     let userActivityUpdates = { last_active_on: now };
     let meaningfulLearningActivity = false;
+    let isNewLevelCompletion = false;
 
     if (data.action === "start_lesson") {
       progress.status = "in_progress";
@@ -261,6 +263,7 @@ export async function PATCH(request, { params }) {
       meaningfulLearningActivity = true;
     } else if (data.action === "complete_level") {
       if (data.levelId && !progress.completedLevels.includes(data.levelId)) {
+        isNewLevelCompletion = true;
         const newCompleted = [...progress.completedLevels, data.levelId];
         progress.completedLevels = normalizeCompletedLevels(newCompleted, data.allLevelIds);
         progress.completedDays = calculateCompletedDays({ days: data.days, completedLevels: progress.completedLevels });
@@ -284,14 +287,14 @@ export async function PATCH(request, { params }) {
     } else if (data.action === "sync") {
       const sanitizedCompleted = sanitizeStringArray(data.completedLevels);
       const normalizedCompleted = normalizeCompletedLevels(sanitizedCompleted, data.allLevelIds);
-      
+
       const beforeCompletedCount = progress.completedLevels.length;
       progress.completedLevels = normalizedCompleted;
       progress.completedDays = calculateCompletedDays({ days: data.days, completedLevels: progress.completedLevels });
-      
+
       const beforeAssignmentCount = progress.passedAssignments.length;
       progress.passedAssignments = Array.from(new Set(sanitizeStringArray(data.passedAssignments)));
-      
+
       const newStatus = calculateRoadmapStatus({
         completedLevels: progress.completedLevels,
         totalLevels: canonicalTotalLevels,
@@ -317,7 +320,30 @@ export async function PATCH(request, { params }) {
 
     await UserProfile.updateOne({ _id: user._id }, { $set: userActivityUpdates }, { timestamps: false });
 
-    return NextResponse.json({ ok: true, progress }, { status: 200 });
+    let streakSummary = null;
+    if (data.action === "complete_level" && isNewLevelCompletion) {
+      // New level: updateStreakOnLevelCompletion runs lazy miss detection internally.
+      streakSummary = await updateStreakOnLevelCompletion({
+        userProfile: user,
+        roadmapSlug,
+        levelId: data.levelId,
+      });
+    } else if (data.action === "complete_level") {
+      // Duplicate complete_level (level already in completedLevels on RoadmapProgress).
+      // Do NOT call updateStreakOnLevelCompletion — that would insert a LessonCompletion
+      // for a legacy-completed level and incorrectly credit a streak lesson.
+      // Still run lazy miss detection so app-open detection fires on this request too.
+      await evaluateAndApplyLazyStreakState(user, now);
+      const tz = user.streak?.timezone || "Asia/Kolkata";
+      const todayLocal = getLocalDateString(now, tz);
+      streakSummary = getStreakSummary(user.streak || {}, todayLocal, now);
+    } else {
+      const tz = user.streak?.timezone || "Asia/Kolkata";
+      const todayLocal = getLocalDateString(now, tz);
+      streakSummary = getStreakSummary(user.streak || {}, todayLocal);
+    }
+
+    return NextResponse.json({ ok: true, progress, streak: streakSummary }, { status: 200 });
   } catch (err) {
     console.error("[PATCH Progress] Error", err.name);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });

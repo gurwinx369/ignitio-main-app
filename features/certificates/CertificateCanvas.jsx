@@ -5,6 +5,35 @@ import { Flame, Lightbulb, Clock } from 'lucide-react';
 export const CERTIFICATE_WIDTH = 735;
 export const CERTIFICATE_HEIGHT = 934;
 
+const KNOWN_TEMPLATES = ["prompt-day-1.png", "dsa-milestone.png"];
+const DEFAULT_TEMPLATE = "prompt-day-1.png";
+
+/**
+ * Resolves a safe certificate template filename from any certificate shape.
+ * Works for both localStorage certs (have .template) and MongoDB certs (have .imageKey).
+ * Never returns undefined.
+ *
+ * @param {object} cert
+ * @returns {string}  a filename like "prompt-day-1.png"
+ */
+export function resolveCertificateTemplate(cert) {
+  if (!cert) return DEFAULT_TEMPLATE;
+
+  // 1. Explicit template field (localStorage shape) — use if it's a known file
+  if (cert.template && KNOWN_TEMPLATES.includes(cert.template)) return cert.template;
+
+  // 2. imageKey matches a known template filename exactly
+  if (cert.imageKey && KNOWN_TEMPLATES.includes(cert.imageKey)) return cert.imageKey;
+
+  // 3. imageKey or certificateKey without extension resolves to a known template
+  const slug = cert.imageKey || cert.certificateKey || cert.dayId || "";
+  if (slug.startsWith("dsa")) return "dsa-milestone.png";
+  if (slug.includes("prompt") || slug.includes("day")) return "prompt-day-1.png";
+
+  // 4. Fall back to the default
+  return DEFAULT_TEMPLATE;
+}
+
 const TEMPLATE_TEXT_POSITIONS = {
   providedOn: { top: 53, left: 594, width: 900 },
   day: { top: 660, left: 125, width: 120 },
@@ -27,7 +56,8 @@ export default function CertificateCanvas({ certificate, canvasId }) {
     day: 'numeric',
   });
 
-  const providedOn = certificate.providedOn || dateStr;
+  const meta = certificate.metadata || {};
+  const providedOn = certificate.providedOn || meta.providedOn || dateStr;
 
   // Fallbacks for backward compatibility
   const certificateDayMatch = certificate.certificateKey?.match(/\d+/);
@@ -35,11 +65,13 @@ export default function CertificateCanvas({ certificate, canvasId }) {
     ? Number.parseInt(certificateDayMatch[0], 10)
     : 1;
 
-  const dayNumber = certificate.dayNumber || fallbackDayNumber;
-  const quizCount = certificate.quizCompletedCount || 0;
-  const duration = certificate.durationMinutes || 0;
+  const dayNumber = certificate.dayNumber ?? meta.dayNumber ?? fallbackDayNumber;
+  const quizCount = certificate.quizCompletedCount ?? meta.quizCompletedCount ?? 0;
+  const duration = certificate.durationMinutes ?? meta.durationMinutes ?? 0;
 
   const labelText = certificate.certificateKey === "dsa-level-1" ? "Level 1" : `Day ${dayNumber}`;
+
+  const resolvedTemplate = resolveCertificateTemplate(certificate);
 
   return (
     <div
@@ -54,7 +86,7 @@ export default function CertificateCanvas({ certificate, canvasId }) {
       {!imgError && (
         <>
           <img
-            src={`/certificates/templates/${certificate.template}`}
+            src={`/certificates/templates/${resolvedTemplate}`}
             alt="Certificate Background"
             className="absolute inset-0 w-full h-full -z-10"
             style={{ objectFit: 'fill' }}
