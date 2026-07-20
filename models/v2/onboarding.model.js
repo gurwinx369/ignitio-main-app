@@ -61,7 +61,7 @@ const QuestionResponseSchema = new Schema(
 const OnboardingResponseSchema = new Schema(
   {
     firebaseUID: { type: String, required: true, unique: true, index: true },
-    onboardingVersion: { type: String, required: true, default: "v1" },
+    onboardingVersion: { type: String, enum: ["v1", "v2", "v3"], required: true, default: "v2" },
 
     entryPoint: {
       type: String,
