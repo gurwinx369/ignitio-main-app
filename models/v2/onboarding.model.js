@@ -76,19 +76,6 @@ const OnboardingResponseSchema = new Schema(
 
     responses: [QuestionResponseSchema],
 
-    timeAvailability: {
-      band: {
-        type: String,
-        enum: ["20_30_min", "45_60_min", "90_plus_min"],
-        required: true,
-      },
-      pacingTier: {
-        type: String,
-        enum: ["stretched", "standard", "compressed"],
-        required: true,
-      },
-    },
-
     primaryGoalSnapshot: {
       type: String,
       enum: ["internship_1_3_months", "build_product", "curiosity_general"],
@@ -104,14 +91,28 @@ const OnboardingResponseSchema = new Schema(
       },
       { _id: false },
     ],
-
+    //weeks which user has option to skim in a few minutes or to watch the full content
     optionalFlags: [
       {
         weekNumber: Number,
         reason: String,
+        userChoice: {
+          type: String,
+          enum: [
+            "not_yet_reached",
+            "skimmed",
+            "did_in_full",
+            "skipped_entirely",
+          ],
+          default: "not_yet_reached",
+        },
+        choiceMadeAt: Date,
       },
     ],
-
+    timeWindowSchema: {
+      type: TimeWindowSchema,
+      required: true,
+    },
     status: {
       type: String,
       enum: ["in_progress", "completed"],

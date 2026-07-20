@@ -32,7 +32,7 @@ const RoadmapProgressSchema = new Schema(
     role: {
       type: String,
       enum: ["student", "writer", "designer", "developer", "other"],
-      default: "other",
+      default: "student", //changed from other to student due to the primary target audience which is students
     },
     status: {
       type: String,
