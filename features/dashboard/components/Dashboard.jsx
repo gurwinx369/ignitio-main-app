@@ -1,14 +1,17 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { usePostHog } from 'posthog-js/react';
+import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import { useAuth } from "@/features/context/AuthContext";
-import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
+import {
+  getPromptEngineeringRoadmapByRole,
+  promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData,
+} from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
@@ -23,6 +26,12 @@ import ActiveRoadmapCard from "./ActiveRoadmapCard";
 import LearningStatsCard from "./LearningStatsCard";
 import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
+const redirects = {
+  GitGithub: "/home/roadmaps/git-github",
+  CPP: "/home/roadmaps/cpp",
+  PromptEngineering: "/home/roadmaps/prompt-engineering",
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,10 +44,35 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("home");
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
+
+  // Expose Firebase Auth token function to browser console
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.getFirebaseAuthToken = async () => {
+        if (!user) {
+          console.error("No user is currently signed in.");
+          return null;
+        }
+        try {
+          const token = await user.getIdToken();
+          console.log("Here is your Firebase Auth Token:", token);
+          return token;
+        } catch (error) {
+          console.error("Error getting Firebase Auth token:", error);
+        }
+      };
+    }
+  }, [user]);
+
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
-  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(genericPromptEngineeringRoadmapData);
+  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
+    genericPromptEngineeringRoadmapData,
+  );
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
@@ -47,12 +81,6 @@ export default function Dashboard() {
 
   // We store the full list of parsed roadmaps so we can feed them to LearningStats and Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);
-
-  const redirects = {
-    GitGithub: "/home/roadmaps/git-github",
-    CPP: "/home/roadmaps/cpp",
-    PromptEngineering: "/home/roadmaps/prompt-engineering",
-  };
 
   useEffect(() => {
     setIsNavigating(false);
@@ -65,7 +93,9 @@ export default function Dashboard() {
         try {
           const token = await user.getIdToken();
           const res = await fetch("/api/v2/user", {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           });
           if (res.ok) {
             const data = await res.json();
@@ -81,7 +111,13 @@ export default function Dashboard() {
             }
           }
         } catch (error) {
-          console.error("Failed to fetch user role:", error?.message);
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "Failed to fetch user role:",
+              error?.message || "unknown error",
+            );
+          }
+          role = "other";
         }
       }
       setUserRole(role);
@@ -165,8 +201,10 @@ export default function Dashboard() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) completedLevelsCount = parsed.length;
-        } catch (e) { }
+          if (Array.isArray(parsed)) {
+            completedLevelsCount = parsed.length;
+          }
+        } catch (e) {}
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -174,8 +212,10 @@ export default function Dashboard() {
           if (legacySaved) {
             try {
               const parsed = JSON.parse(legacySaved);
-              if (Array.isArray(parsed)) completedLevelsCount += parsed.length;
-            } catch (e) { }
+              if (Array.isArray(parsed)) {
+                completedLevelsCount += parsed.length;
+              }
+            } catch (e) {}
           }
         }
       }
@@ -192,7 +232,9 @@ export default function Dashboard() {
 
     let lastActiveRoadmapId = null;
     try {
-      const savedLastActive = localStorage.getItem("ignitio:last_active_roadmap");
+      const savedLastActive = localStorage.getItem(
+        "ignitio:last_active_roadmap",
+      );
       if (savedLastActive) {
         const parsed = JSON.parse(savedLastActive);
         if (parsed && parsed.id) lastActiveRoadmapId = parsed.id;
@@ -201,8 +243,12 @@ export default function Dashboard() {
 
     let activeRoadmapToSet = bestRoadmap;
     if (lastActiveRoadmapId) {
-      const foundLastActive = roadmapsData.find(r => r.id === lastActiveRoadmapId);
-      if (foundLastActive) activeRoadmapToSet = foundLastActive;
+      const foundLastActive = roadmapsData.find(
+        (r) => r.id === lastActiveRoadmapId,
+      );
+      if (foundLastActive) {
+        activeRoadmapToSet = foundLastActive;
+      }
     }
 
     setRoadmapProgress(progressMap);
@@ -235,7 +281,7 @@ export default function Dashboard() {
   };
 
   const carouselRoadmaps = [];
-  
+
   // Prompt Engineering
   carouselRoadmaps.push({
     id: selectedPromptRoadmap.id,
@@ -291,9 +337,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#fffaf3] pb-24 font-sans text-slate-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        
+
         {/* Header (Desktop + Mobile) */}
-        <HomeHeader 
+        <HomeHeader
           displayName={displayName}
           onOpenFeedback={() => setIsFeedbackOpen(true)}
           onScrollToTask={scrollToTask}

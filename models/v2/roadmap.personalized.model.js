@@ -29,11 +29,10 @@ const TimeWindowSchema = new Schema(
   { _id: false },
 );
 
-TimeWindowSchema.pre("validate", function (next) {
+TimeWindowSchema.pre("validate", function () {
   if (this.endMinute <= this.startMinute) {
-    return next(new Error("endMinute must be after startMinute."));
+    throw new Error("endMinute must be after startMinute.");
   }
-  next();
 });
 // storing the user's quiz question data
 // One row per diagnostic question answered. Kept even on fail/skip —
