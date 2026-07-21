@@ -59,7 +59,7 @@ function ProfileMenu() {
             Profile
           </Link>
           <a
-            href="https://discord.gg/wN6Ebs6xTj"
+            href="https://discord.com/invite/vaEFpQnFRs"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setIsOpen(false)}
