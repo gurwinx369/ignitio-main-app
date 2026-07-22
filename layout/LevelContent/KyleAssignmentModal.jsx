@@ -28,7 +28,10 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     const [retryNonce, setRetryNonce] = useState(0);
 
     const hasFetched = useRef(false);
-    const requiredScore = Math.min(10, dayNumber + 4);
+    // Server-equivalent pass thresholds: Day 1 → 5, Day 2 → 6, Day 3+ → 7.
+    // This must stay in sync with FastAPI's scoring logic so the displayed
+    // required score never contradicts the authoritative API-returned `passed`.
+    const requiredScore = dayNumber === 1 ? 5 : dayNumber === 2 ? 6 : 7;
 
     useEffect(() => {
         if (!open) {
@@ -136,8 +139,9 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 throw new Error(data.error || 'Failed to submit assignment');
             }
 
-            const { score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses } = data.data;
-            const uiPassed = Number(score) >= requiredScore;
+            // `passed` from the API is authoritative — do not recalculate from score.
+            const { score, feedback, passed, attemptsRemaining, lockedUntil, breakdown, weaknesses } = data.data;
+            const uiPassed = Boolean(passed);
             
             setScoreData({ score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses, uiPassed });
 
