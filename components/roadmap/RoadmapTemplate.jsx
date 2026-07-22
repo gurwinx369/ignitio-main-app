@@ -19,11 +19,16 @@ import { readLocalRoadmapProgress, writeLocalRoadmapProgress } from "@/lib/roadm
 import CertificateUnlockedModal from '@/features/certificates/CertificateUnlockedModal';
 import { checkCertificateUnlock, getEligibleCertificates } from '@/features/certificates/certificateMilestones';
 import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/certificates/certificateStorage';
+import { useBehaviorQuiz } from '@/features/kyle/behavior-quiz/useBehaviorQuiz';
+import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
 
 export default function RoadmapTemplate({ roadmapData }) {
     const router = useRouter();
     const { user } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
+
+    // Behavior quiz — fires after every 3rd concept completion across all roadmaps
+    const behaviorQuiz = useBehaviorQuiz({ user, roadmapId: roadmapData.id });
     const [activeDayIndex, setActiveDayIndex] = useState(0);
 
     // Flat array of completed level IDs
@@ -358,6 +363,21 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     const handleStartLesson = async (level) => {
         setPopupLevel(null);
+
+        // Check for a pending behavior quiz before allowing the level to start.
+        // If a quiz is pending, the modal opens and the level start is deferred
+        // until the user completes (or the quiz auto-advances) — handled by the callback.
+        const quizIntercepted = behaviorQuiz.interceptLevelStart(() => {
+            // Called automatically by useBehaviorQuiz after quiz is dismissed
+            startLessonAfterQuiz(level);
+        });
+
+        if (quizIntercepted) return;
+
+        startLessonAfterQuiz(level);
+    };
+
+    const startLessonAfterQuiz = async (level) => {
         setSelectedLevel(level);
 
         if (user) {
@@ -416,6 +436,16 @@ export default function RoadmapTemplate({ roadmapData }) {
             } catch (e) {
                 console.warn("Failed to patch complete_level", e);
             }
+
+            // Behavior quiz trigger — fire-and-forget, never blocks the user.
+            // The hook stores the quiz in localStorage if the counter hits a multiple of 3.
+            const completedLevel = allLevels.find(l => l.id === levelId);
+            behaviorQuiz.triggerInBackground(
+                levelId,
+                completedLevel?.concept || completedLevel?.title || "",
+                completedLevel?.transcript || "",
+                completedLevel?.description || ""
+            );
         }
 
         let certificate = checkCertificateUnlock({
@@ -661,6 +691,22 @@ export default function RoadmapTemplate({ roadmapData }) {
     return (
         <>
             {renderContent()}
+
+            {/* Behavior quiz modal — intercepts the next level start after every 3rd completion */}
+            <BehaviorQuizModal
+                isOpen={behaviorQuiz.isOpen}
+                currentItem={behaviorQuiz.currentItem}
+                currentIndex={behaviorQuiz.currentIndex}
+                totalItems={behaviorQuiz.totalItems}
+                selectedOption={behaviorQuiz.selectedOption}
+                isCorrect={behaviorQuiz.isCorrect}
+                timerSec={behaviorQuiz.timerSec}
+                graceTimerSec={behaviorQuiz.graceTimerSec}
+                isInGrace={behaviorQuiz.isInGrace}
+                isTimedOut={behaviorQuiz.isTimedOut}
+                recordAnswer={behaviorQuiz.recordAnswer}
+                recordUnattempted={behaviorQuiz.recordUnattempted}
+            />
 
             {completionPopup && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
