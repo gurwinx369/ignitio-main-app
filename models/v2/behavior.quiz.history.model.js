@@ -113,6 +113,11 @@ const BehaviorQuizHistorySchema = new Schema(
     // a lifetime counter, so "every 3 concepts" keeps firing indefinitely.
     conceptsCompletedCounter: { type: Number, default: 0 },
 
+    // Rolling log of the last 30 concepts completed, newest first.
+    // Used by recordConceptCompletion to always backfill 3 targetConcepts
+    // even before conceptMastery is populated (which only happens post-grading).
+    recentConcepts: { type: [String], default: [] },
+
     // E_i anchors at (concept, difficultyTier) since items are generated
     // per-user, not drawn from a shared bank — a per-question median would
     // never get enough samples to mean anything.
@@ -134,33 +139,53 @@ BehaviorQuizHistorySchema.index({
   "behaviorQuizSessions.status": 1,
 });
 
-//Atomic counter increment + trigger check
-// $inc, never fetch-then-save — safe under concurrent concept completions.
+// Atomic counter increment + trigger check.
+// $inc is safe under concurrent concept completions — no fetch-then-save race.
 BehaviorQuizHistorySchema.statics.recordConceptCompletion = async function (
   firebaseUID,
   concept,
 ) {
+  // Prepend the new concept and cap the rolling log at 30 entries.
+  // $slice on $push keeps this O(1) — no full doc read needed.
   const doc = await this.findOneAndUpdate(
     { firebaseUID },
-    { $inc: { conceptsCompletedCounter: 1 }, $setOnInsert: { firebaseUID } },
+    {
+      $inc: { conceptsCompletedCounter: 1 },
+      $push: { recentConcepts: { $each: [concept], $position: 0, $slice: 30 } },
+      $setOnInsert: { firebaseUID },
+    },
     { upsert: true, new: true },
   );
 
   const fired = doc.conceptsCompletedCounter % 3 === 0;
   if (!fired) return { fired: false };
 
-  // Targeting rule: prioritize concepts still below m_min=3, oldest-tracked
-  // first. Only fall back to "just completed this concept" if nothing is
-  // below threshold yet (e.g. very early in the user's history).
+  // --- Build targetConcepts (always exactly up to 3) ---
+  //
+  // Priority 1: concepts in conceptMastery that still need more attempts (nAttempts < 3),
+  //             oldest first — so the user revisits weak spots before new ones.
+  // Priority 2: fill remaining slots from recentConcepts (de-duped, skipping any already
+  //             included). This is the key fix: recentConcepts is always populated
+  //             (updated every call), whereas conceptMastery starts empty and is only
+  //             written after a quiz is graded.
+
   const belowThreshold = [...doc.conceptMastery.entries()]
     .filter(([, entry]) => entry.nAttempts < 3)
     .sort((a, b) => a[1].lastUpdatedAt - b[1].lastUpdatedAt)
     .map(([conceptName]) => conceptName);
 
-  const targetConcepts =
-    belowThreshold.length > 0 ? belowThreshold.slice(0, 3) : [concept];
+  const selected = new Set(belowThreshold.slice(0, 3));
 
-  return { fired: true, targetConcepts };
+  // Backfill from recent history until we have 3 unique concepts
+  for (const c of doc.recentConcepts) {
+    if (selected.size >= 3) break;
+    selected.add(c);
+  }
+
+  // Final safety net: if history is so short we still can't fill 3, use current concept
+  if (selected.size === 0) selected.add(concept);
+
+  return { fired: true, targetConcepts: [...selected] };
 };
 
 export const BehaviorQuizHistory =
