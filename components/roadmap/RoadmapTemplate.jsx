@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Layers } from 'lucide-react';
 import RoadmapWorldView from '@/layout/Card/RoadmapWorldView';
 import LessonPopup from '@/layout/Card/LessonPopup';
@@ -29,6 +30,22 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     // Behavior quiz — fires after every 3rd concept completion across all roadmaps
     const behaviorQuiz = useBehaviorQuiz({ user, roadmapId: roadmapData.id });
+    const { isPreparingQuiz, interceptLevelStart } = behaviorQuiz;
+
+    // Locks the first requested lesson until Behavior Quiz gating is fully resolved.
+    // Subsequent rapid clicks are ignored until the loading state resolves.
+    const pendingLessonRef = useRef(null);
+
+    const [isWaitingForBehaviorQuiz, setIsWaitingForBehaviorQuiz] = useState(false);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsWaitingForBehaviorQuiz(false);
+        return () => {
+            pendingLessonRef.current = null;
+        };
+    }, [roadmapData.id]);
+
     const [activeDayIndex, setActiveDayIndex] = useState(0);
 
     // Flat array of completed level IDs
@@ -46,7 +63,7 @@ export default function RoadmapTemplate({ roadmapData }) {
     const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
     const [assignmentStateLoaded, setAssignmentStateLoaded] = useState(false);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-    
+
     const certificateBackfillRan = useRef(false);
 
     const prevCompletedCount = useRef(0);
@@ -103,11 +120,11 @@ export default function RoadmapTemplate({ roadmapData }) {
             try {
                 // 1. Attempt to fetch MongoDB progress
                 const res = await fetchRoadmapProgress({ user, roadmapSlug: roadmapData.id });
-                
+
                 if (res && res.source === "mongodb") {
                     setCompletedLevels(res.progress.completedLevels || []);
                     prevCompletedCount.current = (res.progress.completedLevels || []).length;
-                    
+
                     // Sync fallback
                     writeLocalRoadmapProgress({
                         roadmapId: roadmapData.id,
@@ -117,11 +134,11 @@ export default function RoadmapTemplate({ roadmapData }) {
                 } else {
                     // 2. Not found in MongoDB, run migration
                     const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
-                    
+
                     // Optimistic update
                     setCompletedLevels(localProgress.completedLevels);
                     prevCompletedCount.current = localProgress.completedLevels.length;
-                    
+
                     const migrationPayload = {
                         roadmapTitle: roadmapData.title || "",
                         role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
@@ -131,7 +148,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                         completedLevels: localProgress.completedLevels,
                         passedAssignments: localProgress.passedAssignments,
                     };
-                    
+
                     const migrated = await migrateRoadmapProgress({ user, roadmapSlug: roadmapData.id, payload: migrationPayload });
                     if (migrated && migrated.progress) {
                         setCompletedLevels(migrated.progress.completedLevels || []);
@@ -178,7 +195,7 @@ export default function RoadmapTemplate({ roadmapData }) {
             setAssignmentPassedDays(passedMap);
             setAssignmentStateLoaded(true);
         }, 0);
-        
+
         return () => clearTimeout(timer);
     }, [roadmapData.id, roadmapData.days]);
 
@@ -361,25 +378,12 @@ export default function RoadmapTemplate({ roadmapData }) {
         setPopupLevel(level);
     };
 
-    const handleStartLesson = async (level) => {
-        setPopupLevel(null);
-
-        // Check for a pending behavior quiz before allowing the level to start.
-        // If a quiz is pending, the modal opens and the level start is deferred
-        // until the user completes (or the quiz auto-advances) — handled by the callback.
-        const quizIntercepted = behaviorQuiz.interceptLevelStart(() => {
-            // Called automatically by useBehaviorQuiz after quiz is dismissed
-            startLessonAfterQuiz(level);
-        });
-
-        if (quizIntercepted) return;
-
-        startLessonAfterQuiz(level);
-    };
-
-    const startLessonAfterQuiz = async (level) => {
+    /**
+     * Actually starts a lesson: patches progress and sets selectedLevel.
+     * This is the single authoritative "open lesson" call.
+     */
+    const actuallyStartLesson = useCallback(async (level) => {
         setSelectedLevel(level);
-
         if (user) {
             try {
                 await patchRoadmapProgress({
@@ -398,6 +402,52 @@ export default function RoadmapTemplate({ roadmapData }) {
                 console.warn("Failed to patch start_lesson", e);
             }
         }
+    }, [user, roadmapData.id, roadmapData.title, allLevels]);
+
+    const openQueuedLesson = useCallback(async () => {
+        const queuedLevel = pendingLessonRef.current;
+        if (!queuedLevel) return;
+
+        // Clear before starting so duplicate callbacks cannot start it twice.
+        pendingLessonRef.current = null;
+        setIsWaitingForBehaviorQuiz(false);
+
+        await actuallyStartLesson(queuedLevel);
+    }, [actuallyStartLesson]);
+
+    /**
+     * Shared entry point for all lesson-start paths.
+     * Awaits any in-flight behavior quiz trigger before proceeding.
+     * Only the FIRST accepted call during a preparation window is honoured;
+     * rapid follow-up clicks are silently dropped.
+     */
+    const startLessonAfterBehaviorQuiz = useCallback(async (level) => {
+        if (!level) return;
+        if (pendingLessonRef.current) return;
+
+        pendingLessonRef.current = level;
+        setIsWaitingForBehaviorQuiz(true);
+
+        try {
+            const wasIntercepted = await interceptLevelStart(() => {
+                void openQueuedLesson();
+            });
+
+            if (!wasIntercepted) {
+                await openQueuedLesson();
+            }
+        } catch (error) {
+            console.error(
+                "[BehaviorQuiz] Failed to gate lesson navigation",
+                error
+            );
+            await openQueuedLesson();
+        }
+    }, [interceptLevelStart, openQueuedLesson]);
+
+    const handleStartLesson = async (level) => {
+        setPopupLevel(null);
+        await startLessonAfterBehaviorQuiz(level);
     };
 
     const handleVideoComplete = async (levelId) => {
@@ -428,7 +478,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                         levelId
                     }
                 });
-                
+
                 if (res && res.progress) {
                     // Reconcile state in case backend ordering differs slightly
                     setCompletedLevels(res.progress.completedLevels || []);
@@ -459,7 +509,7 @@ export default function RoadmapTemplate({ roadmapData }) {
             const milestoneLevels = certificate.milestoneLevels || [];
             const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
             const quizCompletedCount = milestoneLevels.length;
-            
+
             const dateObj = new Date(certificate.unlockedAt);
             const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
 
@@ -692,6 +742,39 @@ export default function RoadmapTemplate({ roadmapData }) {
         <>
             {renderContent()}
 
+            {/* ── Behavior Quiz preparation loading overlay ────────────────────────────── */}
+            {isWaitingForBehaviorQuiz &&
+                isPreparingQuiz &&
+                !behaviorQuiz.isOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-[#FAF9F6] w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                            <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                                    <Image
+                                        src="/kyle/kyle.svg"
+                                        alt="Kyle"
+                                        width={48}
+                                        height={48}
+                                        className="w-full h-full rounded-full object-cover"
+                                    />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900">Knowledge Check Incoming</h3>
+                                    <p className="text-sm text-gray-500">Kyle is preparing your questions…</p>
+                                </div>
+                            </div>
+                            <div className="p-6 flex flex-col items-center gap-4">
+                                <div className="flex space-x-2">
+                                    <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce"></div>
+                                </div>
+                                <p className="text-sm text-gray-600 text-center">Reviewing your recent completed concepts.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             {/* Behavior quiz modal — intercepts the next level start after every 3rd completion */}
             <BehaviorQuizModal
                 isOpen={behaviorQuiz.isOpen}
@@ -725,17 +808,19 @@ export default function RoadmapTemplate({ roadmapData }) {
                         <div className="flex flex-col gap-3">
                             {completionPopup.nextLevel && (
                                 <button
-                                    onClick={() => {
+                                    disabled={isWaitingForBehaviorQuiz}
+                                    onClick={async () => {
                                         setCompletionPopup(null);
+                                        const target = completionPopup.nextLevel;
                                         const dayIndex = roadmapData.days.findIndex(d =>
-                                            d.levels.some(l => l.id === completionPopup.nextLevel.id)
+                                            d.levels.some(l => l.id === target.id)
                                         );
                                         if (dayIndex >= 0) setActiveDayIndex(dayIndex);
-                                        setSelectedLevel(completionPopup.nextLevel);
+                                        await startLessonAfterBehaviorQuiz(target);
                                     }}
-                                    className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold shadow-sm transition-all active:scale-95"
+                                    className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-sm transition-all active:scale-95"
                                 >
-                                    Start Next Level
+                                    {isWaitingForBehaviorQuiz ? "Preparing…" : "Start Next Level"}
                                 </button>
                             )}
                             <button
@@ -768,7 +853,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                             ...prev,
                             [passedDayId]: true,
                         }));
-                        
+
                         if (user) {
                             try {
                                 await patchRoadmapProgress({
@@ -787,7 +872,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                                 console.warn("Failed to patch pass_assignment", e);
                             }
                         }
-                        
+
                         let certificate = checkCertificateUnlock({
                             roadmapData,
                             completedLevels,
@@ -799,7 +884,7 @@ export default function RoadmapTemplate({ roadmapData }) {
                             const milestoneLevels = certificate.milestoneLevels || [];
                             const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
                             const quizCompletedCount = milestoneLevels.length;
-                            
+
                             const dateObj = new Date(certificate.unlockedAt);
                             const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
 

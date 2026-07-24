@@ -11,6 +11,11 @@
 // Race-condition safety:
 //   - advanceOrFinish / finishQuiz read through refs — never stale in setTimeout closures
 //   - currentIndexRef synced from state so timer callbacks always have fresh index
+//
+// Navigation gating:
+//   - triggerInBackground now returns the active Promise so interceptLevelStart can await it.
+//   - isPreparingQuiz is true while the trigger request is in flight.
+//   - interceptLevelStart is async: it awaits any active trigger before reading localStorage.
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { triggerBehaviorQuiz, submitBehaviorQuiz } from "./behaviorQuizApi";
@@ -43,6 +48,7 @@ function clearPendingSession(roadmapId) {
 
 export function useBehaviorQuiz({ user, roadmapId }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPreparingQuiz, setIsPreparingQuiz] = useState(false);
 
   // Session data — set once per session, accessed via refs inside callbacks
   const sessionIdRef = useRef(null);
@@ -53,6 +59,9 @@ export function useBehaviorQuiz({ user, roadmapId }) {
   const afterDismissRef = useRef(null);
   const questionStartTimeRef = useRef(null);
   const timerIntervalRef = useRef(null);
+
+  // Active trigger promise ref — allows interceptLevelStart to await it
+  const triggerPromiseRef = useRef(null);
 
   // Rendered state (drives UI)
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -186,24 +195,28 @@ export function useBehaviorQuiz({ user, roadmapId }) {
 
   // --- Public API ---
 
-  /** Called before starting a level. Returns true if quiz was opened (level start deferred). */
-  const interceptLevelStart = useCallback((onAfterDismiss) => {
-    const session = loadPendingSession(roadmapId);
-    if (!session || session.currentIndex >= session.quizItems.length) {
-      clearPendingSession(roadmapId);
-      return false;
-    }
-    openForSession(session, onAfterDismiss);
-    return true;
-  }, [roadmapId, openForSession]);
-
-  /** Fire-and-forget trigger after level completion. Saves session to localStorage if fired. */
+  /**
+   * Fire-and-forget trigger after level completion.
+   * NOW returns the active Promise so interceptLevelStart can await it.
+   * Saves session to localStorage only when result.fired && sessionId && quizItems.length > 0.
+   * Deduplicates: if a request is already in-flight, returns the same promise.
+   */
   const triggerInBackground = useCallback((levelId, concept, transcriptContext, levelContext) => {
-    if (!user || !levelId || !roadmapId) return;
+    if (!user || !levelId || !roadmapId) return Promise.resolve(null);
 
-    triggerBehaviorQuiz({ user, levelId, roadmapId, concept, transcriptContext, levelContext })
+    // Return the existing promise if one is already in-flight — no duplicate requests
+    if (triggerPromiseRef.current) return triggerPromiseRef.current;
+
+    setIsPreparingQuiz(true);
+
+    const promise = triggerBehaviorQuiz({ user, levelId, roadmapId, concept, transcriptContext, levelContext })
       .then((result) => {
-        if (result?.fired && result.sessionId && result.quizItems?.length) {
+        if (
+          result?.fired &&
+          result.sessionId &&
+          Array.isArray(result.quizItems) &&
+          result.quizItems.length > 0
+        ) {
           savePendingSession(roadmapId, {
             sessionId: result.sessionId,
             quizItems: result.quizItems,
@@ -211,8 +224,44 @@ export function useBehaviorQuiz({ user, roadmapId }) {
             currentIndex: 0,
           });
         }
+        return result;
+      })
+      .catch((err) => {
+        console.error("[BehaviorQuiz] Trigger request failed:", err);
+        return null;
+      })
+      .finally(() => {
+        triggerPromiseRef.current = null;
+        setIsPreparingQuiz(false);
       });
+
+    triggerPromiseRef.current = promise;
+    return promise;
   }, [user, roadmapId]);
+
+  /**
+   * Called before starting a level.
+   * Awaits any active trigger request before checking localStorage.
+   * Returns true when a quiz was opened (level start deferred), false otherwise.
+   */
+  const interceptLevelStart = useCallback(async (onAfterDismiss) => {
+    // Wait for any in-flight trigger request to complete before reading localStorage
+    if (triggerPromiseRef.current) {
+      await triggerPromiseRef.current;
+    }
+
+    const session = loadPendingSession(roadmapId);
+    if (
+      !session ||
+      !Array.isArray(session.quizItems) ||
+      session.currentIndex >= session.quizItems.length
+    ) {
+      clearPendingSession(roadmapId);
+      return false;
+    }
+    openForSession(session, onAfterDismiss);
+    return true;
+  }, [roadmapId, openForSession]);
 
   /** Record a user's answer (before timeout). */
   const recordAnswer = useCallback((selectedOptionValue) => {
@@ -276,6 +325,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
 
   return {
     isOpen,
+    isPreparingQuiz,
     currentItem: quizItemsRef.current[currentIndex] ?? null,
     currentIndex,
     totalItems: quizItemsRef.current.length,

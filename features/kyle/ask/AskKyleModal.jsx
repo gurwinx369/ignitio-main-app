@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bot, User, AlertCircle, Send, X } from 'lucide-react';
+import Image from 'next/image';
+import { User, AlertCircle, Send, X } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
 function renderBasicMarkdown(text) {
@@ -199,8 +200,8 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
         {/* Header */}
         <div className="bg-white px-6 py-4 border-b border-orange-50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600 shrink-0">
-              <Bot size={20} />
+            <div className="w-10 h-10 rounded-full bg-cyan-50 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+              <Image src="/kyle/kyle.svg" alt="Kyle" width={40} height={40} className="w-full h-full rounded-full object-cover" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900">Ask Kyle</h3>
@@ -220,9 +221,9 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 ${msg.role === 'user' ? 'bg-cyan-100 text-cyan-700' : 'bg-orange-100 text-orange-600'
+                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 ${msg.role === 'user' ? 'bg-cyan-100 text-cyan-700' : 'bg-orange-100 p-0.5 overflow-hidden'
                   }`}>
-                  {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                  {msg.role === 'user' ? <User size={16} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
                 </div>
                 <div className={`px-5 py-3.5 shadow-sm text-sm sm:text-base leading-relaxed ${msg.role === 'user'
                   ? 'bg-cyan-600 text-white rounded-2xl rounded-tr-sm'
@@ -237,8 +238,8 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
-                  <Bot size={16} />
+                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                  <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
                 <div className="px-5 py-4 shadow-sm bg-white text-slate-500 border border-slate-100 rounded-2xl rounded-tl-sm flex items-center gap-2">
                   <div className="flex space-x-1">
@@ -256,14 +257,14 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {isHighDemand && !isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
-                  <Bot size={16} />
+                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                  <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
                 <div className="bg-white border border-orange-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                   <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-orange-500 mt-0.5 shrink-0" />
                     <p className="text-sm text-slate-700 leading-snug">
-                      Kyle is experiencing <span className="font-semibold text-orange-600">heavy demand</span> right now and couldn't respond. Your question is saved — give it a moment and try again.
+                      Kyle is experiencing <span className="font-semibold text-orange-600">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
                     </p>
                   </div>
                   <button

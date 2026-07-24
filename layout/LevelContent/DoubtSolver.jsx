@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Bot, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Send, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
 function renderBasicMarkdown(text) {
@@ -142,8 +143,8 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
             <div className="bg-[#FAF9F6] rounded-[2rem] shadow-md border border-orange-100 flex flex-col h-[600px] overflow-hidden relative">
                 {/* Header */}
                 <div className="bg-white px-6 py-4 border-b border-orange-50 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                        <Bot size={20} />
+                    <div className="w-10 h-10 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                        <Image src="/kyle/kyle.svg" alt="Kyle" width={40} height={40} className="w-full h-full rounded-full object-cover" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-800">Ask Kyle</h3>
@@ -157,9 +158,9 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                 <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 ${
-                                    msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                                    msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 p-0.5 overflow-hidden'
                                 }`}>
-                                    {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                                    {msg.role === 'user' ? <User size={16} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
                                 </div>
                                 <div className={`px-5 py-3.5 shadow-sm text-sm sm:text-base leading-relaxed ${
                                     msg.role === 'user' 
@@ -175,8 +176,8 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                     {loading && (
                         <div className="flex justify-start">
                             <div className="flex gap-3 max-w-[85%]">
-                                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
-                                    <Bot size={16} />
+                                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                                    <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                                 </div>
                                 <div className="px-5 py-4 shadow-sm bg-white text-gray-500 border border-gray-100 rounded-2xl rounded-tl-sm flex items-center gap-2">
                                     <div className="flex space-x-1">
@@ -194,8 +195,8 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                     {isHighDemand && !loading && (
                         <div className="flex justify-start">
                             <div className="flex gap-3 max-w-[85%]">
-                                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 text-orange-600">
-                                    <Bot size={16} />
+                                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                                    <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                                 </div>
                                 <div className="bg-white border border-orange-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                                     <div className="flex items-start gap-2">

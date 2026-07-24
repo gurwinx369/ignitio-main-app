@@ -9,7 +9,8 @@
 //   Timed out (isTimedOut): "Time's Up" screen, user clicks Continue
 
 import React, { useEffect } from "react";
-import { Brain, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import Image from "next/image";
+import { Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 function TimerRing({ timerSec, graceTimerSec, isInGrace, isTimedOut }) {
   // Normal phase: counts 60→0 on a 60-unit ring
@@ -45,7 +46,7 @@ function TimerRing({ timerSec, graceTimerSec, isInGrace, isTimedOut }) {
 
 function ProgressBar({ current, total }) {
   return (
-    <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100">
+    <div className="flex items-center gap-2 px-6 py-3 border-b border-orange-50 bg-white">
       <span className="text-xs font-semibold text-gray-500 shrink-0">{current + 1} / {total}</span>
       <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div
@@ -88,17 +89,23 @@ export default function BehaviorQuizModal({
       aria-label="Behavior Knowledge Quiz"
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
     >
-      <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-[#FAF9F6] w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 flex items-center justify-between">
+        <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+              <Image
+                src="/kyle/kyle.svg"
+                alt="Kyle"
+                width={48}
+                height={48}
+                className="w-full h-full rounded-full object-cover"
+              />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-none">Knowledge Probe</h3>
-              <p className="text-xs text-violet-200 mt-0.5">Complete to start the next lesson</p>
+              <h3 className="text-lg font-bold text-gray-900">Knowledge Check</h3>
+              <p className="text-sm text-gray-500">Alright. Let&apos;s see if you were actually watching.</p>
             </div>
           </div>
           {!hasAnswered && (
@@ -115,11 +122,11 @@ export default function BehaviorQuizModal({
         <ProgressBar current={currentIndex} total={totalItems} />
 
         {/* Body */}
-        <div className="p-6 flex-1 overflow-y-auto max-h-[65vh]">
+        <div className="p-6 md:p-8 flex-1 overflow-y-auto max-h-[70vh]">
 
           {/* Grace period warning banner */}
           {isInGrace && !hasAnswered && (
-            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-100 rounded-xl">
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-100 rounded-2xl">
               <Clock className="w-4 h-4 text-red-500 shrink-0" />
               <p className="text-sm font-medium text-red-700">
                 Running out of time — {graceTimerSec}s left!
@@ -140,7 +147,7 @@ export default function BehaviorQuizModal({
               <button
                 id="behavior-quiz-continue-btn"
                 onClick={recordUnattempted}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95"
+                className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95"
               >
                 Continue
               </button>
@@ -151,10 +158,10 @@ export default function BehaviorQuizModal({
           {!isTimedOut && (
             <div className="space-y-5">
               <div>
-                <span className="inline-block text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2">
+                <span className="inline-block text-xs font-bold uppercase tracking-widest text-orange-500 mb-2">
                   {currentItem.concept}
                 </span>
-                <h4 className="text-base font-semibold text-gray-900 leading-snug">
+                <h4 className="text-lg font-bold text-gray-800 leading-snug">
                   {currentItem.question}
                 </h4>
               </div>
@@ -167,7 +174,7 @@ export default function BehaviorQuizModal({
 
                   let cls = "w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 font-medium text-sm";
                   if (!hasAnswered) {
-                    cls += " border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 active:scale-[0.98] cursor-pointer";
+                    cls += " border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] cursor-pointer";
                   } else if (isRight) {
                     cls += " border-green-400 bg-green-50 text-green-800";
                   } else if (isSelected) {
@@ -176,7 +183,7 @@ export default function BehaviorQuizModal({
                     cls += " border-gray-200 bg-white text-gray-400 opacity-60";
                   }
 
-                  let bulletCls = "flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ";
+                  let bulletCls = "flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold ";
                   if (!hasAnswered) bulletCls += "bg-gray-100 text-gray-500";
                   else if (isRight) bulletCls += "bg-green-500 text-white";
                   else if (isSelected) bulletCls += "bg-red-500 text-white";
