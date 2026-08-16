@@ -18,7 +18,7 @@
 //   - interceptLevelStart is async: it awaits any active trigger before reading localStorage.
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { triggerBehaviorQuiz, submitBehaviorQuiz } from "./behaviorQuizApi";
+import { triggerBehaviorQuiz, submitBehaviorQuiz, BehaviorQuizApiError } from "./behaviorQuizApi";
 
 const NORMAL_SEC = 60;  // normal countdown length
 const GRACE_SEC = 10;   // grace period length after normal expires
@@ -62,6 +62,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
 
   // Active trigger promise ref — allows interceptLevelStart to await it
   const triggerPromiseRef = useRef(null);
+  const submitPromiseRef = useRef(null);
 
   // Rendered state (drives UI)
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -125,19 +126,56 @@ export function useBehaviorQuiz({ user, roadmapId }) {
   // --- Stable refs for finishQuiz + advanceOrFinish (safe inside setTimeout) ---
 
   const finishQuizRef = useRef(null);
+  // eslint-disable-next-line react-hooks/refs
   finishQuizRef.current = (finalResponses) => {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
 
-    clearPendingSession(roadmapId);
+    savePendingSession(roadmapId, {
+      sessionId: sessionIdRef.current,
+      quizItems: quizItemsRef.current,
+      responses: finalResponses,
+      currentIndex: quizItemsRef.current.length,
+      submissionPending: true,
+    });
 
-    submitBehaviorQuiz({
+    const submissionPromise = submitBehaviorQuiz({
       user,
       sessionId: sessionIdRef.current,
       submittedAttempts: finalResponses,
-    }).finally(() => {
-      isSubmittingRef.current = false;
-    });
+    })
+      .then(() => {
+      clearPendingSession(roadmapId);
+    })
+      .catch((err) => {
+        if (
+          err instanceof BehaviorQuizApiError &&
+          (err.status === 403 || err.status === 409)
+        ) {
+          clearPendingSession(roadmapId);
+          return;
+        }
+
+        console.error(
+          "[BehaviorQuiz] Retryable submission failure:",
+          err instanceof Error
+          ? err.message
+          : "Unknown error",
+        );
+      })
+      .finally(() => {
+        if (
+          submitPromiseRef.current ===
+          submissionPromise
+        ) {
+          submitPromiseRef.current = null;
+        }
+
+        isSubmittingRef.current = false;
+      });
+
+    submitPromiseRef.current =
+      submissionPromise;
 
     stopTimer();
     setIsOpen(false);
@@ -159,6 +197,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
   };
 
   const advanceOrFinishRef = useRef(null);
+  // eslint-disable-next-line react-hooks/refs
   advanceOrFinishRef.current = (finalResponses, nextIndex) => {
     if (nextIndex < quizItemsRef.current.length) {
       currentIndexRef.current = nextIndex;
@@ -201,7 +240,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
    * Saves session to localStorage only when result.fired && sessionId && quizItems.length > 0.
    * Deduplicates: if a request is already in-flight, returns the same promise.
    */
-  const triggerInBackground = useCallback((levelId, concept, transcriptContext, levelContext) => {
+  const triggerInBackground = useCallback((levelId) => {
     if (!user || !levelId || !roadmapId) return Promise.resolve(null);
 
     // Return the existing promise if one is already in-flight — no duplicate requests
@@ -209,7 +248,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
 
     setIsPreparingQuiz(true);
 
-    const promise = triggerBehaviorQuiz({ user, levelId, roadmapId, concept, transcriptContext, levelContext })
+    const promise = triggerBehaviorQuiz({ user, levelId, roadmapId })
       .then((result) => {
         if (
           result?.fired &&
@@ -227,7 +266,15 @@ export function useBehaviorQuiz({ user, roadmapId }) {
         return result;
       })
       .catch((err) => {
-        console.error("[BehaviorQuiz] Trigger request failed:", err);
+        if (err instanceof BehaviorQuizApiError) {
+          if (err.status === 403) {
+            // Do not save or open a quiz.
+          } else {
+            console.warn(`[BehaviorQuiz] Diagnostic failure (${err.status}):`, err.message);
+          }
+        } else {
+          console.warn("[BehaviorQuiz] Network or unknown failure on trigger.");
+        }
         return null;
       })
       .finally(() => {
@@ -251,6 +298,33 @@ export function useBehaviorQuiz({ user, roadmapId }) {
     }
 
     const session = loadPendingSession(roadmapId);
+
+    if (session && session.submissionPending && session.sessionId && session.responses) {
+      if (submitPromiseRef.current) {
+        await submitPromiseRef.current;
+      } else {
+        const p = submitBehaviorQuiz({
+          user,
+          sessionId: session.sessionId,
+          submittedAttempts: session.responses,
+        })
+          .then(() => {
+            clearPendingSession(roadmapId);
+          })
+          .catch((err) => {
+            if (err instanceof BehaviorQuizApiError && (err.status === 403 || err.status === 409)) {
+              clearPendingSession(roadmapId);
+            }
+          })
+          .finally(() => {
+            submitPromiseRef.current = null;
+          });
+        submitPromiseRef.current = p;
+        await p;
+      }
+      return false;
+    }
+
     if (
       !session ||
       !Array.isArray(session.quizItems) ||
@@ -261,7 +335,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
     }
     openForSession(session, onAfterDismiss);
     return true;
-  }, [roadmapId, openForSession]);
+  }, [roadmapId, openForSession, user]);
 
   /** Record a user's answer (before timeout). */
   const recordAnswer = useCallback((selectedOptionValue) => {
@@ -323,6 +397,7 @@ export function useBehaviorQuiz({ user, roadmapId }) {
     advanceOrFinishRef.current(newResponses, idx + 1);
   }, [selectedOption, stopTimer, roadmapId]);
 
+  /* eslint-disable react-hooks/refs */
   return {
     isOpen,
     isPreparingQuiz,
@@ -340,4 +415,5 @@ export function useBehaviorQuiz({ user, roadmapId }) {
     recordAnswer,
     recordUnattempted,
   };
+  /* eslint-enable react-hooks/refs */
 }

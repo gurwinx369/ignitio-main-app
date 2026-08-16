@@ -1,5 +1,48 @@
 import mongoose, { Schema } from "mongoose";
 
+const SKIP_MARKER = "__skipped__";
+
+const TECHNOLOGY_VALUES = [
+  "langchain",
+  "embeddings",
+  "rag",
+  "api_framework",
+  "structured_outputs",
+  "agents",
+];
+
+const DIAGNOSTIC_PATH_VALUES = [
+  "q1",
+  "casual_api_usage",
+  "technologies_used",
+  "project_type",
+  "q2",
+  "q2b",
+  "q3",
+  "q3b",
+  "q4",
+  "q5",
+  "q6",
+  "q7",
+  "q7b",
+  "q8",
+  "q9",
+  "q10",
+];
+
+const TECHNICAL_QUESTION_IDS = [
+  "q2",
+  "q2b",
+  "q3",
+  "q3b",
+  "q4",
+  "q5",
+  "q6",
+  "q7",
+  "q7b",
+  "q8",
+];
+
 const TimeWindowSchema = new Schema(
   {
     period: {
@@ -18,25 +61,97 @@ const TimeWindowSchema = new Schema(
       match: /^([01]\d|2[0-3]):([0-5]\d)$/,
     },
   },
-  { _id: false },
+  {
+    _id: false,
+  },
+);
+
+const GradingMetaSchema = new Schema(
+  {
+    matchedKeywords: {
+      type: [String],
+      default: [],
+    },
+    matchedGroups: {
+      type: [String],
+      default: [],
+    },
+    reason: {
+      type: String,
+      default: null,
+    },
+    partial: {
+      type: Boolean,
+      default: false,
+    },
+    llmJudgeReasoning: {
+      type: String,
+      default: null,
+    },
+    llmJudgeModel: {
+      type: String,
+      default: null,
+    },
+  },
+  {
+    _id: false,
+  },
 );
 
 const QuestionResponseSchema = new Schema(
   {
-    questionId: { type: String, required: true }, // stable slug, e.g. "context-eng-lost-in-middle-01"
-    questionText: { type: String, required: true },
-    questionType: {
+    questionId: {
       type: String,
-      enum: ["MCQ", "CODE_EXERCISE", "SELF_REPORT", "SHORT_ANSWER"],
       required: true,
     },
-    moduleRef: { type: String, default: null }, // e.g. "29-35" — day-range convention, matches your PDF
-    answerGiven: { type: Schema.Types.Mixed, required: true },
-    passed: { type: Boolean, required: true },
-    score: { type: Number, min: 0, max: 1, default: null },
-    timeTakenSeconds: { type: Number, default: null },
-
-    // Kept from the earlier draft — worth retaining alongside your fields, not replacing them:
+    questionText: {
+      type: String,
+      required: true,
+    },
+    questionType: {
+      type: String,
+      enum: [
+        "MCQ",
+        "CODE_EXERCISE",
+        "SELF_REPORT",
+        "SHORT_ANSWER",
+        "ORDERING",
+      ],
+      required: true,
+    },
+    moduleRef: {
+      type: String,
+      default: null,
+    },
+    answerGiven: {
+      type: Schema.Types.Mixed,
+      required() {
+        return this.notAssessed !== true;
+      },
+      default: null,
+    },
+    passed: {
+      type: Boolean,
+      required: true,
+    },
+    skipped: {
+      type: Boolean,
+      default: false,
+    },
+    notAssessed: {
+      type: Boolean,
+      default: false,
+    },
+    score: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: null,
+    },
+    timeTakenSeconds: {
+      type: Number,
+      default: null,
+    },
     gradingMethod: {
       type: String,
       enum: [
@@ -45,24 +160,115 @@ const QuestionResponseSchema = new Schema(
         "llm_judge",
         "multiple_choice",
         "self_report",
+        "not_assessed",
       ],
       required: true,
     },
     gradingMeta: {
-      matchedKeywords: [String],
-      llmJudgeReasoning: String,
-      llmJudgeModel: String,
+      type: GradingMetaSchema,
+      default: () => ({}),
     },
-    attemptNumber: { type: Number, default: 1 }, // retests append, never overwrite
+    attemptNumber: {
+      type: Number,
+      default: 1,
+    },
   },
-  { _id: false },
+  {
+    _id: false,
+  },
+);
+
+QuestionResponseSchema.pre("validate", function validateOutcome() {
+  if (this.notAssessed) {
+    if (this.passed || this.skipped) {
+      throw new Error(
+        "A not_assessed question cannot also be passed or skipped.",
+      );
+    }
+
+    if (this.gradingMethod !== "not_assessed") {
+      throw new Error(
+        "A not_assessed question must use gradingMethod not_assessed.",
+      );
+    }
+  }
+
+  if (
+    !this.notAssessed &&
+    this.gradingMethod === "not_assessed"
+  ) {
+    throw new Error(
+      "gradingMethod not_assessed requires notAssessed to be true.",
+    );
+  }
+
+  if (this.skipped && this.passed) {
+    throw new Error(
+      "A skipped question cannot also be passed.",
+    );
+  }
+
+  if (
+    this.skipped &&
+    this.answerGiven !== SKIP_MARKER
+  ) {
+    throw new Error(
+      "An explicitly skipped question must preserve the skip marker.",
+    );
+  }
+});
+
+const RoutingAnswersSchema = new Schema(
+  {
+    casualApiUsage: {
+      type: String,
+      enum: ["chat_only", "called_llm_api"],
+      default: null,
+    },
+    technologiesUsed: {
+      type: [
+        {
+          type: String,
+          enum: TECHNOLOGY_VALUES,
+        },
+      ],
+      default: [],
+      validate: {
+        validator(values) {
+          return new Set(values).size === values.length;
+        },
+        message: "Duplicate technology selections are not allowed.",
+      },
+    },
+    projectType: {
+      type: String,
+      enum: ["rag", "agent", "both"],
+      default: null,
+    },
+  },
+  {
+    _id: false,
+  },
 );
 
 const OnboardingResponseSchema = new Schema(
   {
-    firebaseUID: { type: String, required: true, unique: true, index: true },
-    onboardingVersion: { type: String, enum: ["v1", "v2", "v3"], required: true, default: "v2" },
-
+    firebaseUID: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    onboardingVersion: {
+      type: String,
+      enum: ["v1", "v2", "v3", "v4"],
+      required: true,
+      default: "v2",
+    },
+    flowVersion: {
+      type: String,
+      enum: ["adaptive-v1"],
+      default: undefined,
+    },
     entryPoint: {
       type: String,
       enum: [
@@ -73,25 +279,52 @@ const OnboardingResponseSchema = new Schema(
       ],
       required: true,
     },
-
-    responses: [QuestionResponseSchema],
-
+    routingAnswers: {
+      type: RoutingAnswersSchema,
+      default: undefined,
+    },
+    diagnosticPath: {
+      type: [
+        {
+          type: String,
+          enum: DIAGNOSTIC_PATH_VALUES,
+        },
+      ],
+      default: [],
+    },
+    notAssessedQuestionIds: {
+      type: [
+        {
+          type: String,
+          enum: TECHNICAL_QUESTION_IDS,
+        },
+      ],
+      default: [],
+    },
+    responses: {
+      type: [QuestionResponseSchema],
+      default: [],
+    },
     primaryGoalSnapshot: {
       type: String,
-      enum: ["internship_1_3_months", "build_product", "curiosity_general"],
+      enum: [
+        "internship_1_3_months",
+        "build_product",
+        "curiosity_general",
+      ],
     },
-
     roadmapExclusions: [
       {
-        weekNumber: { type: Number, required: true },
+        weekNumber: {
+          type: Number,
+          required: true,
+        },
         moduleTitle: String,
-        triggeredByQuestionId: String, // ties back to responses[].questionId
+        triggeredByQuestionId: String,
         skipReasonShownToUser: String,
         daysSaved: Number,
       },
-      { _id: false },
     ],
-    //weeks which user has option to skim in a few minutes or to watch the full content
     optionalFlags: [
       {
         weekNumber: Number,
@@ -111,7 +344,16 @@ const OnboardingResponseSchema = new Schema(
     ],
     timeWindowSchema: {
       type: TimeWindowSchema,
-      required: true,
+      required() {
+        return this.onboardingVersion !== "v4";
+      },
+    },
+    dailyDurationCategory: {
+      type: String,
+      enum: ["20_30", "45_60", "90_plus"],
+      required() {
+        return this.onboardingVersion === "v4";
+      },
     },
     status: {
       type: String,
@@ -120,7 +362,9 @@ const OnboardingResponseSchema = new Schema(
     },
     completedAt: Date,
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
 OnboardingResponseSchema.index({
@@ -128,6 +372,19 @@ OnboardingResponseSchema.index({
   "responses.passed": 1,
 });
 
+OnboardingResponseSchema.index(
+  {
+    firebaseUID: 1,
+    onboardingVersion: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
 export const OnboardingResponseModel =
   mongoose.models.OnboardingResponseModel ||
-  mongoose.model("OnboardingResponseModel", OnboardingResponseSchema);
+  mongoose.model(
+    "OnboardingResponseModel",
+    OnboardingResponseSchema,
+  );

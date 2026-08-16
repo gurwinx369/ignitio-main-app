@@ -20,11 +20,15 @@ import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { BehaviorQuizHistory } from "@/models/v2/behavior.quiz.history.model";
+import {
+  checkPremiumGenAiAccess,
+  getPremiumGenAiAccessHttpStatus,
+} from "@/lib/premium/genai/premium-genai-access.service";
 
-const FASTAPI_URL =
-  process.env.NODE_ENV === "production"
-    ? process.env.FASTAPI_BASE_URL
-    : "http://127.0.0.1:8000";
+const FASTAPI_URL = (
+  process.env.FASTAPI_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
 // Client only sends what it observed — everything else comes from the session shell
 const SubmitBodySchema = z.object({
@@ -54,6 +58,20 @@ export async function POST(request) {
   }
 
   const firebaseUID = decodedToken.uid;
+
+  const access = await checkPremiumGenAiAccess(firebaseUID);
+  if (access.status !== "ready") {
+    return NextResponse.json(
+      {
+        error: `Premium GenAI access denied: ${access.status}`,
+      },
+      {
+        status: getPremiumGenAiAccessHttpStatus(
+          access.status,
+        ),
+      },
+    );
+  }
 
   let body;
   try {
@@ -89,7 +107,6 @@ export async function POST(request) {
       );
     }
 
-    // Find the session shell written by /trigger to get generatedItems
     const session = history.behaviorQuizSessions.find(
       (s) => s.sessionId === sessionId,
     );
@@ -97,6 +114,13 @@ export async function POST(request) {
       return NextResponse.json(
         { error: "session not found or has no generated items" },
         { status: 404 },
+      );
+    }
+
+    if (session.status !== "in_progress") {
+      return NextResponse.json(
+        { error: "Behavior quiz session is already completed or invalid" },
+        { status: 409 },
       );
     }
 
@@ -185,6 +209,20 @@ export async function POST(request) {
     const { gradedAttempts, updatedEiStats, conceptVerdicts } =
       await fastApiRes.json();
 
+    const reAccess = await checkPremiumGenAiAccess(firebaseUID);
+    if (reAccess.status !== "ready") {
+      return NextResponse.json(
+        {
+          error: `Premium GenAI access lost: ${reAccess.status}`,
+        },
+        {
+          status: getPremiumGenAiAccessHttpStatus(
+            reAccess.status,
+          ),
+        },
+      );
+    }
+
     // FastAPI echoes question back via GradedAttemptOut. Merge selectedOption
     // (only the client knows which option the user picked) before MongoDB push.
     const selectedByConceptMap = Object.fromEntries(
@@ -218,8 +256,16 @@ export async function POST(request) {
       };
     }
 
-    await BehaviorQuizHistory.findOneAndUpdate(
-      { firebaseUID },
+    const updatedHistory = await BehaviorQuizHistory.findOneAndUpdate(
+      {
+        firebaseUID,
+        behaviorQuizSessions: {
+          $elemMatch: {
+            sessionId,
+            status: "in_progress",
+          },
+        },
+      },
       {
         $set: setOps,
         $push: {
@@ -227,8 +273,23 @@ export async function POST(request) {
         },
         $currentDate: { "behaviorQuizSessions.$[sess].completedAt": true },
       },
-      { arrayFilters: [{ "sess.sessionId": sessionId }] },
+      {
+        arrayFilters: [
+          {
+            "sess.sessionId": sessionId,
+            "sess.status": "in_progress",
+          },
+        ],
+        new: true,
+      },
     );
+
+    if (!updatedHistory) {
+      return NextResponse.json(
+        { error: "Behavior quiz session is already completed or invalid" },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json({ conceptVerdicts }, { status: 200 });
   } catch (error) {

@@ -18,7 +18,10 @@ export const USER_GOALS = {
 export const ONBOARDING_VERSIONS = {
   V2: "v2",
   V3: "v3",
+  V4: "v4",
 };
+
+
 
 const TimeWindowSchema = new Schema(
   {
@@ -232,6 +235,91 @@ const StreakSchema = new Schema(
   },
 );
 
+// ─── New sub-schemas for premium onboarding ────────────────────────────────
+// These are additive only. Existing documents receive default values on
+// the next read. No migration script is required — MongoDB treats absent
+// embedded documents as if they were set to their schema defaults.
+
+const OnboardingStateSchema = new Schema(
+  {
+    step: {
+      type: String,
+      enum: [
+        "diagnostic",
+        "results",
+        "paywall",
+        "role_selection",
+        "activation_pending",
+        "completed",
+      ],
+      default: "diagnostic",
+    },
+
+    paywallSeen: {
+      type: Boolean,
+      default: false,
+    },
+
+    roleSelected: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+// Roadmap-level entitlements. One boolean per premium roadmap product.
+// Only products that currently exist are listed here. Do not add
+// placeholders — new fields are added when features ship.
+const RoadmapEntitlementsSchema = new Schema(
+  {
+    genAi: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+// Feature-level entitlements. One boolean per premium platform feature.
+const FeatureEntitlementsSchema = new Schema(
+  {
+    // Behavioural / learning-style quiz (Kyle integration).
+    behaviouralQuiz: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+// Top-level entitlements container. Namespaced by product category so
+// new categories can be added without flattening the root document.
+const EntitlementsSchema = new Schema(
+  {
+     // Premium roadmap access
+    roadmaps: {
+      type: RoadmapEntitlementsSchema,
+      default: () => ({}),
+    },
+
+    // Premium platform features
+    features: {
+      type: FeatureEntitlementsSchema,
+      default: () => ({}),
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
 const UserProfileSchema = new Schema(
   {
     firebaseUID: {
@@ -309,7 +397,7 @@ const UserProfileSchema = new Schema(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      default: USER_ROLES.STUDENT,
+      default: USER_ROLES.OTHER,
       lowercase: true,
       trim: true,
     },
@@ -369,6 +457,21 @@ const UserProfileSchema = new Schema(
       type: StreakSchema,
       default: () => ({}),
     },
+
+    // ── Premium onboarding fields ───────────────────────────────────────────
+    // All three fields are optional and carry safe defaults, so existing
+    // documents remain valid without any migration.
+
+    onboardingState: {
+      type: OnboardingStateSchema,
+      default: () => ({}),
+    },
+
+    entitlements: {
+      type: EntitlementsSchema,
+      default: () => ({}),
+    },
+
   },
   {
     timestamps: true,
@@ -378,6 +481,10 @@ const UserProfileSchema = new Schema(
 UserProfileSchema.index({
   onboardingComplete: 1,
   role: 1,
+});
+
+UserProfileSchema.index({
+  "entitlements.roadmaps.genAi": 1,
 });
 
 export const UserProfile =

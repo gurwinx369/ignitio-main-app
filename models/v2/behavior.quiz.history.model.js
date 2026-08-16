@@ -107,6 +107,7 @@ const ConceptMasteryEntrySchema = new Schema(
 const BehaviorQuizHistorySchema = new Schema(
   {
     firebaseUID: { type: String, required: true, unique: true, index: true },
+    behaviorCountedLevelKeys: { type: [String], default: [] },
 
     // Incremented once per concept completion, regardless of which concept.
     // Trigger fires when this hits a multiple of 3. Never reset to 0 — it's
@@ -144,21 +145,43 @@ BehaviorQuizHistorySchema.index({
 BehaviorQuizHistorySchema.statics.recordConceptCompletion = async function (
   firebaseUID,
   concept,
+  roadmapSlug,
+  levelId,
 ) {
-  // Prepend the new concept and cap the rolling log at 30 entries.
-  // $slice on $push keeps this O(1) — no full doc read needed.
+  const completionKey = `${roadmapSlug}::${levelId}`;
+
+  // 1. Ensure the user's BehaviorQuizHistory shell exists (first-document concurrency)
+  try {
+    await this.findOneAndUpdate(
+      { firebaseUID },
+      { $setOnInsert: { firebaseUID } },
+      { upsert: true }
+    );
+  } catch (err) {
+    // If concurrent creation occurs, ignore duplicate-key errors
+    if (err.code !== 11000) throw err;
+  }
+
+  // 2. Perform actual claim with NO upsert
   const doc = await this.findOneAndUpdate(
-    { firebaseUID },
     {
+      firebaseUID,
+      behaviorCountedLevelKeys: { $ne: completionKey }
+    },
+    {
+      $addToSet: { behaviorCountedLevelKeys: completionKey },
       $inc: { conceptsCompletedCounter: 1 },
       $push: { recentConcepts: { $each: [concept], $position: 0, $slice: 30 } },
-      $setOnInsert: { firebaseUID },
     },
-    { upsert: true, new: true },
+    { new: true },
   );
 
+  if (!doc) {
+    return { counted: false, fired: false, duplicate: true };
+  }
+
   const fired = doc.conceptsCompletedCounter % 3 === 0;
-  if (!fired) return { fired: false };
+  if (!fired) return { counted: true, fired: false, duplicate: false, conceptCount: doc.conceptsCompletedCounter };
 
   // --- Build targetConcepts (always exactly up to 3) ---
   //
@@ -185,7 +208,7 @@ BehaviorQuizHistorySchema.statics.recordConceptCompletion = async function (
   // Final safety net: if history is so short we still can't fill 3, use current concept
   if (selected.size === 0) selected.add(concept);
 
-  return { fired: true, targetConcepts: [...selected] };
+  return { counted: true, fired: true, duplicate: false, targetConcepts: [...selected], conceptCount: doc.conceptsCompletedCounter };
 };
 
 export const BehaviorQuizHistory =

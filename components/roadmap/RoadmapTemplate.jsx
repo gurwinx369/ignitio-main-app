@@ -51,6 +51,12 @@ export default function RoadmapTemplate({ roadmapData }) {
     // Flat array of completed level IDs
     const [completedLevels, setCompletedLevels] = useState([]);
 
+    const [progressLoadError, setProgressLoadError] =
+        useState(false);
+
+    const [progressRetryKey, setProgressRetryKey] =
+        useState(0);
+
     const [popupLevel, setPopupLevel] = useState(null);
     const [popupAnchor, setPopupAnchor] = useState(null);
     const [selectedLevel, setSelectedLevel] = useState(null);
@@ -109,27 +115,67 @@ export default function RoadmapTemplate({ roadmapData }) {
             setIsMounted(true);
 
             if (!user) {
-                // If user is missing, fallback to local storage entirely
-                const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
-                setCompletedLevels(localProgress.completedLevels);
-                prevCompletedCount.current = localProgress.completedLevels.length;
-                writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: localProgress.completedLevels });
+                // Premium GenAI progress is server-owned.
+                // Never substitute localStorage for trusted Mongo progress.
+                if (
+                    roadmapData.id ===
+                    "gen-ai-internship"
+                ) {
+                    return;
+                }
+
+                const localProgress =
+                    readLocalRoadmapProgress({
+                        roadmapId: roadmapData.id,
+                        allLevels,
+                        days: roadmapData.days,
+                    });
+
+                setCompletedLevels(
+                    localProgress.completedLevels,
+                );
+
+                prevCompletedCount.current =
+                    localProgress.completedLevels.length;
+
+                writeLocalRoadmapProgress({
+                    roadmapId: roadmapData.id,
+                    completedLevels:
+                        localProgress.completedLevels,
+                });
+
                 return;
             }
-
             try {
                 // 1. Attempt to fetch MongoDB progress
                 const res = await fetchRoadmapProgress({ user, roadmapSlug: roadmapData.id });
 
                 if (res && res.source === "mongodb") {
-                    setCompletedLevels(res.progress.completedLevels || []);
-                    prevCompletedCount.current = (res.progress.completedLevels || []).length;
+                    const serverCompletedLevels =
+                        res.progress.completedLevels || [];
 
-                    // Sync fallback
+                    const serverPassedAssignments =
+                        res.progress.passedAssignments || [];
+
+                    setCompletedLevels(serverCompletedLevels);
+
+                    prevCompletedCount.current =
+                        serverCompletedLevels.length;
+
+                    const passedMap = {};
+
+                    for (const dayId of serverPassedAssignments) {
+                        passedMap[dayId] = true;
+                    }
+
+                    setAssignmentPassedDays(passedMap);
+                    setAssignmentStateLoaded(true);
+                    setProgressLoadError(false);
+
                     writeLocalRoadmapProgress({
                         roadmapId: roadmapData.id,
-                        completedLevels: res.progress.completedLevels || [],
-                        passedAssignments: res.progress.passedAssignments || [],
+                        completedLevels: serverCompletedLevels,
+                        passedAssignments: serverPassedAssignments,
                     });
                 } else {
                     // 2. Not found in MongoDB, run migration
@@ -156,17 +202,51 @@ export default function RoadmapTemplate({ roadmapData }) {
                     }
                 }
             } catch (err) {
-                console.warn("Failed to sync progress, using localStorage fallback", err);
-                const localProgress = readLocalRoadmapProgress({ roadmapId: roadmapData.id, allLevels, days: roadmapData.days });
-                setCompletedLevels(localProgress.completedLevels);
-                prevCompletedCount.current = localProgress.completedLevels.length;
-                writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: localProgress.completedLevels });
+                if (
+                    roadmapData.id ===
+                    "gen-ai-internship"
+                ) {
+                    console.warn(
+                        "[Premium GenAI] Failed to load trusted progress",
+                        err,
+                    );
+
+                    setProgressLoadError(true);
+                    setAssignmentStateLoaded(false);
+
+                    return;
+                }
+
+                console.warn(
+                    "Failed to sync progress, using localStorage fallback",
+                    err,
+                );
+
+                const localProgress =
+                    readLocalRoadmapProgress({
+                        roadmapId: roadmapData.id,
+                        allLevels,
+                        days: roadmapData.days,
+                    });
+
+                setCompletedLevels(
+                    localProgress.completedLevels,
+                );
+
+                prevCompletedCount.current =
+                    localProgress.completedLevels.length;
+
+                writeLocalRoadmapProgress({
+                    roadmapId: roadmapData.id,
+                    completedLevels:
+                        localProgress.completedLevels,
+                });
             }
 
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title]);
+    }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title, progressRetryKey]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -184,6 +264,7 @@ export default function RoadmapTemplate({ roadmapData }) {
 
     useEffect(() => {
         if (typeof window === "undefined" || !roadmapData?.id) return;
+        if (roadmapData.id === "gen-ai-internship") return;
 
         const timer = setTimeout(() => {
             const passedMap = {};
@@ -454,14 +535,32 @@ export default function RoadmapTemplate({ roadmapData }) {
         // Duplicate protection: do not show a duplicate completion popup if already completed
         if (completedLevels.includes(levelId)) return;
 
+        const isGenAiRoadmap = roadmapData.id === "gen-ai-internship";
+
         const updatedCompleted = [...completedLevels, levelId];
         const sortedCompleted = updatedCompleted.sort((a, b) => {
             return allLevels.findIndex(l => l.id === a) - allLevels.findIndex(l => l.id === b);
         });
 
-        setCompletedLevels(sortedCompleted);
-        writeLocalRoadmapProgress({ roadmapId: roadmapData.id, completedLevels: sortedCompleted });
-        triggerCompletionToast();
+        // Generic roadmaps keep their existing optimistic behavior.
+        // Premium GenAI must wait for trusted server acceptance.
+        if (!isGenAiRoadmap) {
+            setCompletedLevels(sortedCompleted);
+            writeLocalRoadmapProgress({
+                roadmapId: roadmapData.id,
+                completedLevels: sortedCompleted
+            });
+            triggerCompletionToast();
+        }
+
+        let completionLevels = sortedCompleted;
+
+        // GenAI progress is server-owned. Without an authenticated user,
+        // do not mutate completion/unlock state.
+        if (isGenAiRoadmap && !user) {
+            console.warn("Cannot complete GenAI level without an authenticated user");
+            return;
+        }
 
         if (user) {
             try {
@@ -474,44 +573,152 @@ export default function RoadmapTemplate({ roadmapData }) {
                         role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
                         totalLevels: allLevels.length,
                         allLevelIds: allLevels.map(l => l.id),
-                        days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
+                        days: roadmapData.days.map(d => ({
+                            id: d.id,
+                            levelIds: d.levels.map(l => l.id)
+                        })),
                         levelId
                     }
                 });
 
-                if (res && res.progress) {
-                    // Reconcile state in case backend ordering differs slightly
+                if (isGenAiRoadmap) {
+                    const trustedCompletedLevels =
+                        Array.isArray(res?.progress?.completedLevels)
+                            ? res.progress.completedLevels
+                            : null;
+
+                    // A successful response without server-confirmed completion
+                    // must not unlock anything locally.
+                    if (
+                        !trustedCompletedLevels ||
+                        !trustedCompletedLevels.includes(levelId)
+                    ) {
+                        console.warn(
+                            "GenAI complete_level response did not confirm the completed level"
+                        );
+                        return;
+                    }
+
+                    completionLevels = trustedCompletedLevels;
+
+                    setCompletedLevels(trustedCompletedLevels);
+
+                    // Local storage is only a cache here.
+                    // The value comes from trusted server progress.
+                    writeLocalRoadmapProgress({
+                        roadmapId: roadmapData.id,
+                        completedLevels: trustedCompletedLevels
+                    });
+
+                    // If the server says this level was already completed,
+                    // reconcile state but do not replay completion side effects.
+                    if (res?.newCompletion !== true) {
+                        return;
+                    }
+
+                    triggerCompletionToast();
+
+                    // Behavioral quiz counting only follows a newly accepted
+                    // canonical GenAI completion.
+                    void behaviorQuiz.triggerInBackground(levelId);
+                } else if (res?.progress) {
+                    // Preserve existing reconciliation for generic roadmaps.
                     setCompletedLevels(res.progress.completedLevels || []);
                 }
             } catch (e) {
                 console.warn("Failed to patch complete_level", e);
-            }
 
-            // Behavior quiz trigger — fire-and-forget, never blocks the user.
-            // The hook stores the quiz in localStorage if the counter hits a multiple of 3.
-            const completedLevel = allLevels.find(l => l.id === levelId);
-            behaviorQuiz.triggerInBackground(
-                levelId,
-                completedLevel?.concept || completedLevel?.title || "",
-                completedLevel?.transcript || "",
-                completedLevel?.description || ""
-            );
+                // Existing progress ambiguity recovery:
+                // explicit 4xx means the server rejected the mutation.
+                const isClientError =
+                    e.message && e.message.match(/progress: 4\d\d/);
+
+                if (isGenAiRoadmap) {
+                    // Explicit rejection must never become a local completion.
+                    if (isClientError) {
+                        return;
+                    }
+
+                    // For an ambiguous network/server failure, read the canonical
+                    // progress back. Continue only if the server confirms it.
+                    try {
+                        const progressRes = await fetchRoadmapProgress({
+                            user,
+                            roadmapSlug: roadmapData.id
+                        });
+
+                        const recoveredCompletedLevels =
+                            Array.isArray(progressRes?.progress?.completedLevels)
+                                ? progressRes.progress.completedLevels
+                                : null;
+
+                        if (
+                            !recoveredCompletedLevels ||
+                            !recoveredCompletedLevels.includes(levelId)
+                        ) {
+                            return;
+                        }
+
+                        completionLevels = recoveredCompletedLevels;
+
+                        setCompletedLevels(recoveredCompletedLevels);
+
+                        writeLocalRoadmapProgress({
+                            roadmapId: roadmapData.id,
+                            completedLevels: recoveredCompletedLevels
+                        });
+
+                        triggerCompletionToast();
+
+                        // Trigger is idempotent on the backend, so ambiguity
+                        // recovery can safely retry the behavioral milestone.
+                        void behaviorQuiz.triggerInBackground(levelId);
+                    } catch (recoveryErr) {
+                        console.warn(
+                            "Failed to recover progress state",
+                            recoveryErr
+                        );
+                        return;
+                    }
+                } else if (!isClientError) {
+                    // Preserve the existing generic-roadmap recovery request.
+                    try {
+                        await fetchRoadmapProgress({
+                            user,
+                            roadmapSlug: roadmapData.id
+                        });
+                    } catch (recoveryErr) {
+                        console.warn(
+                            "Failed to recover progress state",
+                            recoveryErr
+                        );
+                    }
+                }
+            }
         }
 
+        // Generic roadmaps use the same optimistic array as before.
+        // GenAI reaches here only with server-confirmed completedLevels.
         let certificate = checkCertificateUnlock({
             roadmapData,
-            completedLevels: sortedCompleted,
+            completedLevels: completionLevels,
             levelId,
             triggerType: 'level'
         });
 
         if (certificate) {
             const milestoneLevels = certificate.milestoneLevels || [];
-            const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
+            const durationMinutes = milestoneLevels.reduce(
+                (acc, lvl) => acc + Number(lvl.durationInMinutes || 0),
+                0
+            );
             const quizCompletedCount = milestoneLevels.length;
 
             const dateObj = new Date(certificate.unlockedAt);
-            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
+            const providedOn =
+                `${dateObj.getDate()} ${dateObj.toLocaleString('default', {
+                    month: 'long'
+                })} ${dateObj.getFullYear()}`;
 
             certificate = {
                 ...certificate,
@@ -536,16 +743,24 @@ export default function RoadmapTemplate({ roadmapData }) {
             }
         }
 
-        // Calculate next level using fresh array
+        // Calculate next level using the trusted completion array for GenAI.
         const globalIndex = allLevels.findIndex(l => l.id === levelId);
         let nextLevel = null;
-        if (globalIndex >= 0 && globalIndex < allLevels.length - 1) {
+
+        if (
+            globalIndex >= 0 &&
+            globalIndex < allLevels.length - 1
+        ) {
             nextLevel = allLevels[globalIndex + 1];
         }
 
         let isNextLevelUnlocked = false;
+
         if (nextLevel) {
-            const unlockState = getUnlockStateWithCompleted(nextLevel, sortedCompleted);
+            const unlockState = getUnlockStateWithCompleted(
+                nextLevel,
+                completionLevels
+            );
             isNextLevelUnlocked = unlockState.isUnlocked;
         }
 
@@ -568,6 +783,38 @@ export default function RoadmapTemplate({ roadmapData }) {
     const isCurrentDayAssignmentPassed = activeDay ? !!assignmentPassedDays[activeDay.id] : false;
 
     const renderContent = () => {
+        if (
+            roadmapData.id ===
+            "gen-ai-internship" &&
+            progressLoadError
+        ) {
+            return (
+                <div className="flex min-h-screen items-center justify-center bg-[var(--color-primary)] p-4">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                        <h2 className="mb-2 text-xl font-bold text-slate-900">
+                            Unable to Load Progress
+                        </h2>
+
+                        <p className="mb-6 text-slate-600">
+                            We could not verify your Premium GenAI progress. Your saved progress has not been changed.
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setProgressLoadError(false);
+                                setProgressRetryKey(
+                                    value => value + 1,
+                                );
+                            }}
+                            className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white transition-colors hover:bg-slate-800"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            );
+        }
         if (selectedLevel) {
             return (
                 <LevelContent
@@ -847,8 +1094,24 @@ export default function RoadmapTemplate({ roadmapData }) {
                 isFinalDay={activeDayIndex === roadmapData.days.length - 1}
                 onPassed={async () => {
                     const passedDayId = activeDay?.id;
-                    if (passedDayId) {
-                        localStorage.setItem(`assignment_passed_${roadmapData.id}_${passedDayId}`, "true");
+
+                    if (!passedDayId) {
+                        setShowAssignmentModal(false);
+                        return;
+                    }
+
+                    const isGenAiRoadmap =
+                        roadmapData.id === "gen-ai-internship";
+
+                    let assignmentPassAccepted = !isGenAiRoadmap;
+
+                    if (!isGenAiRoadmap) {
+                        // Preserve existing optimistic behavior for generic roadmaps.
+                        localStorage.setItem(
+                            `assignment_passed_${roadmapData.id}_${passedDayId}`,
+                            "true"
+                        );
+
                         setAssignmentPassedDays(prev => ({
                             ...prev,
                             [passedDayId]: true,
@@ -861,56 +1124,234 @@ export default function RoadmapTemplate({ roadmapData }) {
                                     roadmapSlug: roadmapData.id,
                                     payload: {
                                         action: "pass_assignment",
-                                        roadmapTitle: roadmapData.title || "",
-                                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                                        roadmapTitle:
+                                            roadmapData.title || "",
+                                        role:
+                                            (typeof window !== "undefined" &&
+                                                localStorage.getItem(
+                                                    "profession"
+                                                )) ||
+                                            "other",
                                         totalLevels: allLevels.length,
-                                        allLevelIds: allLevels.map(l => l.id),
+                                        allLevelIds: allLevels.map(
+                                            l => l.id
+                                        ),
                                         dayId: passedDayId
                                     }
                                 });
                             } catch (e) {
-                                console.warn("Failed to patch pass_assignment", e);
+                                console.warn(
+                                    "Failed to patch pass_assignment",
+                                    e
+                                );
                             }
                         }
+                    } else {
+                        // Premium GenAI assignment progress is server-owned.
+                        if (!user) {
+                            console.warn(
+                                "Cannot persist GenAI assignment without an authenticated user"
+                            );
+                            return;
+                        }
 
-                        let certificate = checkCertificateUnlock({
-                            roadmapData,
-                            completedLevels,
-                            dayId: passedDayId,
-                            triggerType: 'day'
-                        });
+                        try {
+                            const res = await patchRoadmapProgress({
+                                user,
+                                roadmapSlug: roadmapData.id,
+                                payload: {
+                                    action: "pass_assignment",
+                                    roadmapTitle:
+                                        roadmapData.title || "",
+                                    role:
+                                        (typeof window !== "undefined" &&
+                                            localStorage.getItem(
+                                                "profession"
+                                            )) ||
+                                        "other",
+                                    totalLevels: allLevels.length,
+                                    allLevelIds: allLevels.map(
+                                        l => l.id
+                                    ),
+                                    dayId: passedDayId
+                                }
+                            });
 
-                        if (certificate) {
-                            const milestoneLevels = certificate.milestoneLevels || [];
-                            const durationMinutes = milestoneLevels.reduce((acc, lvl) => acc + Number(lvl.durationInMinutes || 0), 0);
-                            const quizCompletedCount = milestoneLevels.length;
+                            const trustedPassedAssignments =
+                                Array.isArray(
+                                    res?.progress?.passedAssignments
+                                )
+                                    ? res.progress.passedAssignments
+                                    : null;
 
-                            const dateObj = new Date(certificate.unlockedAt);
-                            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString('default', { month: 'long' })} ${dateObj.getFullYear()}`;
-
-                            certificate = {
-                                ...certificate,
-                                quizCompletedCount,
-                                durationMinutes,
-                                providedOn
-                            };
-
-                            if (process.env.NODE_ENV === "development") {
-                                console.log("[Certificate unlock payload]", {
-                                    certificateKey: certificate.certificateKey,
-                                    milestoneLevelsCount: milestoneLevels.length,
-                                    durationMinutes,
-                                    quizCompletedCount,
-                                    levelIds: milestoneLevels.map(l => l.id),
-                                });
+                            // A successful response must still explicitly
+                            // confirm the canonical passed day.
+                            if (
+                                !trustedPassedAssignments ||
+                                !trustedPassedAssignments.includes(
+                                    passedDayId
+                                )
+                            ) {
+                                console.warn(
+                                    "GenAI pass_assignment response did not confirm the passed day"
+                                );
+                                return;
                             }
 
-                            const saved = saveUnlockedCertificate(certificate);
-                            if (saved) {
-                                setUnlockedCertificate(certificate);
+                            assignmentPassAccepted = true;
+
+                            setAssignmentPassedDays(prev => ({
+                                ...prev,
+                                [passedDayId]: true,
+                            }));
+
+                            // Local storage is cache only for GenAI.
+                            // This value is written only after server confirmation.
+                            localStorage.setItem(
+                                `assignment_passed_${roadmapData.id}_${passedDayId}`,
+                                "true"
+                            );
+                        } catch (e) {
+                            console.warn(
+                                "Failed to patch pass_assignment",
+                                e
+                            );
+
+                            const isClientError =
+                                e.message &&
+                                e.message.match(/progress: 4\d\d/);
+
+                            // Explicit server rejection must never unlock
+                            // the GenAI roadmap locally.
+                            if (isClientError) {
+                                return;
+                            }
+
+                            // Network/5xx ambiguity:
+                            // read canonical progress before trusting completion.
+                            try {
+                                const progressRes =
+                                    await fetchRoadmapProgress({
+                                        user,
+                                        roadmapSlug: roadmapData.id
+                                    });
+
+                                const recoveredPassedAssignments =
+                                    Array.isArray(
+                                        progressRes?.progress
+                                            ?.passedAssignments
+                                    )
+                                        ? progressRes.progress
+                                            .passedAssignments
+                                        : null;
+
+                                if (
+                                    !recoveredPassedAssignments ||
+                                    !recoveredPassedAssignments.includes(
+                                        passedDayId
+                                    )
+                                ) {
+                                    return;
+                                }
+
+                                assignmentPassAccepted = true;
+
+                                setAssignmentPassedDays(prev => ({
+                                    ...prev,
+                                    [passedDayId]: true,
+                                }));
+
+                                localStorage.setItem(
+                                    `assignment_passed_${roadmapData.id}_${passedDayId}`,
+                                    "true"
+                                );
+                            } catch (recoveryErr) {
+                                console.warn(
+                                    "Failed to recover assignment progress state",
+                                    recoveryErr
+                                );
+                                return;
                             }
                         }
                     }
+
+                    // GenAI can reach certificate/unlock handling only
+                    // after trusted server confirmation.
+                    if (!assignmentPassAccepted) {
+                        return;
+                    }
+
+                    let certificate = checkCertificateUnlock({
+                        roadmapData,
+                        completedLevels,
+                        dayId: passedDayId,
+                        triggerType: 'day'
+                    });
+
+                    if (certificate) {
+                        const milestoneLevels =
+                            certificate.milestoneLevels || [];
+
+                        const durationMinutes =
+                            milestoneLevels.reduce(
+                                (acc, lvl) =>
+                                    acc +
+                                    Number(
+                                        lvl.durationInMinutes || 0
+                                    ),
+                                0
+                            );
+
+                        const quizCompletedCount =
+                            milestoneLevels.length;
+
+                        const dateObj =
+                            new Date(certificate.unlockedAt);
+
+                        const providedOn =
+                            `${dateObj.getDate()} ${dateObj.toLocaleString(
+                                'default',
+                                { month: 'long' }
+                            )} ${dateObj.getFullYear()}`;
+
+                        certificate = {
+                            ...certificate,
+                            quizCompletedCount,
+                            durationMinutes,
+                            providedOn
+                        };
+
+                        if (
+                            process.env.NODE_ENV ===
+                            "development"
+                        ) {
+                            console.log(
+                                "[Certificate unlock payload]",
+                                {
+                                    certificateKey:
+                                        certificate.certificateKey,
+                                    milestoneLevelsCount:
+                                        milestoneLevels.length,
+                                    durationMinutes,
+                                    quizCompletedCount,
+                                    levelIds:
+                                        milestoneLevels.map(
+                                            l => l.id
+                                        ),
+                                }
+                            );
+                        }
+
+                        const saved =
+                            saveUnlockedCertificate(certificate);
+
+                        if (saved) {
+                            setUnlockedCertificate(
+                                certificate
+                            );
+                        }
+                    }
+
                     setShowAssignmentModal(false);
                 }}
                 onClose={() => setShowAssignmentModal(false)}

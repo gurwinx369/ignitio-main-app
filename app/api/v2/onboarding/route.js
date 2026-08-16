@@ -3,6 +3,9 @@ import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { runOnboarding } from "@/lib/onboarding/onboarding.service";
 import { error } from "three/src/utils.js";
+import {
+  validateTimeWithinPeriod,
+} from "@/lib/onboarding/schedule-periods";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -151,6 +154,31 @@ export async function POST(request) {
     return NextResponse.json(
       { message: "Validation failed", field: "schedule", detail: timeError },
       { status: 422 },
+    );
+  }
+
+  const periodValidation =
+    validateTimeWithinPeriod({
+      period:
+        body.schedule.period,
+      startTime:
+        body.schedule.startTime,
+      endTime:
+        body.schedule.endTime,
+    });
+
+  if (!periodValidation.valid) {
+    return NextResponse.json(
+      {
+        message:
+          "Validation failed",
+        field: "schedule",
+        detail:
+          periodValidation.error,
+      },
+      {
+        status: 422,
+      },
     );
   }
 

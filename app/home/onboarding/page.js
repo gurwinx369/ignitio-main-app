@@ -1,3 +1,6 @@
-import OnboardingFlow from '@/features/onboarding/onboarding-V3';
+// app/home/onboarding/page.js
+import { redirect } from "next/navigation";
 
-export default OnboardingFlow;
+export default function OnboardingEntry() {
+    redirect("/home/onboarding/diagnostic");
+}

@@ -44,3 +44,24 @@ next-env.d.ts
 
 #coding agent file
 CLAUDE.md
+
+#test files
+cloudflared.exe
+test_access_status_and_legacy_routing.js
+
+test_adaptive_diagnostic_flow.js
+test_behavior_quiz_security.js
+test_diagnostic_state_guard.js
+test_legacy_calibration.js
+test_models.js
+test_paywall_integration.js
+test_paywall.js
+test_post_onboarding_paywall.js
+test_premium_upgrade_route.js
+test_premium_upgrade.js
+test_results.js
+test_role_schedule_integration.js
+generate_report.js
+audit.js
+audit_results.json
+test_activation_integration.js

@@ -16,6 +16,8 @@ import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import { Home, BookOpen, User } from "lucide-react";
+import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
+import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
@@ -37,6 +39,10 @@ export default function Dashboard() {
   const pathname = usePathname();
   const posthog = usePostHog();
   const { user } = useAuth();
+  const {
+    status,
+    retry,
+  } = usePremiumAccess();
 
   const currentRoadmapRef = useRef(null);
 
@@ -47,25 +53,6 @@ export default function Dashboard() {
   useEffect(() => {
     setIsNavigating(false);
   }, [pathname]);
-
-  // Expose Firebase Auth token function to browser console
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.getFirebaseAuthToken = async () => {
-        if (!user) {
-          console.error("No user is currently signed in.");
-          return null;
-        }
-        try {
-          const token = await user.getIdToken();
-          console.log("Here is your Firebase Auth Token:", token);
-          return token;
-        } catch (error) {
-          console.error("Error getting Firebase Auth token:", error);
-        }
-      };
-    }
-  }, [user]);
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
@@ -394,6 +381,30 @@ export default function Dashboard() {
             />
           </div>
         </div>
+
+        {/* Premium Worlds */}
+        <section className="mb-12 w-full">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Premium Worlds</h2>
+              <p className="text-sm text-slate-500 mt-1">Master advanced skills with GenAI.</p>
+            </div>
+          </div>
+          <div className="flex justify-center items-center w-full">
+            <div className="w-full max-w-[760px]">
+              <GenAiPremiumCard
+                  status={status}
+                  onRetry={retry}
+                  onNavigatePremium={() =>
+                      handleRedirect("/home/premium/genai")
+                  }
+                  onNavigatePaywall={() =>
+                      handleRedirect("/home/premium/genai/paywall")
+                  }
+                />
+            </div>
+          </div>
+        </section>
 
         {/* Carousel */}
         <RoadmapWorldsCarousel roadmaps={carouselRoadmaps} initialActiveId={activeRoadmap?.id} />

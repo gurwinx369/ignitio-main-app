@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
-import { UserProfile } from "@/models/v2/user.profile.model";
-import { adminAuth } from "@/lib/firebase/firebase-admin";
+import { UserProfile, ONBOARDING_VERSIONS } from "@/models/v2/user.profile.model";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
 import { getLocalDateString } from "@/lib/users/streak.service";
+import { verifyFirebaseToken } from "@/lib/auth";
+import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
 
 // SECTION 1: ZOD VALIDATORS
 // Mirrors the schema exactly.
 // Zod runs before a single DB call is made.
 // If the shape is wrong, we reject immediately.
 
-// Old Zod validators commented out.
+// Accept role optionally for forward-compat; provisioning ignores it.
+// Role is set exclusively by the dedicated role-selection step.
 const CreateUserValidator = z.object({
   email: z.string().email("Invalid email format").toLowerCase().trim(),
-  role: z.enum(["student", "writer", "designer", "developer", "other"]),
+  role: z.enum(["student", "writer", "designer", "developer", "other"]).optional().nullable(),
 });
 
 // SECTION 2: TOKEN VERIFICATION HELPER
@@ -23,31 +25,6 @@ const CreateUserValidator = z.object({
 // Returns the decoded token (contains uid, email).
 // Never trust firebaseUID from the request body.
 
-async function verifyFirebaseToken(request) {
-  const authHeader = request.headers.get("Authorization");
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { error: "Missing or malformed Authorization header", status: 401 };
-  }
-
-  const idToken = authHeader.split("Bearer ")[1]?.trim();
-
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    return { decodedToken };
-  } catch (err) {
-    // Don't expose the raw Firebase error — it leaks internals
-    //  return { error: "Invalid or expired token", status: 401 };
-    console.error("[Firebase verify error]", err.code, err.message);
-    return {
-      error:
-        process.env.NODE_ENV === "development"
-          ? `Firebase error: ${err.code} — ${err.message}`
-          : "Invalid or expired token",
-      status: 401,
-    };
-  }
-}
 
 // SECTION 3: POST — Create User Profile
 // Flow: verify token → validate body →
@@ -102,7 +79,7 @@ export async function POST(request) {
     );
   }
 
-  const { email, role } = validation.data;
+  const { email } = validation.data;
 
   // Step 3: Verify the email in the body matches the token.
   // Prevents a logged-in user from creating a profile under
@@ -131,48 +108,24 @@ export async function POST(request) {
       }
     }
 
-    const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
-
     if (existingProfile) {
-      const hasValidRole = VALID_ROLES.includes(existingProfile.role);
-
-      if (hasValidRole) {
-        await normalizeUserProfileRetentionFields(existingProfile._id);
-        return NextResponse.json(
-          {
-            message: "User profile found",
-            user: {
-              id: existingProfile._id,
-              email: existingProfile.email,
-              onboardingComplete: existingProfile.onboardingComplete,
-              createdAt: existingProfile.createdAt,
-            },
-            existing: true,
+      await normalizeUserProfileRetentionFields(existingProfile._id);
+      return NextResponse.json(
+        {
+          message: "User profile found",
+          user: {
+            id: existingProfile._id,
+            email: existingProfile.email,
+            role: existingProfile.role,
+            onboardingComplete: existingProfile.onboardingComplete,
+            onboardingVersion: existingProfile.onboardingVersion,
+            onboardingState: existingProfile.onboardingState,
+            createdAt: existingProfile.createdAt,
           },
-          { status: 200 },
-        );
-      } else {
-        // Use updateOne to avoid full-document validation on legacy profiles
-        await UserProfile.updateOne(
-          { _id: existingProfile._id },
-          { $set: { role, onboardingComplete: true } },
-          { timestamps: false }
-        );
-        await normalizeUserProfileRetentionFields(existingProfile._id);
-        return NextResponse.json(
-          {
-            message: "User profile updated",
-            user: {
-              id: existingProfile._id,
-              email: existingProfile.email,
-              onboardingComplete: true,
-              createdAt: existingProfile.createdAt,
-            },
-            existing: true,
-          },
-          { status: 200 },
-        );
-      }
+          existing: true,
+        },
+        { status: 200 },
+      );
     }
 
     // Step 5: Atomic create
@@ -182,9 +135,13 @@ export async function POST(request) {
     const userProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid, // from verified token, never from body
       email: tokenEmail,
-      role,
-      onboardingComplete: true,
-      completedAt: now,
+      // role is intentionally omitted — schema defaults to "other".
+      // The dedicated role-selection step overwrites this later.
+      onboardingComplete: false,
+      onboardingVersion: ONBOARDING_VERSIONS.V4,
+      onboardingState: {
+        step: "diagnostic",
+      },
       streak: {
         timezone: "Asia/Kolkata",
         onboardingStartDate: todayLocal,
@@ -197,7 +154,10 @@ export async function POST(request) {
         user: {
           id: userProfile._id,
           email: userProfile.email,
+          role: userProfile.role,
           onboardingComplete: userProfile.onboardingComplete,
+          onboardingVersion: userProfile.onboardingVersion,
+          onboardingState: userProfile.onboardingState,
           createdAt: userProfile.createdAt,
         },
         existing: false,
@@ -224,7 +184,10 @@ export async function POST(request) {
             user: {
               id: duplicateProfile._id,
               email: duplicateProfile.email,
+              role: duplicateProfile.role,
               onboardingComplete: duplicateProfile.onboardingComplete,
+              onboardingVersion: duplicateProfile.onboardingVersion,
+              onboardingState: duplicateProfile.onboardingState,
               createdAt: duplicateProfile.createdAt,
             },
             existing: true,
@@ -258,6 +221,7 @@ function toSafeUser(profile, requiresOnboarding = false) {
     createdAt: profile.createdAt,
     completedAt: profile.completedAt,
     onboardingVersion: profile.onboardingVersion ?? "v2",
+    onboardingState: profile.onboardingState ?? null,
     goal: profile.goal ?? "not_set",
     schedulePreference: profile.schedulePreference ?? {
       timezone: "Asia/Kolkata",
@@ -326,9 +290,7 @@ export async function GET(request) {
 
     await normalizeUserProfileRetentionFields(userProfile._id);
 
-    const VALID_ROLES = ["student", "writer", "designer", "developer", "other"];
-    const hasValidRole = VALID_ROLES.includes(userProfile.role);
-    const requiresOnboarding = !hasValidRole;
+    const requiresOnboarding = !isOnboardingComplete(userProfile);
 
     return NextResponse.json(
       { message: "User profile found", user: toSafeUser(userProfile, requiresOnboarding) },
