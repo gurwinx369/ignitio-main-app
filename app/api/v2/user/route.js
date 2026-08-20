@@ -3,7 +3,6 @@ import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile, ONBOARDING_VERSIONS } from "@/models/v2/user.profile.model";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
-import { getLocalDateString } from "@/lib/users/streak.service";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
 
@@ -129,11 +128,8 @@ export async function POST(request) {
     }
 
     // Step 5: Atomic create
-    const now = new Date();
-    const todayLocal = getLocalDateString(now, "Asia/Kolkata");
-
     const userProfile = await UserProfile.create({
-      firebaseUID: decodedToken.uid, // from verified token, never from body
+      firebaseUID: decodedToken.uid,
       email: tokenEmail,
       // role is intentionally omitted — schema defaults to "other".
       // The dedicated role-selection step overwrites this later.
@@ -142,10 +138,6 @@ export async function POST(request) {
       onboardingState: {
         step: "diagnostic",
       },
-      streak: {
-        timezone: "Asia/Kolkata",
-        onboardingStartDate: todayLocal,
-      }
     });
 
     return NextResponse.json(

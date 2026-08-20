@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { adminAuth } from "@/lib/firebase/firebase-admin";
+import { hasStreakHistory } from "@/lib/users/streak.service";
 
 async function verifyFirebaseToken(request) {
   const authHeader = request.headers.get("Authorization");
@@ -63,26 +64,50 @@ export async function PATCH(request) {
       return NextResponse.json({ message: "User profile not found" }, { status: 404 });
     }
 
-    const currentSchedulePreference = userProfile.schedulePreference || {};
+    const currentSchedulePreference =
+      userProfile.schedulePreference || {};
 
-    // Always update schedulePreference.timezone
+    /*
+     * Browser timezone detection owns the schedule only while the
+     * schedule is still automatic/default.
+     *
+     * Once the user explicitly chooses a learning timezone
+     * (isDefault === false), browser detection must never overwrite it.
+     */
+    const isExplicitSchedule =
+      currentSchedulePreference.isDefault === false;
+
+    if (isExplicitSchedule) {
+      return NextResponse.json({
+        ok: true,
+        timezone: currentSchedulePreference.timezone,
+        streakTimezoneUpdated: false,
+      });
+    }
     const setQuery = {
-      "schedulePreference.timezone": normalizedTimezone,
-      "schedulePreference.windows": currentSchedulePreference.windows || [],
-      "schedulePreference.isDefault": typeof currentSchedulePreference.isDefault === "boolean" ? currentSchedulePreference.isDefault : true
+      "schedulePreference.timezone":
+        normalizedTimezone,
+
+      "schedulePreference.windows":
+        currentSchedulePreference.windows || [],
+
+      "schedulePreference.isDefault": true,
     };
 
     let streakTimezoneUpdated = false;
     const currentStreak = userProfile.streak || {};
 
-    // Update streak.timezone only when conservatively safe
-    const hasCurrentCount = currentStreak.currentCount > 0;
-    const hasLongestCount = currentStreak.longestCount > 0;
-    const hasCompletedDate = currentStreak.lastCompletedDateLocal != null;
-    const hasActiveEarnBack = currentStreak.earnBack?.active === true;
+    /*
+     * Before streak history exists, the automatic browser timezone
+     * may initialize/update the streak calendar.
+     *
+     * Once real history exists, the streak timezone is stable and must
+     * not silently rebase historical local dates.
+     */
+    if (!hasStreakHistory(currentStreak)) {
+      setQuery["streak.timezone"] =
+        normalizedTimezone;
 
-    if (!hasCurrentCount && !hasLongestCount && !hasCompletedDate && !hasActiveEarnBack) {
-      setQuery["streak.timezone"] = normalizedTimezone;
       streakTimezoneUpdated = true;
     }
 

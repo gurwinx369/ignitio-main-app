@@ -53,7 +53,11 @@ const StreakReminderLogSchema = new mongoose.Schema(
 );
 
 StreakReminderLogSchema.index(
-  { userId: 1, localDateString: 1 },
+  {
+    userId: 1,
+    localDateString: 1,
+    reminderType: 1,
+  },
   { unique: true }
 );
 

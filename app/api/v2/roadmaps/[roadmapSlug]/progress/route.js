@@ -435,6 +435,7 @@ export async function PATCH(request, { params }) {
     let userActivityUpdates = { last_active_on: now };
     let meaningfulLearningActivity = false;
     let isNewLevelCompletion = false;
+    let progressPersistedAtomically = false;
 
     if (
       roadmapSlug === "gen-ai-internship" &&
@@ -462,37 +463,298 @@ export async function PATCH(request, { params }) {
       if (!progress.startedAt) progress.startedAt = now;
       meaningfulLearningActivity = true;
     } else if (data.action === "complete_level") {
-      if (data.levelId && !progress.completedLevels.includes(data.levelId)) {
-        if (roadmapSlug === "gen-ai-internship") {
-          isNewLevelCompletion = true;
-          const newCompleted = [...progress.completedLevels, data.levelId];
-          progress.completedLevels = normalizeCanonicalCompletedLevels(progress.completedLevels, newCompleted, activeLevelIds);
-          progress.completedDays = deriveGenAiCompletedDays(template, access.personalization, progress.completedLevels);
-          const newStatus = calculateRequiredRoadmapStatus(progress.completedLevels, activeLevelIds);
-          progress.status = newStatus;
-          if (newStatus === "completed" && !progress.completedAt) {
-            progress.completedAt = now;
+      if (data.levelId) {
+        /*
+         * Newly-created legacy progress documents do not exist in MongoDB yet,
+         * so keep the normal single-save path for those.
+         *
+         * Existing progress documents use compare-and-retry so two concurrent
+         * level completions cannot overwrite each other's completedLevels array.
+         */
+        if (progress.isNew) {
+          if (!progress.completedLevels.includes(data.levelId)) {
+            if (roadmapSlug === "gen-ai-internship") {
+              isNewLevelCompletion = true;
+
+              const newCompleted = [
+                ...progress.completedLevels,
+                data.levelId,
+              ];
+
+              progress.completedLevels =
+                normalizeCanonicalCompletedLevels(
+                  progress.completedLevels,
+                  newCompleted,
+                  activeLevelIds,
+                );
+
+              progress.completedDays =
+                deriveGenAiCompletedDays(
+                  template,
+                  access.personalization,
+                  progress.completedLevels,
+                );
+
+              const newStatus =
+                calculateRequiredRoadmapStatus(
+                  progress.completedLevels,
+                  activeLevelIds,
+                );
+
+              progress.status = newStatus;
+
+              if (
+                newStatus === "completed" &&
+                !progress.completedAt
+              ) {
+                progress.completedAt = now;
+              }
+
+              if (!progress.startedAt) {
+                progress.startedAt = now;
+              }
+
+              meaningfulLearningActivity = true;
+            } else {
+              isNewLevelCompletion = true;
+
+              const newCompleted = [
+                ...progress.completedLevels,
+                data.levelId,
+              ];
+
+              progress.completedLevels =
+                normalizeCompletedLevels(
+                  newCompleted,
+                  data.allLevelIds,
+                );
+
+              progress.completedDays =
+                calculateCompletedDays({
+                  days: data.days,
+                  completedLevels:
+                    progress.completedLevels,
+                });
+
+              const newStatus =
+                calculateRoadmapStatus({
+                  completedLevels:
+                    progress.completedLevels,
+                  totalLevels:
+                    canonicalTotalLevels,
+                });
+
+              progress.status = newStatus;
+
+              if (
+                newStatus === "completed" &&
+                !progress.completedAt
+              ) {
+                progress.completedAt = now;
+              }
+
+              if (!progress.startedAt) {
+                progress.startedAt = now;
+              }
+
+              meaningfulLearningActivity = true;
+            }
           }
-          if (!progress.startedAt) progress.startedAt = now;
-          meaningfulLearningActivity = true;
+
+          progress.lastActiveLevelId =
+            data.levelId;
         } else {
-          isNewLevelCompletion = true;
-          const newCompleted = [...progress.completedLevels, data.levelId];
-          progress.completedLevels = normalizeCompletedLevels(newCompleted, data.allLevelIds);
-          progress.completedDays = calculateCompletedDays({ days: data.days, completedLevels: progress.completedLevels });
-          const newStatus = calculateRoadmapStatus({
-            completedLevels: progress.completedLevels,
-            totalLevels: canonicalTotalLevels,
-          });
-          progress.status = newStatus;
-          if (newStatus === "completed" && !progress.completedAt) {
-            progress.completedAt = now;
+          const MAX_COMPLETION_UPDATE_ATTEMPTS = 3;
+          let completionHandled = false;
+
+          for (
+            let attempt = 0;
+            attempt < MAX_COMPLETION_UPDATE_ATTEMPTS;
+            attempt += 1
+          ) {
+            const currentCompleted = [
+              ...(progress.completedLevels || []),
+            ];
+
+            /*
+             * Retry/idempotency case:
+             * another request may already have persisted this level.
+             */
+            if (
+              currentCompleted.includes(
+                data.levelId,
+              )
+            ) {
+              progress =
+                await RoadmapProgress.findOneAndUpdate(
+                  {
+                    _id: progress._id,
+                    firebaseUID:
+                      decodedToken.uid,
+                    roadmapSlug,
+                  },
+                  {
+                    $set: {
+                      lastActiveLevelId:
+                        data.levelId,
+                    },
+                  },
+                  {
+                    new: true,
+                    runValidators: true,
+                  },
+                );
+
+              if (!progress) {
+                throw new Error(
+                  "Roadmap progress disappeared during level completion",
+                );
+              }
+
+              isNewLevelCompletion = false;
+              progressPersistedAtomically = true;
+              completionHandled = true;
+              break;
+            }
+
+            let nextCompleted;
+            let nextCompletedDays;
+            let nextStatus;
+
+            if (
+              roadmapSlug ===
+              "gen-ai-internship"
+            ) {
+              nextCompleted =
+                normalizeCanonicalCompletedLevels(
+                  currentCompleted,
+                  [
+                    ...currentCompleted,
+                    data.levelId,
+                  ],
+                  activeLevelIds,
+                );
+
+              nextCompletedDays =
+                deriveGenAiCompletedDays(
+                  template,
+                  access.personalization,
+                  nextCompleted,
+                );
+
+              nextStatus =
+                calculateRequiredRoadmapStatus(
+                  nextCompleted,
+                  activeLevelIds,
+                );
+            } else {
+              nextCompleted =
+                normalizeCompletedLevels(
+                  [
+                    ...currentCompleted,
+                    data.levelId,
+                  ],
+                  data.allLevelIds,
+                );
+
+              nextCompletedDays =
+                calculateCompletedDays({
+                  days: data.days,
+                  completedLevels:
+                    nextCompleted,
+                });
+
+              nextStatus =
+                calculateRoadmapStatus({
+                  completedLevels:
+                    nextCompleted,
+                  totalLevels:
+                    canonicalTotalLevels,
+                });
+            }
+
+            const progressUpdates = {
+              completedLevels: nextCompleted,
+              completedDays:
+                nextCompletedDays,
+              status: nextStatus,
+              lastActiveLevelId:
+                data.levelId,
+              lastLearningActiveAt: now,
+            };
+
+            if (!progress.startedAt) {
+              progressUpdates.startedAt =
+                now;
+            }
+
+            if (
+              nextStatus === "completed" &&
+              !progress.completedAt
+            ) {
+              progressUpdates.completedAt =
+                now;
+            }
+
+            /*
+             * Compare-and-swap:
+             *
+             * Update only if completedLevels is still exactly the snapshot
+             * we calculated from. If another completion won the race,
+             * this returns null and we retry from the newest DB state.
+             */
+            const updatedProgress =
+              await RoadmapProgress.findOneAndUpdate(
+                {
+                  _id: progress._id,
+                  firebaseUID:
+                    decodedToken.uid,
+                  roadmapSlug,
+                  completedLevels:
+                    currentCompleted,
+                },
+                {
+                  $set: progressUpdates,
+                },
+                {
+                  new: true,
+                  runValidators: true,
+                },
+              );
+
+            if (updatedProgress) {
+              progress = updatedProgress;
+              isNewLevelCompletion = true;
+              meaningfulLearningActivity =
+                true;
+              progressPersistedAtomically =
+                true;
+              completionHandled = true;
+              break;
+            }
+
+            progress =
+              await RoadmapProgress.findOne({
+                _id: progress._id,
+                firebaseUID:
+                  decodedToken.uid,
+                roadmapSlug,
+              });
+
+            if (!progress) {
+              throw new Error(
+                "Roadmap progress disappeared during concurrent level completion",
+              );
+            }
           }
-          if (!progress.startedAt) progress.startedAt = now;
-          meaningfulLearningActivity = true;
+
+          if (!completionHandled) {
+            throw new Error(
+              "Roadmap progress changed repeatedly during level completion",
+            );
+          }
         }
       }
-      if (data.levelId) progress.lastActiveLevelId = data.levelId;
     } else if (data.action === "pass_assignment") {
       if (data.dayId && !progress.passedAssignments.includes(data.dayId)) {
         if (roadmapSlug === "gen-ai-internship") {
@@ -565,22 +827,41 @@ export async function PATCH(request, { params }) {
       userActivityUpdates.last_learning_active_on = now;
     }
 
-    await progress.save();
+    if (!progressPersistedAtomically) {
+      await progress.save();
+    }
 
     await UserProfile.updateOne({ _id: user._id }, { $set: userActivityUpdates }, { timestamps: false });
 
     let streakSummary = null;
-    if (data.action === "complete_level" && isNewLevelCompletion) {
-      streakSummary = await updateStreakOnLevelCompletion({
-        userProfile: user,
-        roadmapSlug,
-        levelId: data.levelId,
-      });
+
+    if (
+      data.action === "complete_level" &&
+      data.levelId
+    ) {
+      streakSummary =
+        await updateStreakOnLevelCompletion({
+          userProfile: user,
+          roadmapSlug,
+          levelId: data.levelId,
+        });
     } else if (data.action === "complete_level") {
-      await evaluateAndApplyLazyStreakState(user, now);
-      const tz = user.streak?.timezone || "Asia/Kolkata";
-      const todayLocal = getLocalDateString(now, tz);
-      streakSummary = getStreakSummary(user.streak || {}, todayLocal, now);
+      await evaluateAndApplyLazyStreakState(
+        user,
+        now,
+      );
+
+      const tz =
+        user.streak?.timezone || "Asia/Kolkata";
+
+      const todayLocal =
+        getLocalDateString(now, tz);
+
+      streakSummary = getStreakSummary(
+        user.streak || {},
+        todayLocal,
+        now,
+      );
     } else {
       const tz = user.streak?.timezone || "Asia/Kolkata";
       const todayLocal = getLocalDateString(now, tz);

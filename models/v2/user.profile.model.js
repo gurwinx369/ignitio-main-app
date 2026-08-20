@@ -172,9 +172,77 @@ const EarnBackSchema = new Schema(
       default: 0,
       min: 0,
     },
+
+    missedDateLocal: {
+      type: String,
+      default: null,
+    },
+
+    lastResolution: {
+      type: String,
+      enum: [
+        null,
+        "recovered",
+        "expired",
+      ],
+      default: null,
+    },
   },
   {
     _id: false,
+  },
+);
+
+const StreakHistoryPendingSchema = new Schema(
+  {
+    /*
+     * Exact historical local calendar day represented
+     * by this lifecycle event.
+     */
+    dateLocal: {
+      type: String,
+      required: true,
+    },
+
+    /*
+     * Snapshot the timezone at the moment the lifecycle
+     * transition happened.
+     *
+     * Never reinterpret historical days using a later
+     * timezone change.
+     */
+    timezone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    /*
+     * Lifecycle-only statuses.
+     *
+     * Genuine completed learning days are intentionally
+     * NOT queued here because LessonCompletion is their
+     * durable source of truth.
+     */
+    status: {
+      type: String,
+      required: true,
+      enum: [
+        "missed",
+        "grace_used",
+        "freeze_used",
+        "earnback_recovered",
+      ],
+    },
+  },
+  {
+    /*
+     * Keep the automatic subdocument _id.
+     *
+     * We will use it later to remove exactly the event
+     * that was successfully projected into StreakDay.
+     */
+    _id: true,
   },
 );
 
@@ -199,7 +267,7 @@ const StreakSchema = new Schema(
 
     timezone: {
       type: String,
-      default: "Asia/Kolkata",
+      default: null,
       trim: true,
     },
 
@@ -220,6 +288,11 @@ const StreakSchema = new Schema(
       default: false,
     },
 
+    onboardingGraceUsedForDateLocal: {
+      type: String,
+      default: null,
+    },
+
     onboardingStartDate: {
       type: String,
       default: null,
@@ -228,6 +301,11 @@ const StreakSchema = new Schema(
     earnBack: {
       type: EarnBackSchema,
       default: () => ({}),
+    },
+
+    historyPending: {
+      type: [StreakHistoryPendingSchema],
+      default: [],
     },
   },
   {
@@ -303,7 +381,7 @@ const FeatureEntitlementsSchema = new Schema(
 // new categories can be added without flattening the root document.
 const EntitlementsSchema = new Schema(
   {
-     // Premium roadmap access
+    // Premium roadmap access
     roadmaps: {
       type: RoadmapEntitlementsSchema,
       default: () => ({}),
@@ -486,6 +564,50 @@ UserProfileSchema.index({
 UserProfileSchema.index({
   "entitlements.roadmaps.genAi": 1,
 });
+
+/*
+ * Background streak lifecycle indexes.
+ *
+ * Expired Earn-Back:
+ *   onboardingComplete = true
+ *   earnBack.active = true
+ *   earnBack.deadline < now
+ *
+ * Equality fields come first, followed by the deadline field used for
+ * both the range predicate and deterministic processing order.
+ */
+UserProfileSchema.index(
+  {
+    onboardingComplete: 1,
+    "streak.earnBack.active": 1,
+    "streak.earnBack.deadline": 1,
+    _id: 1,
+  },
+  {
+    name: "streak_lifecycle_expired_earnback",
+  },
+);
+
+/*
+ * Missed streak lifecycle:
+ *   onboardingComplete = true
+ *   lastCompletedDateLocal <= conservative cutoff
+ *
+ * currentCount and earnBack.active remain residual filters because they
+ * use non-equality predicates. Keeping lastCompletedDateLocal directly
+ * after the equality prefix allows MongoDB to efficiently walk candidates
+ * in the same order used by the lifecycle worker.
+ */
+UserProfileSchema.index(
+  {
+    onboardingComplete: 1,
+    "streak.lastCompletedDateLocal": 1,
+    _id: 1,
+  },
+  {
+    name: "streak_lifecycle_missed",
+  },
+);
 
 export const UserProfile =
   mongoose.models.UserProfile ||

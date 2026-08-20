@@ -34,6 +34,10 @@ const LessonCompletionSchema = new Schema(
       type: String,
       required: true,
     },
+    streakHistoryProjectedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -41,6 +45,17 @@ const LessonCompletionSchema = new Schema(
 // Indexes
 LessonCompletionSchema.index({ userId: 1, completedDateLocal: 1 });
 LessonCompletionSchema.index({ firebaseUID: 1, completedDateLocal: 1 });
+LessonCompletionSchema.index({
+  streakHistoryProjectedAt: 1,
+  completedAtUTC: 1,
+});
+/*
+ * Supports exact Earn-Back 48-hour reconciliation.
+ */
+LessonCompletionSchema.index({
+  userId: 1,
+  completedAtUTC: 1,
+});
 
 // Unique idempotency index: a user can only complete a level once
 LessonCompletionSchema.index(

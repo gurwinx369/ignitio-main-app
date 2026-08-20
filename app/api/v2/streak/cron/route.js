@@ -4,7 +4,11 @@ import connectDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import UserNotification from "@/models/v1/notification.model";
 import { StreakReminderLog } from "@/models/v2/streak.reminder.log.model";
-import { getLocalDateString, getStreakSummary } from "@/lib/users/streak.service";
+import {
+  getLocalDateString,
+  getStreakSummary,
+  isEarnBackWindowActive,
+} from "@/lib/users/streak.service";
 import { sendRetentionEmail } from "@/lib/retention/resend.client";
 
 if (!admin.apps.length) {
@@ -73,8 +77,8 @@ export async function GET(request) {
 
     for (const user of users) {
       const timezone =
-        user.schedulePreference?.timezone ||
         user.streak?.timezone ||
+        user.schedulePreference?.timezone ||
         "Asia/Kolkata";
 
       const localDateString = getLocalDateString(now, timezone);
@@ -101,13 +105,28 @@ export async function GET(request) {
       let ctaText = "Continue learning";
       let ctaUrl = "https://app.ignitio.cloud/home";
 
-      if (summary.status === "at_risk" || summary.earnBack?.active) {
+      const hasActiveEarnBackWindow =
+        isEarnBackWindowActive(
+          summary.earnBack,
+          now,
+        );
+
+      const hasPersistedEarnBackState =
+        summary.status === "at_risk" ||
+        summary.earnBack?.active;
+
+      if (hasActiveEarnBackWindow) {
         reminderType = "earn_back";
-        title = "Your Ignitio Earn-Back window is active";
-        heading = "Earn-Back window active";
-        body = "Complete 2 lessons before the deadline to restore your streak.";
-        ctaText = "Restore your streak";
+        title =
+          "Your Ignitio Earn-Back window is active";
+        heading =
+          "Earn-Back window active";
+        body =
+          "Complete 2 lessons before the deadline to restore your streak.";
+        ctaText =
+          "Restore your streak";
       } else if (
+        !hasPersistedEarnBackState &&
         summary.status !== "completed_today" &&
         summary.status !== "reset" &&
         summary.status !== "inactive"
