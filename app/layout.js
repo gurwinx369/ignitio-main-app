@@ -76,10 +76,10 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
             <head>
-                <link rel="preconnect" href="https://www.youtube" />
-                <link rel="preconnect" href="https://www.youtube-nocookie.com" />
-                <link rel="preconnect" href="https://i.ytimg.com" />
-                <link rel="dns-prefetch" href="https://www.youtube" />
+                <link rel="preconnect" href="https://ignitio-7e45a.firebaseapp.com" />
+                <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+                <link rel="dns-prefetch" href="https://ignitio-7e45a.firebaseapp.com" />
+                <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
             </head>
             <ClientLayoutWrapper bodyClass={bodyClass}>
                 {children}
