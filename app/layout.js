@@ -72,7 +72,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
     const bodyClass = `${inter.variable} ${pixelifySans.variable} antialiased`;
-    
+
     return (
         <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
             <head>
@@ -80,6 +80,10 @@ export default function RootLayout({ children }) {
                 <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
                 <link rel="dns-prefetch" href="https://ignitio-7e45a.firebaseapp.com" />
                 <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+                <link rel="preconnect" href="https://www.youtube" />
+                <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+                <link rel="preconnect" href="https://i.ytimg.com" />
+                <link rel="dns-prefetch" href="https://www.youtube" />
             </head>
             <ClientLayoutWrapper bodyClass={bodyClass}>
                 {children}
