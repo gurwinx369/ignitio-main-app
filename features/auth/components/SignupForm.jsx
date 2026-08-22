@@ -338,6 +338,35 @@ export default function SignupForm() {
                     </Link>
                   </p>
                 </div>
+
+                {/* Legal Terms & Privacy Disclaimer */}
+                <p
+                  className="mt-6 text-center text-xs sm:text-sm leading-relaxed"
+                  style={{
+                    fontFamily: "var(--font-inter)",
+                    color: "#6b7280",
+                  }}
+                >
+                  By continuing, you agree to Ignitio&#39;s{" "}
+                  <a
+                    href="https://ignitio.cloud/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium hover:opacity-80 transition-opacity underline decoration-[#00A9FF] underline-offset-4"
+                  >
+                    Terms &amp; Conditions
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="https://ignitio.cloud/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium hover:opacity-80 transition-opacity underline decoration-[#00A9FF] underline-offset-4"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
               </div>
             </div>
 
