@@ -1,10 +1,12 @@
-import React from "react"
+"use client";
+
+import React from "react";
 import Shuffle from "@/components/ui/shuffle";
-import { NumberTicker } from "@/components/ui/number-ticker"
+import { NumberTicker } from "@/components/ui/number-ticker";
 
 export default function Loader() {
     return (
-        <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#e8e8f0' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto select-none" style={{ backgroundColor: '#e8e8f0' }}>
             {/* Center - Ignitio text */}
             <div className="flex items-center justify-center">
                 <Shuffle

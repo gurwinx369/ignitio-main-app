@@ -4,6 +4,8 @@ import { useAuth } from "@/features/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import Loader from "@/layout/Loader";
+
 export default function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
     const router = useRouter();
@@ -14,13 +16,9 @@ export default function ProtectedRoute({ children }) {
         }
     }, [user, loading, router]);
 
-    // Show loading state
+    // Show Ignitio Brand Loader
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-            </div>
-        );
+        return <Loader />;
     }
 
     // Show nothing while redirecting
