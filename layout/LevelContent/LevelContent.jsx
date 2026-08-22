@@ -58,6 +58,16 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const shouldPauseVideo = showQuizModal || showAssignmentModal;
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            window.__IS_IN_LESSON_VIEW = true;
+            return () => {
+                window.__IS_IN_LESSON_VIEW = false;
+                window.dispatchEvent(new Event("returned_to_roadmap"));
+            };
+        }
+    }, []);
+
+    useEffect(() => {
         if (isKyleRoadmap && activeTab === 'practice') {
             setActiveTab('video');
         }
