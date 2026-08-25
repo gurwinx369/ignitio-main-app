@@ -157,13 +157,19 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                                 {level.title || 'Video Title'}
                             </h1>
                             {!hasWatched && canMarkComplete && (
-                                <button
-                                    onClick={onMarkComplete}
-                                    className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 hover:shadow-md active:scale-95 text-sm sm:text-base font-medium"
-                                >
-                                    <CheckCircle className="w-4 h-4" />
-                                    Complete
-                                </button>
+                                <div className="flex flex-col items-center gap-1">
+                                    <button
+                                        onClick={onMarkComplete}
+                                        className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 hover:shadow-md active:scale-95 text-sm sm:text-base font-medium"
+                                    >
+                                        <CheckCircle className="w-4 h-4" />
+                                        Complete
+                                    </button>
+
+                                    <span className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight">
+                                        Click to complete this lesson
+                                    </span>
+                                </div>
                             )}
                         </div>
 
