@@ -14,8 +14,19 @@ import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
+import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 
-export default function Dashboard() {
+// Resolve full roadmap data from a stored roadmapId — mirrors NewOnboardingV3 + RoadmapTemplate logic.
+function resolveRoadmapData(roadmapId, role) {
+  if (!roadmapId) return null;
+  if (roadmapId === 'git-github') return gitGithubRoadmapData;
+  if (roadmapId === 'cpp') return cppRoadmapData;
+  if (roadmapId.startsWith('prompt-engineering')) return getPromptEngineeringRoadmapByRole(role);
+  if (roadmapId.startsWith('dsa')) return getDsaRoadmapByRole(role);
+  return null;
+}
+
+export default function Dashboard({ isPreview = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const posthog = usePostHog();
@@ -28,9 +39,9 @@ export default function Dashboard() {
   }, [pathname]);
 
   const redirects = {
-    GitGithub: "/home/roadmaps/git-github",
-    CPP: "/home/roadmaps/cpp",
-    PromptEngineering: "/home/roadmaps/prompt-engineering",
+    GitGithub: isPreview ? "/preview/roadmaps/git-github" : "/home/roadmaps/git-github",
+    CPP: isPreview ? "/preview/roadmaps/cpp" : "/home/roadmaps/cpp",
+    PromptEngineering: isPreview ? "/preview/roadmaps/prompt-engineering" : "/home/roadmaps/prompt-engineering",
   };
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
@@ -43,7 +54,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchUserRole = async () => {
       let role = "other";
-      if (user) {
+      if (isPreview) {
+        role = localStorage.getItem("profession") || "other";
+      } else if (user) {
         try {
           const token = await user.getIdToken();
           const res = await fetch("/api/v2/user", {
@@ -77,12 +90,51 @@ export default function Dashboard() {
       setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
       setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
+
+      // Migrate preview progress to MongoDB now that user + role are confirmed.
+      // This is the right moment: auth is settled, profile exists, role is known.
+      // Only runs for authenticated users coming from the preview funnel.
+      if (!isPreview && user) {
+        try {
+          const raw = typeof window !== 'undefined' && localStorage.getItem('ignitio:preview_payload');
+          if (raw) {
+            const { roadmapId, completedLevels: previewCompleted } = JSON.parse(raw);
+            const roadmapData = resolveRoadmapData(roadmapId, role);
+            if (roadmapData && Array.isArray(previewCompleted) && previewCompleted.length > 0) {
+              const allLevels = roadmapData.days.flatMap(d => d.levels);
+              const validIds = new Set(allLevels.map(l => l.id));
+              const validCompleted = previewCompleted.filter(id => validIds.has(id));
+              if (validCompleted.length > 0) {
+                await migrateRoadmapProgress({
+                  user,
+                  roadmapSlug: roadmapData.id,
+                  payload: {
+                    roadmapTitle: roadmapData.title || '',
+                    role,
+                    totalLevels: allLevels.length,
+                    allLevelIds: allLevels.map(l => l.id),
+                    days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
+                    completedLevels: validCompleted,
+                    passedAssignments: [],
+                  },
+                });
+              }
+            }
+            localStorage.removeItem('ignitio:preview_payload');
+          }
+        } catch (migrationErr) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[preview migration] Failed:', migrationErr?.message);
+          }
+          // Non-fatal — RoadmapTemplate's lazy migration is the safety net
+        }
+      }
     };
 
-    if (user !== undefined) {
+    if (isPreview || user !== undefined) {
       fetchUserRole();
     }
-  }, [user]);
+  }, [user, isPreview, router]);
 
   useEffect(() => {
     setIsClient(true);
@@ -120,7 +172,7 @@ export default function Dashboard() {
       roadmapsData.push({
         id: selectedDsaRoadmap.id,
         title: selectedDsaRoadmap.title,
-        route: "/home/roadmaps/dsa",
+        route: isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa",
         totalLevels: selectedDsaRoadmap.days.flatMap(
           (day) => day.levels,
         ).length,
@@ -208,7 +260,7 @@ export default function Dashboard() {
     router.push(redirects.PromptEngineering);
   };
   const handleRedirectDsa = () => {
-    router.push("/home/roadmaps/dsa");
+    router.push(isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa");
   };
 
   return (
@@ -216,9 +268,11 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
 
         {/* Header Section */}
-        <div className="mb-12">
-          <Profile />
-        </div>
+        {!isPreview && (
+          <div className="mb-12 flex justify-end">
+            <Profile />
+          </div>
+        )}
 
         {/* Continue Learning Banner */}
         <div className="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-gray-100 mb-16 flex flex-col md:flex-row md:items-center justify-between gap-8 transition-shadow hover:shadow-md">

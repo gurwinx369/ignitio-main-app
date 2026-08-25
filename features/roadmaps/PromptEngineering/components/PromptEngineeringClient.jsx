@@ -6,7 +6,7 @@ import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
 import { useAuth } from '@/features/context/AuthContext';
 import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from '@/data/promptEngineering';
 
-export default function PromptEngineeringClient() {
+export default function PromptEngineeringClient({ isPreview = false }) {
     const { user } = useAuth();
     const [selectedRoadmap, setSelectedRoadmap] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -56,5 +56,5 @@ export default function PromptEngineeringClient() {
         );
     }
 
-    return <RoadmapTemplate roadmapData={selectedRoadmap || genericPromptEngineeringRoadmapData} />;
+    return <RoadmapTemplate roadmapData={selectedRoadmap || genericPromptEngineeringRoadmapData} isPreview={isPreview} />;
 }

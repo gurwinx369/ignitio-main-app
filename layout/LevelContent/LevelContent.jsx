@@ -36,7 +36,7 @@ function fiftyPercentOfVideo(durationInMinutes, levelId, roadmapType, onTimerCom
     };
 }
 
-const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber, showAssignmentModal = false }) => {
+const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'git-github', role, dayNumber, showAssignmentModal = false, isPreview = false }) => {
     const [activeTab, setActiveTab] = useState('video');
     const [hasWatched, setHasWatched] = useState(isCompleted);
     const [feedback, setFeedback] = useState(null);
@@ -113,14 +113,14 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Actual state
     const [canMarkComplete, setCanMarkComplete] = useState(initialCanMarkComplete);
 
-    const canMarkCompleteAfterQuiz = canMarkComplete && (!isKyleRoadmap || quizSatisfied);
+    const canMarkCompleteAfterQuiz = canMarkComplete && (!isKyleRoadmap || quizSatisfied || isPreview);
 
     // Recover users who refresh after already meeting watch threshold but not finishing quiz
     useEffect(() => {
-        if (isKyleRoadmap && canMarkComplete && !quizSatisfied && !isCompleted) {
+        if (isKyleRoadmap && canMarkComplete && !quizSatisfied && !isCompleted && !isPreview) {
             setShowQuizModal(true);
         }
-    }, [isKyleRoadmap, canMarkComplete, quizSatisfied, isCompleted]);
+    }, [isKyleRoadmap, canMarkComplete, quizSatisfied, isCompleted, isPreview]);
 
     // Legacy levels: start timer only if not already completed
     useEffect(() => {
@@ -143,13 +143,13 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     // Called when 50% watch threshold is met
     const handleThresholdMet = useCallback(() => {
         setCanMarkComplete(true);
-        if (isKyleRoadmap && !quizSatisfied) {
+        if (isKyleRoadmap && !quizSatisfied && !isPreview) {
             setShowQuizModal(true);
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'thinking' } }));
             }
         }
-    }, [isKyleRoadmap, quizSatisfied]);
+    }, [isKyleRoadmap, quizSatisfied, isPreview]);
 
     const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
         localStorage.setItem(quizGateCompletedKey, "true");
@@ -194,7 +194,8 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                         <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
 
-                    {/* Video/Practice/Ask Kyle Switcher */}
+                    {/* Video/Practice/Ask Kyle Switcher — hidden in preview (video only) */}
+                    {!isPreview && (
                     <div className="flex justify-center mb-6 sm:mb-8">
                         <div className="inline-flex bg-orange-200/60 rounded-full p-1">
                             <button
@@ -229,6 +230,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                             )}
                         </div>
                     </div>
+                    )}
                 </div>
             </div>
 
@@ -248,14 +250,17 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     shouldPauseVideo={shouldPauseVideo}
                 />
             </div>
-            {activeTab === 'practice' && !isKyleRoadmap && (
+            {/* Practice and Ask Kyle tabs suppressed in preview */}
+            {activeTab === 'practice' && !isKyleRoadmap && !isPreview && (
                 <PracticeTab level={level} roadmapType={roadmapType} />
             )}
-            {activeTab === 'kyle' && isKyleRoadmap && (
+            {activeTab === 'kyle' && isKyleRoadmap && !isPreview && (
                 <div className="pb-12">
                     <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
                 </div>
             )}
+            {/* Quiz suppressed in preview — no auth context available */}
+            {!isPreview && (
             <KyleQuizModal
                 open={showQuizModal}
                 level={level}
@@ -265,6 +270,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                 onAnswered={handleQuizAnswered}
                 onCloseAfterAnswered={handleCloseQuizModal}
             />
+            )}
         </div>
     );
 };
