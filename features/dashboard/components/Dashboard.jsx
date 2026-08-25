@@ -7,6 +7,7 @@ import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import Profile from "@/layout/Profile";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
+import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import { useAuth } from "@/features/context/AuthContext";
 import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
@@ -14,6 +15,7 @@ import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
+import { systemDesignRoadmapData } from "@/data/systemDesignData";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export default function Dashboard() {
     GitGithub: "/home/roadmaps/git-github",
     CPP: "/home/roadmaps/cpp",
     PromptEngineering: "/home/roadmaps/prompt-engineering",
+    SystemDesign: "/home/roadmaps/system-design-fundamentals",
   };
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
@@ -128,6 +131,14 @@ export default function Dashboard() {
       });
     }
 
+    roadmapsData.push({
+      id: systemDesignRoadmapData.id,
+      title: systemDesignRoadmapData.title,
+      route: redirects.SystemDesign,
+      totalLevels: systemDesignRoadmapData.days.flatMap((day) => day.levels).length,
+      legacySections: [],
+    });
+
     const progressMap = {};
 
     for (const roadmap of roadmapsData) {
@@ -210,6 +221,9 @@ export default function Dashboard() {
   const handleRedirectDsa = () => {
     router.push("/home/roadmaps/dsa");
   };
+  const handleRedirectSystemDesign = () => {
+    router.push(redirects.SystemDesign);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans">
@@ -281,6 +295,13 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col items-center gap-10 w-full">
+            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <SystemDesignCourseCard
+                onClick={handleRedirectSystemDesign}
+                levelsFinished={roadmapProgress[systemDesignRoadmapData.id]?.completed || 0}
+                totalLevels={roadmapProgress[systemDesignRoadmapData.id]?.total || systemDesignRoadmapData.days.flatMap((day) => day.levels).length}
+              />
+            </div>
             <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
               <PromptEngineeringCourseCard
                 onClick={handleRedirectPromptEngineering}

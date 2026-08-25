@@ -3,7 +3,8 @@ export function isKyleEnabledRoadmap(roadmapType) {
         typeof roadmapType === "string" &&
         (
             roadmapType.startsWith("prompt-engineering") ||
-            roadmapType.startsWith("dsa")
+            roadmapType.startsWith("dsa") ||
+            roadmapType.startsWith("system-design")
         )
     );
 }
