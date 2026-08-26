@@ -6,9 +6,13 @@ import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
 import { RoadmapTemplate } from "@/models/v2/roadmap.templates.model";
 import { verifyFirebaseToken } from "@/lib/auth";
 import {
-  checkPremiumGenAiAccess,
-  getPremiumGenAiAccessHttpStatus,
-} from "@/lib/premium/genai/premium-genai-access.service";
+  isPremiumRoadmap,
+} from "@/lib/premium/premium-roadmap-registry";
+
+import {
+  checkPremiumRoadmapReadiness,
+  getPremiumRoadmapReadinessHttpStatus,
+} from "@/lib/premium/premium-roadmap-readiness.service";
 import {
   deriveGenAiActiveLevelIds,
   normalizeCanonicalCompletedLevels,
@@ -49,40 +53,37 @@ export async function GET(request, { params }) {
   const firebaseUID = decodedToken.uid;
 
   try {
-    if (roadmapSlug === "gen-ai-internship") {
-      const access = await checkPremiumGenAiAccess(firebaseUID);
+    if (isPremiumRoadmap(roadmapSlug)) {
+      const access =
+        await checkPremiumRoadmapReadiness({
+          firebaseUID,
+          roadmapSlug,
+        });
+
       if (access.status !== "ready") {
         return NextResponse.json(
           {
             error: `Premium GenAI access denied: ${access.status}`,
           },
           {
-            status: getPremiumGenAiAccessHttpStatus(
-              access.status,
-            ),
+            status:
+              getPremiumRoadmapReadinessHttpStatus({
+                roadmapSlug,
+                accessStatus: access.status,
+              }),
           },
         );
       }
-      return NextResponse.json({ ok: true, source: "mongodb", progress: access.progress }, { status: 200 });
+
+      return NextResponse.json(
+        {
+          ok: true,
+          source: "mongodb",
+          progress: access.progress,
+        },
+        { status: 200 },
+      );
     }
-
-    const user = await UserProfile.findOne({ firebaseUID });
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
-    await normalizeUserProfileRetentionFields(user._id);
-
-    const progress = await RoadmapProgress.findOne({
-      firebaseUID,
-      roadmapSlug,
-    }).lean();
-
-    if (!progress) {
-      return NextResponse.json({ ok: true, source: "none", progress: null }, { status: 200 });
-    }
-
-    return NextResponse.json({ ok: true, source: "mongodb", progress }, { status: 200 });
   } catch (err) {
     console.error("[GET Progress] Error", err.name);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
@@ -119,11 +120,12 @@ export async function POST(request, { params }) {
     return NextResponse.json({ message: error }, { status });
   }
 
-  if (roadmapSlug === "gen-ai-internship") {
+  if (isPremiumRoadmap(roadmapSlug)) {
     const access =
-      await checkPremiumGenAiAccess(
-        decodedToken.uid,
-      );
+      await checkPremiumRoadmapReadiness({
+        firebaseUID: decodedToken.uid,
+        roadmapSlug,
+      });
 
     if (access.status === "ready") {
       return NextResponse.json(
@@ -148,9 +150,11 @@ export async function POST(request, { params }) {
         message: access.status,
       },
       {
-        status: getPremiumGenAiAccessHttpStatus(
-          access.status,
-        ),
+        status:
+          getPremiumRoadmapReadinessHttpStatus({
+            roadmapSlug,
+            accessStatus: access.status,
+          }),
       },
     );
   }
@@ -300,10 +304,12 @@ export async function PATCH(request, { params }) {
     let activeLevelIds = data.allLevelIds;
     let canonicalTotalLevels = data.allLevelIds.length;
 
-    if (roadmapSlug === "gen-ai-internship") {
-      access = await checkPremiumGenAiAccess(
-        decodedToken.uid,
-      );
+    if (isPremiumRoadmap(roadmapSlug)) {
+      access =
+        await checkPremiumRoadmapReadiness({
+          firebaseUID: decodedToken.uid,
+          roadmapSlug,
+        });
 
       if (access.status !== "ready") {
         return NextResponse.json(
@@ -311,12 +317,17 @@ export async function PATCH(request, { params }) {
             error: `Premium GenAI access denied: ${access.status}`,
           },
           {
-            status: getPremiumGenAiAccessHttpStatus(
-              access.status,
-            ),
+            status:
+              getPremiumRoadmapReadinessHttpStatus({
+                roadmapSlug,
+                accessStatus: access.status,
+              }),
           },
         );
       }
+    }
+
+    if (roadmapSlug === "gen-ai-internship") {
 
       // The Premium access guard intentionally returns lean/read-only
       // objects. Progress/streak mutations need real Mongoose documents.
@@ -338,7 +349,7 @@ export async function PATCH(request, { params }) {
       progress = await RoadmapProgress.findOne({
         _id: access.progress._id,
         firebaseUID: decodedToken.uid,
-        roadmapSlug: "gen-ai-internship",
+        roadmapSlug,
       });
 
       if (!progress) {
@@ -352,7 +363,7 @@ export async function PATCH(request, { params }) {
       }
 
       template = await RoadmapTemplate.findBySlug(
-        "gen-ai-internship",
+        roadmapSlug,
       );
 
       if (!template) {

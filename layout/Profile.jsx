@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react';
-import { LogOut, X, User, UserCircle, Gamepad2 } from 'lucide-react';
+import { LogOut, X, User, UserCircle, Gamepad2, CreditCard } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
@@ -60,6 +60,11 @@ export default function ProfileDropdown({ compact = false }) {
     const handleProfileClick = () => {
         setIsOpen(false);
         router.push('/home/profile');
+    };
+
+    const handleSubscriptionClick = () => {
+        setIsOpen(false);
+        router.push('/home/subscription');
     };
 
     const handleDiscordClick = () => {
@@ -163,6 +168,16 @@ export default function ProfileDropdown({ compact = false }) {
                         <UserCircle className="w-4 h-4" />
                     </div>
                     Profile
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSubscriptionClick}
+                    className="w-[calc(100%_-_1rem)] flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1 text-left"
+                >
+                    <div className="p-1.5 bg-[#06b6d4]/10 text-[#0891b2] rounded-lg">
+                        <CreditCard className="w-4 h-4" />
+                    </div>
+                    Subscription
                 </button>
                 <button
                     type="button"

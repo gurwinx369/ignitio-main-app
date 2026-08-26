@@ -26,6 +26,9 @@ export const SUBSCRIPTION_STATUS = {
 
 export const SUBSCRIPTION_PLAN = {
   IGNITIO_PREMIUM: "ignitio_premium",
+  WEEKLY: "ignitio_weekly",
+  MONTHLY: "ignitio_monthly",
+  THREE_MONTHLY: "ignitio_three_monthly",
 };
 
 export const PAYMENT_PROVIDER = {

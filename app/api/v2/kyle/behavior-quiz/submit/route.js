@@ -24,6 +24,10 @@ import {
   checkPremiumGenAiAccess,
   getPremiumGenAiAccessHttpStatus,
 } from "@/lib/premium/genai/premium-genai-access.service";
+import {
+  getBehaviorQuizRoadmapPolicy,
+  hasBehaviorQuizEntitlement,
+} from "@/lib/premium/behavior-quiz-access-policy";
 
 const FASTAPI_URL = (
   process.env.FASTAPI_BASE_URL ||
@@ -124,6 +128,40 @@ export async function POST(request) {
       );
     }
 
+    const sessionRoadmapSlug =
+      session.roadmapSlug ??
+      access.personalization?.roadmapSlug;
+
+    const roadmapPolicy =
+      getBehaviorQuizRoadmapPolicy(
+        sessionRoadmapSlug,
+      );
+
+    if (!roadmapPolicy) {
+      return NextResponse.json(
+        {
+          error:
+            "Behavior quiz session roadmap is not supported",
+        },
+        { status: 409 },
+      );
+    }
+
+    if (
+      !hasBehaviorQuizEntitlement(
+        access.userProfile,
+        roadmapPolicy.slug,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Behavioral quiz entitlement required",
+        },
+        { status: 403 },
+      );
+    }
+
     // Index generatedItems by concept for O(1) lookup
     const generatedByConceptMap = Object.fromEntries(
       session.generatedItems.map((item) => [item.concept, item]),
@@ -220,6 +258,21 @@ export async function POST(request) {
             reAccess.status,
           ),
         },
+      );
+    }
+
+    if (
+      !hasBehaviorQuizEntitlement(
+        reAccess.userProfile,
+        roadmapPolicy.slug,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Behavioral quiz entitlement lost",
+        },
+        { status: 403 },
       );
     }
 

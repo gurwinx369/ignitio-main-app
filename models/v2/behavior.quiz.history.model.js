@@ -62,6 +62,13 @@ const BehaviorQuizSessionSchema = new Schema(
     // together unambiguously. Optional so nothing else breaks if absent.
     sessionId: { type: String, index: true },
 
+    // Canonical Premium roadmap that created this session.
+    // Optional for backward compatibility with already-persisted sessions.
+    roadmapSlug: {
+      type: String,
+      default: null,
+    },
+
     triggeredAfterConceptCount: { type: Number, required: true }, // counter value at trigger time, for audit
     targetConcepts: { type: [String], required: true }, // concepts this session was chosen to test
     status: {

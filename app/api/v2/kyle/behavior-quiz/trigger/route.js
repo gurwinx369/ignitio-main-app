@@ -8,6 +8,10 @@ import {
   checkPremiumGenAiAccess,
   getPremiumGenAiAccessHttpStatus,
 } from "@/lib/premium/genai/premium-genai-access.service";
+import {
+  getBehaviorQuizRoadmapPolicy,
+  hasBehaviorQuizEntitlement,
+} from "@/lib/premium/behavior-quiz-access-policy";
 
 const FASTAPI_URL = (
   process.env.FASTAPI_BASE_URL ||
@@ -63,10 +67,37 @@ export async function POST(request) {
 
   const { levelId, roadmapId } = validation.data;
 
-  if (roadmapId && roadmapId !== "gen-ai-internship") {
+  const requestedRoadmapSlug =
+    roadmapId ??
+    access.personalization?.roadmapSlug;
+
+  const roadmapPolicy =
+    getBehaviorQuizRoadmapPolicy(
+      requestedRoadmapSlug,
+    );
+
+  if (!roadmapPolicy) {
     return NextResponse.json(
-      { error: "Behavioral quiz is only enabled for Premium GenAI roadmap" },
-      { status: 400 }
+      {
+        error:
+          "Behavioral quiz is not enabled for this roadmap",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    !hasBehaviorQuizEntitlement(
+      access.userProfile,
+      roadmapPolicy.slug,
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Behavioral quiz entitlement required",
+      },
+      { status: 403 },
     );
   }
 
@@ -95,7 +126,10 @@ export async function POST(request) {
     }
 
     // --- Step 3: Canonical Validation Chain ---
-    const template = await RoadmapTemplate.findBySlug("gen-ai-internship");
+    const template =
+      await RoadmapTemplate.findBySlug(
+        roadmapPolicy.slug,
+      );
     if (!template) {
       return NextResponse.json({ error: "Canonical template not found" }, { status: 500 });
     }
@@ -144,12 +178,13 @@ export async function POST(request) {
     }
 
     // --- Step 4: Exact-Once Claim ---
-    const claim = await BehaviorQuizHistory.recordConceptCompletion(
-      firebaseUID,
-      canonicalConcept,
-      "gen-ai-internship",
-      levelId
-    );
+    const claim =
+      await BehaviorQuizHistory.recordConceptCompletion(
+        firebaseUID,
+        canonicalConcept,
+        roadmapPolicy.slug,
+        levelId,
+      );
 
     if (claim.duplicate) {
       return NextResponse.json({ fired: false, duplicate: true }, { status: 200 });
@@ -259,6 +294,21 @@ export async function POST(request) {
       );
     }
 
+    if (
+      !hasBehaviorQuizEntitlement(
+        reAccess.userProfile,
+        roadmapPolicy.slug,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Behavioral quiz entitlement lost",
+        },
+        { status: 403 },
+      );
+    }
+
     // --- Step 8: Persist session shell ---
     const updatedHistory = await BehaviorQuizHistory.findOneAndUpdate(
       {
@@ -273,7 +323,9 @@ export async function POST(request) {
         $push: {
           behaviorQuizSessions: {
             sessionId,
-            triggeredAfterConceptCount: claim.conceptCount ?? 0,
+            roadmapSlug: roadmapPolicy.slug,
+            triggeredAfterConceptCount:
+              claim.conceptCount ?? 0,
             targetConcepts,
             status: "in_progress",
             generatedItems: quizItems,

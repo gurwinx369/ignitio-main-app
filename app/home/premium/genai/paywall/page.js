@@ -24,6 +24,11 @@ import {
 import { createSubscription } from "@/features/onboarding/paywall/services/createSubscription";
 import { verifyPayment } from "@/features/onboarding/paywall/services/verifyPayment";
 import PaymentStatus from "@/features/onboarding/paywall/components/PaymentStatus";
+import PremiumPlanCard from "@/features/onboarding/paywall/components/PremiumPlanCard";
+import {
+    DEFAULT_SUBSCRIPTION_PLAN,
+    getClientSubscriptionPlan,
+} from "@/features/onboarding/paywall/constants/plans";
 
 export default function GenAiPaywallPage() {
     const router = useRouter();
@@ -48,6 +53,13 @@ export default function GenAiPaywallPage() {
         statusMessage,
         setStatusMessage,
     ] = useState(null);
+
+    const [
+        selectedPlan,
+        setSelectedPlan,
+    ] = useState(
+        DEFAULT_SUBSCRIPTION_PLAN,
+    );
 
     const isMounted = useRef(true);
 
@@ -141,7 +153,10 @@ export default function GenAiPaywallPage() {
              * do not need the Razorpay script.
              */
             const createResult =
-                await createSubscription(idToken);
+                await createSubscription({
+                    idToken,
+                    plan: selectedPlan,
+                });
 
             if (
                 !createResult
@@ -192,13 +207,20 @@ export default function GenAiPaywallPage() {
                 keyId,
             } = createResult;
 
+            const selectedPlanConfig =
+                getClientSubscriptionPlan(
+                    selectedPlan,
+                );
+
             openRazorpayCheckout({
                 keyId,
                 subscriptionId:
                     razorpaySubscriptionId,
                 name: "Ignitio",
                 description:
-                    "Ignitio Premium — Monthly",
+                    selectedPlanConfig
+                        ?.checkoutDescription ??
+                    "Ignitio Premium",
 
                 onSuccess: async ({
                     razorpayPaymentId,
@@ -389,6 +411,21 @@ export default function GenAiPaywallPage() {
                     premium projects.
                 </p>
 
+                <div className="mb-8 text-left">
+                    <PremiumPlanCard
+                        selectedPlan={selectedPlan}
+                        onSelectPlan={
+                            setSelectedPlan
+                        }
+                        disabled={
+                            isPremiumLoading
+                        }
+                        showOnboardingNote={
+                            false
+                        }
+                    />
+                </div>
+
                 <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <button
                         type="button"
@@ -397,8 +434,8 @@ export default function GenAiPaywallPage() {
                             isPremiumLoading || !user
                         }
                         className={`w-full rounded-xl bg-purple-600 px-8 py-3.5 font-bold text-white transition-colors sm:w-auto ${isPremiumLoading || !user
-                                ? "cursor-not-allowed opacity-50"
-                                : "hover:bg-purple-700"
+                            ? "cursor-not-allowed opacity-50"
+                            : "hover:bg-purple-700"
                             }`}
                     >
                         {isPremiumLoading

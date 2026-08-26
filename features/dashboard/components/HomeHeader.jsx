@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, Target, Menu, X, LogOut, UserCircle, Gamepad2 } from "lucide-react";
+import { MessageSquare, Target, Menu, X, LogOut, UserCircle, Gamepad2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/features/context/AuthContext";
 
@@ -57,6 +57,16 @@ function ProfileMenu() {
               <UserCircle className="w-4 h-4" />
             </div>
             Profile
+          </Link>
+          <Link
+            href="/home/subscription"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1"
+          >
+            <div className="p-1.5 bg-[#06b6d4]/10 text-[#0891b2] rounded-lg">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            Subscription
           </Link>
           <a
             href="https://discord.com/invite/vaEFpQnFRs"

@@ -6,7 +6,7 @@
 // Thin route handler — all business logic lives in subscription.service.js.
 //
 // Auth:    Firebase ID token (Bearer)
-// Body:    { plan: "ignitio_premium" }
+// Body:    { plan: "ignitio_weekly" | "ignitio_monthly" | "ignitio_three_monthly" }
 // Returns: { razorpaySubscriptionId, keyId }
 
 import { NextResponse } from "next/server";

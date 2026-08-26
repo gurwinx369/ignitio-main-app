@@ -39,6 +39,10 @@ import PremiumPlanCard from "./components/PremiumPlanCard";
 import PaywallActions from "./components/PaywallActions";
 import PaymentStatus from "./components/PaymentStatus";
 import OnboardingShell from "../components/OnboardingShell";
+import {
+  DEFAULT_SUBSCRIPTION_PLAN,
+  getClientSubscriptionPlan,
+} from "./constants/plans";
 
 const PAYWALL_FORWARD_STEPS = new Set([
   "role_selection",
@@ -59,6 +63,12 @@ export default function Paywall() {
   const [isSkipping, setIsSkipping] = useState(false);
   const [statusVariant, setStatusVariant] = useState("idle"); // "idle"|"dismissed"|"error"|"success"
   const [statusMessage, setStatusMessage] = useState(null);
+  const [
+    selectedPlan,
+    setSelectedPlan,
+  ] = useState(
+    DEFAULT_SUBSCRIPTION_PLAN,
+  );
 
   // Guard against unmounted state updates
   const isMounted = useRef(true);
@@ -141,7 +151,11 @@ export default function Paywall() {
       await loadRazorpay();
 
       // 3. Create the Razorpay subscription server-side.
-      const createRes = await createSubscription(idToken);
+      const createRes =
+        await createSubscription({
+          idToken,
+          plan: selectedPlan,
+        });
 
       if (!createRes.razorpaySubscriptionId) {
         // 409 with existingStatus means an active/pending subscription already exists.
@@ -174,6 +188,10 @@ export default function Paywall() {
       }
 
       const { razorpaySubscriptionId, keyId } = createRes;
+      const selectedPlanConfig =
+        getClientSubscriptionPlan(
+          selectedPlan,
+        );
 
       // 4. Open Razorpay Checkout.
       // Premium is NOT granted here — only after server-side verification.
@@ -181,8 +199,9 @@ export default function Paywall() {
         keyId,
         subscriptionId: razorpaySubscriptionId,
         name: "Ignitio",
-        description: "Ignitio Premium — Monthly",
-
+        description:
+          selectedPlanConfig?.checkoutDescription ??
+          "Ignitio Premium",
         onSuccess: async ({ razorpayPaymentId, razorpaySubscriptionId: rzpSubId, razorpaySignature }) => {
           // 5. Verify server-side — never trust client callback alone.
           try {
@@ -355,7 +374,14 @@ export default function Paywall() {
 
         <PaywallHeader />
 
-        <PremiumPlanCard />
+        <PremiumPlanCard
+          selectedPlan={selectedPlan}
+          onSelectPlan={setSelectedPlan}
+          disabled={
+            isPremiumLoading ||
+            isSkipping
+          }
+        />
 
         <PaywallActions
           isPremiumLoading={isPremiumLoading}
