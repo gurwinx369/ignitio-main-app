@@ -160,9 +160,9 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                                 <div className="flex flex-col items-center gap-1">
                                     <button
                                         onClick={onMarkComplete}
-                                        className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 hover:shadow-md active:scale-95 text-sm sm:text-base font-medium"
+                                        className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-sm sm:text-base font-bold"
                                     >
-                                        <CheckCircle className="w-4 h-4" />
+                                        <CheckCircle className="w-5 h-5" />
                                         Complete
                                     </button>
 
@@ -286,9 +286,9 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                         {!hasWatched && canMarkComplete && (
                             <button
                                 onClick={onMarkComplete}
-                                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 hover:shadow-md active:scale-95 text-sm sm:text-base font-medium"
+                                className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-sm sm:text-base font-bold"
                             >
-                                <CheckCircle className="w-4 h-4" />
+                                <CheckCircle className="w-5 h-5" />
                                 Complete
                             </button>
                         )}

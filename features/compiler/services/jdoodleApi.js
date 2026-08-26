@@ -18,6 +18,11 @@ export const SUPPORTED_LANGUAGES = {
     lang: 'cpp',
     versionIndex: '0',
     name: 'C++ 17'
+  },
+  python3: {
+    lang: 'python3',
+    versionIndex: '3',
+    name: 'Python 3'
   }
 };
 

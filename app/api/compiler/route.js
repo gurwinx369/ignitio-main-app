@@ -118,11 +118,12 @@ export async function POST(request) {
       );
     }
 
-    // Language configuration (C++ 17)
-    const languageConfig = {
-      lang: 'cpp',
-      versionIndex: '0' // C++ 17
+    // Language configuration — supports cpp and python3
+    const LANGUAGE_MAP = {
+      cpp:     { lang: 'cpp',     versionIndex: '0' }, // C++ 17
+      python3: { lang: 'python3', versionIndex: '3' }, // Python 3
     };
+    const languageConfig = LANGUAGE_MAP[language] || LANGUAGE_MAP.cpp;
 
     // Make request to JDoodle API
     const response = await axios.post(

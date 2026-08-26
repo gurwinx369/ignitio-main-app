@@ -234,6 +234,8 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
 
     // Determine if this is C++ roadmap
     const isCppRoadmap = roadmapType === 'cpp';
+    // ponytail: same pattern as cpp, language prop does the differentiation
+    const isPythonRoadmap = roadmapType === 'python-beginner';
 
     // Get current notebook (for Git/GitHub roadmap)
     const currentNotebook = notebookMapping[level.id] || notebookMapping['A1'];
@@ -388,6 +390,117 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                                     <h4 className="font-semibold text-green-900 text-xs mb-1">Pro Tip</h4>
                                     <p className="text-green-800 text-xs">
                                         Use fullscreen mode for a distraction-free coding experience.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Render Python Compiler Tab
+    // ponytail: copy of cpp block with language="python3" — refactor to shared block if a 3rd language is added
+    if (isPythonRoadmap) {
+        return (
+            <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'max-w-7xl mx-auto px-4 py-4 md:py-8'}`}>
+                {isFullscreen ? (
+                    <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-yellow-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">🐍</span>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-900 text-sm">{level.title || level.name || 'Python Level'}</h3>
+                                <p className="text-xs text-gray-600">Python Compiler</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="text-gray-600 hover:text-gray-900 p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                            <Minimize2 className="w-5 h-5"/>
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="mb-4 md:mb-6 rounded-xl md:rounded-2xl p-4 md:p-6 border-2 bg-blue-50 border-blue-200">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-blue-500 to-yellow-400 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                                    <span className="text-white font-bold text-lg md:text-xl">🐍</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+                                        {level.title || level.name || 'Python Level'}
+                                    </h2>
+                                    <p className="text-gray-600 text-xs md:text-sm">{level.description || 'Practice your Python skills'}</p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            🐍 Interactive Compiler
+                                        </span>
+                                        <span className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Python 3
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
+                    <TabBar
+                        handleReset={handleReset}
+                        toggleFullscreen={toggleFullscreen}
+                        isFullscreen={isFullscreen}
+                        isCompiler={true}
+                    />
+
+                    <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
+                        <CompilerPage key={compilerKey} language="python3" />
+                    </div>
+
+                    {!isFullscreen && (
+                        <div className="bg-gray-50 px-3 md:px-6 py-2 md:py-3 border-t border-gray-200">
+                            <div className="flex items-center justify-center">
+                                <span className="text-xs text-gray-500">
+                                    🐍 Write and run Python 3 code directly in your browser
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {!isFullscreen && !isMobile && (
+                    <div className="mt-6 grid md:grid-cols-2 gap-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
+                                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-blue-900 text-xs mb-1">Live Python Compiler</h4>
+                                    <p className="text-blue-800 text-xs">
+                                        Write and run Python 3 code directly in your browser. No setup required.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                                <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center shrink-0">
+                                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M9 12l2 2 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-yellow-900 text-xs mb-1">Pro Tip</h4>
+                                    <p className="text-yellow-800 text-xs">
+                                        Use fullscreen mode for a distraction-free Python coding experience.
                                     </p>
                                 </div>
                             </div>
