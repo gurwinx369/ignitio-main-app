@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES = {
  * Server handles actual rate limiting
  */
 const RATE_LIMIT = {
-  cooldownMs: 10000, // 10 seconds
+  cooldownMs: 3000, // 3 seconds
   lastExecutionTime: 0,
 };
 

@@ -198,20 +198,20 @@ export default function PythonCourseCard({
 
             <div
                 className="px-5 pt-4.5 pb-5"
-                style={{ background: '#dbeafe', position: 'relative' }}
+                style={{ background: '#f2e0d0', position: 'relative' }}
             >
                 <CardInfoShimmer state={state} />
 
                 <div className="flex items-center gap-1.5 mb-3.5">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="#1e3a5f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                         stroke="#3a3330" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                          style={{ opacity: 0.55, flexShrink: 0 }}
                     >
                         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                     </svg>
                     <span
                         className="text-[11px] font-bold tracking-widest uppercase"
-                        style={{ color: '#1e3a5f' }}
+                        style={{ color: '#3a3330' }}
                     >
                         {totalMinutes > 0 ? formattedDuration : '18 Hours'}
                     </span>
@@ -219,7 +219,7 @@ export default function PythonCourseCard({
 
                 <p
                     className="text-[15.5px] font-medium leading-[1.55] mb-4"
-                    style={{ color: '#1e293b' }}
+                    style={{ color: '#1e1a18' }}
                 >
                     Learn Python from scratch - variables, functions, OOP, and
                     industry-ready skills for AI, ML, and software development.
@@ -233,7 +233,7 @@ export default function PythonCourseCard({
                     />
                     <span
                         className="text-[11px] font-semibold ml-1"
-                        style={{ color: 'rgba(30,41,59,0.45)' }}
+                        style={{ color: 'rgba(30,26,24,0.45)' }}
                     >
                         {levelsFinished}/{displayTotal} levels
                     </span>
@@ -248,12 +248,12 @@ export default function PythonCourseCard({
                             transition: 'all 0.22s ease',
                         }}
                     >
-                        {isLoading && <SpinnerIcon size={14} color="#1e293b" />}
+                        {isLoading && <SpinnerIcon size={14} color="#1e1a18" />}
                         {isSuccess && <SuccessIcon size={14} color="#2ecc8a" />}
                         {!isLoading && !isSuccess && (
                             <svg
                                 width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="#1e293b" strokeWidth="2.5"
+                                stroke="#1e1a18" strokeWidth="2.5"
                                 strokeLinecap="round" strokeLinejoin="round"
                             >
                                 <line x1="5" y1="12" x2="19" y2="12" />

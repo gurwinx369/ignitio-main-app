@@ -21,7 +21,7 @@ print("Hello, World!")`;
 /**
  * Rate limit duration in seconds
  */
-const RATE_LIMIT_SECONDS = 10;
+const RATE_LIMIT_SECONDS = 3;
 
 /**
  * CompilerPage Component
