@@ -291,7 +291,11 @@ export default function Dashboard() {
               setTimeout(() => setIsNavigating(false), 3000);
             }}
             disabled={isNavigating || !activeRoadmap}
-            className={`px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${(isNavigating || !activeRoadmap) ? "opacity-75 cursor-not-allowed" : ""}`}
+            className={`px-8 py-4 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95 shrink-0 ${
+              isNavigating || !activeRoadmap 
+                ? "bg-[var(--color-secondary-100)] text-[var(--color-secondary-500)] cursor-not-allowed" 
+                : "bg-[var(--color-secondary-900)] hover:bg-[var(--color-secondary-800)] hover:shadow-lg"
+            }`}
           >
             {isNavigating ? "Loading..." : (activeRoadmap ? "Continue Learning" : "Explore Roadmaps")}
           </button>
