@@ -28,7 +28,14 @@ export async function GET(request) {
     // Lazy miss detection: per spec, evaluated on app open.
     // May mutate user.streak and persist to DB if a state transition occurs.
     const nowUTC = new Date();
-    await evaluateAndApplyLazyStreakState(user, nowUTC);
+    await evaluateAndApplyLazyStreakState(
+      user,
+      nowUTC,
+      {
+        reconcileEstablishedStreak:
+          true,
+      },
+    );
 
     const progresses = await RoadmapProgress.find({ firebaseUID: decodedToken.uid }).lean();
 
