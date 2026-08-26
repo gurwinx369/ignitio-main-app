@@ -18,6 +18,11 @@ export const SUPPORTED_LANGUAGES = {
     lang: 'cpp',
     versionIndex: '0',
     name: 'C++ 17'
+  },
+  python3: {
+    lang: 'python3',
+    versionIndex: '3',
+    name: 'Python 3'
   }
 };
 
@@ -26,7 +31,7 @@ export const SUPPORTED_LANGUAGES = {
  * Server handles actual rate limiting
  */
 const RATE_LIMIT = {
-  cooldownMs: 10000, // 10 seconds
+  cooldownMs: 3000, // 3 seconds
   lastExecutionTime: 0,
 };
 

@@ -7,10 +7,7 @@ import ExecutionMetrics from './ExecutionMetrics';
 import { executeCode, ERROR_TYPES } from '@/features/compiler';
 import StdinInput from './StdinInput';
 
-/**
- * Default C++ 17 template code
- */
-const DEFAULT_CODE = `#include <iostream>
+const DEFAULT_CODE_CPP = `#include <iostream>
 using namespace std;
 
 int main() {
@@ -18,17 +15,24 @@ int main() {
     return 0;
 }`;
 
+const DEFAULT_CODE_PYTHON = `# Python 3
+print("Hello, World!")`;
+
 /**
  * Rate limit duration in seconds
  */
-const RATE_LIMIT_SECONDS = 10;
+const RATE_LIMIT_SECONDS = 3;
 
 /**
  * CompilerPage Component
  * Main compiler page that combines editor, output, and metrics
  * Uses project design system (beige background, navy text, blue accent)
+ *
+ * @param {string} language - 'cpp' (default) or 'python3'
  */
-export default function CompilerPage() {
+export default function CompilerPage({ language = 'cpp' }) {
+  const isPython = language === 'python3';
+  const DEFAULT_CODE = isPython ? DEFAULT_CODE_PYTHON : DEFAULT_CODE_CPP;
   const [code, setCode] = useState(DEFAULT_CODE);
   const [stdin, setStdin] = useState('');
 
@@ -147,7 +151,7 @@ export default function CompilerPage() {
     setOutput('');
 
     try {
-      const result = await executeCode(code, 'cpp', stdin);
+      const result = await executeCode(code, language, stdin);
 
       if (result.success) {
         setOutput(result.output);
@@ -207,10 +211,12 @@ export default function CompilerPage() {
           {/* Header */}
           <div className="shrink-0 mb-3 sm:mb-4">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#19183b]">
-              C++ Compiler
+              {isPython ? 'Python Compiler' : 'C++ Compiler'}
             </h1>
             <p className="text-[#3d3c7f] text-xs sm:text-sm md:text-base mt-1">
-              Write, compile, and run your C++ code in the browser
+              {isPython
+                ? 'Write and run your Python code in the browser'
+                : 'Write, compile, and run your C++ code in the browser'}
             </p>
           </div>
 
@@ -354,7 +360,7 @@ export default function CompilerPage() {
               Language:
             </span>
               <span className="px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs bg-[#fcf5ee] text-[#267F00] font-mono border border-[#f0caa8]">
-              C++ 17
+              {isPython ? 'Python 3' : 'C++ 17'}
             </span>
             </div>
           </div>
