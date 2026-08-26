@@ -40,19 +40,45 @@ export async function GET(request, { params }) {
   await connectToDB();
 
   const resolvedParams = await params;
-  const roadmapSlug = resolvedParams?.roadmapSlug?.toLowerCase().trim();
+
+  const roadmapSlug =
+    resolvedParams?.roadmapSlug
+      ?.toLowerCase()
+      .trim();
+
   if (!validateSlug(roadmapSlug)) {
-    return NextResponse.json({ message: "Invalid roadmap slug" }, { status: 400 });
+    return NextResponse.json(
+      {
+        message: "Invalid roadmap slug",
+      },
+      {
+        status: 400,
+      },
+    );
   }
 
-  const { decodedToken, error, status } = await verifyFirebaseToken(request);
+  const {
+    decodedToken,
+    error,
+    status,
+  } = await verifyFirebaseToken(request);
+
   if (error) {
-    return NextResponse.json({ message: error }, { status });
+    return NextResponse.json(
+      {
+        message: error,
+      },
+      {
+        status,
+      },
+    );
   }
 
-  const firebaseUID = decodedToken.uid;
+  const firebaseUID =
+    decodedToken.uid;
 
   try {
+    // Premium roadmaps use the generic Premium readiness dispatcher.
     if (isPremiumRoadmap(roadmapSlug)) {
       const access =
         await checkPremiumRoadmapReadiness({
@@ -63,13 +89,15 @@ export async function GET(request, { params }) {
       if (access.status !== "ready") {
         return NextResponse.json(
           {
-            error: `Premium GenAI access denied: ${access.status}`,
+            error:
+              `Premium GenAI access denied: ${access.status}`,
           },
           {
             status:
               getPremiumRoadmapReadinessHttpStatus({
                 roadmapSlug,
-                accessStatus: access.status,
+                accessStatus:
+                  access.status,
               }),
           },
         );
@@ -79,14 +107,88 @@ export async function GET(request, { params }) {
         {
           ok: true,
           source: "mongodb",
-          progress: access.progress,
+          progress:
+            access.progress,
         },
-        { status: 200 },
+        {
+          status: 200,
+        },
       );
     }
+
+    // Normal/Foundation roadmaps continue through
+    // the standard RoadmapProgress path.
+    const [user, progress] =
+      await Promise.all([
+        UserProfile.findOne({
+          firebaseUID,
+        })
+          .select(
+            "_id retentionUnsubscribed retentionUnsubscribedAt last_learning_active_on",
+          )
+          .lean(),
+
+        RoadmapProgress.findOne({
+          firebaseUID,
+          roadmapSlug,
+        }).lean(),
+      ]);
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          message:
+            "User not found",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    await normalizeUserProfileRetentionFields(
+      user._id,
+      user,
+    );
+
+    if (!progress) {
+      return NextResponse.json(
+        {
+          ok: true,
+          source: "none",
+          progress: null,
+        },
+        {
+          status: 200,
+        },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        source: "mongodb",
+        progress,
+      },
+      {
+        status: 200,
+      },
+    );
   } catch (err) {
-    console.error("[GET Progress] Error", err.name);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    console.error(
+      "[GET Progress] Error",
+      err.name,
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "Internal server error",
+      },
+      {
+        status: 500,
+      },
+    );
   }
 }
 
