@@ -320,6 +320,16 @@ export default function Dashboard() {
                 totalLevels={roadmapProgress[systemDesignRoadmapData.id]?.total || systemDesignRoadmapData.days.flatMap((day) => day.levels).length}
               />
             </div>
+                        <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <PythonCourseCard
+                onClick={handleRedirectPython}
+                levelsFinished={roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0}
+                totalLevels={
+                  roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
+                  pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+                }
+              />
+            </div>
             <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
               <PromptEngineeringCourseCard
                 onClick={handleRedirectPromptEngineering}
@@ -354,16 +364,6 @@ export default function Dashboard() {
                 totalLevels={
                   roadmapProgress["cpp"]?.total ||
                   cppRoadmapData.days.flatMap((day) => day.levels).length
-                }
-              />
-            </div>
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <PythonCourseCard
-                onClick={handleRedirectPython}
-                levelsFinished={roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0}
-                totalLevels={
-                  roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
-                  pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
                 }
               />
             </div>
