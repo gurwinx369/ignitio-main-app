@@ -118,10 +118,11 @@ export async function POST(request) {
       );
     }
 
-    // Language configuration — supports cpp and python3
+    // Language configuration — supports cpp, python3, and c
     const LANGUAGE_MAP = {
       cpp:     { lang: 'cpp',     versionIndex: '0' }, // C++ 17
       python3: { lang: 'python3', versionIndex: '3' }, // Python 3
+      c:       { lang: 'c',       versionIndex: '4' }, // C (GCC)
     };
     const languageConfig = LANGUAGE_MAP[language] || LANGUAGE_MAP.cpp;
 

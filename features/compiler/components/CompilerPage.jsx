@@ -18,6 +18,13 @@ int main() {
 const DEFAULT_CODE_PYTHON = `# Python 3
 print("Hello, World!")`;
 
+const DEFAULT_CODE_C = `#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\\n");
+    return 0;
+}`;
+
 /**
  * Rate limit duration in seconds
  */
@@ -32,7 +39,8 @@ const RATE_LIMIT_SECONDS = 3;
  */
 export default function CompilerPage({ language = 'cpp' }) {
   const isPython = language === 'python3';
-  const DEFAULT_CODE = isPython ? DEFAULT_CODE_PYTHON : DEFAULT_CODE_CPP;
+  const isC = language === 'c';
+  const DEFAULT_CODE = isPython ? DEFAULT_CODE_PYTHON : isC ? DEFAULT_CODE_C : DEFAULT_CODE_CPP;
   const [code, setCode] = useState(DEFAULT_CODE);
   const [stdin, setStdin] = useState('');
 
@@ -211,12 +219,14 @@ export default function CompilerPage({ language = 'cpp' }) {
           {/* Header */}
           <div className="shrink-0 mb-3 sm:mb-4">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#19183b]">
-              {isPython ? 'Python Compiler' : 'C++ Compiler'}
+              {isPython ? 'Python Compiler' : isC ? 'C Compiler' : 'C++ Compiler'}
             </h1>
             <p className="text-[#3d3c7f] text-xs sm:text-sm md:text-base mt-1">
               {isPython
                 ? 'Write and run your Python code in the browser'
-                : 'Write, compile, and run your C++ code in the browser'}
+                : isC
+                  ? 'Write, compile, and run your C code in the browser'
+                  : 'Write, compile, and run your C++ code in the browser'}
             </p>
           </div>
 
@@ -360,7 +370,7 @@ export default function CompilerPage({ language = 'cpp' }) {
               Language:
             </span>
               <span className="px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-xs bg-[#fcf5ee] text-[#267F00] font-mono border border-[#f0caa8]">
-              {isPython ? 'Python 3' : 'C++ 17'}
+              {isPython ? 'Python 3' : isC ? 'C (GCC)' : 'C++ 17'}
             </span>
             </div>
           </div>

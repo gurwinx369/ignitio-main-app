@@ -45,8 +45,9 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
 
     const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
     const isPythonRoadmap = roadmapType === 'python-beginner';
-    const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap;
-    const showPracticeTab = !isKyleRoadmap || isPythonRoadmap;
+    const isCRoadmap = roadmapType.startsWith('c-language');
+    const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap && !isCRoadmap;
+    const showPracticeTab = !isKyleRoadmap || isPythonRoadmap || isCRoadmap;
 
     const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
     const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;

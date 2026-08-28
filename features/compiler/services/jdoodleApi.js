@@ -23,6 +23,11 @@ export const SUPPORTED_LANGUAGES = {
     lang: 'python3',
     versionIndex: '3',
     name: 'Python 3'
+  },
+  c: {
+    lang: 'c',
+    versionIndex: '4',
+    name: 'C (GCC)'
   }
 };
 

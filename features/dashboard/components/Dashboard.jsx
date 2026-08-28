@@ -9,6 +9,7 @@ import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
+import CCourseCard from "@/components/ui/courseCards/c-course-card";
 import { useAuth } from "@/features/context/AuthContext";
 import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
@@ -18,6 +19,7 @@ import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
+import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -37,6 +39,7 @@ export default function Dashboard() {
     PromptEngineering: "/home/roadmaps/prompt-engineering",
     SystemDesign: "/home/roadmaps/system-design-fundamentals",
     Python: "/home/roadmaps/python-beginner",
+    CLang: "/home/roadmaps/c-beginner",
   };
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
@@ -150,6 +153,14 @@ export default function Dashboard() {
       legacySections: [],
     });
 
+    roadmapsData.push({
+      id: clangBeginnerRoadmapData.id,
+      title: clangBeginnerRoadmapData.title,
+      route: redirects.CLang,
+      totalLevels: clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length,
+      legacySections: [],
+    });
+
     const progressMap = {};
 
     for (const roadmap of roadmapsData) {
@@ -237,6 +248,9 @@ export default function Dashboard() {
   };
   const handleRedirectPython = () => {
     router.push(redirects.Python);
+  };
+  const handleRedirectCLang = () => {
+    router.push(redirects.CLang);
   };
 
   return (
@@ -327,6 +341,16 @@ export default function Dashboard() {
                 totalLevels={
                   roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
                   pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+                }
+              />
+            </div>
+            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <CCourseCard
+                onClick={handleRedirectCLang}
+                levelsFinished={roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0}
+                totalLevels={
+                  roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
+                  clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length
                 }
               />
             </div>
