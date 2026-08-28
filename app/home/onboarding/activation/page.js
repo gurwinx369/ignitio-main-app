@@ -85,17 +85,17 @@ export default function ActivationPage() {
   return (
     <OnboardingShell 
       step={5}
-      title="Building Your Roadmap"
-      subtitle="We are analyzing your diagnostic results and personalizing your curriculum..."
+      title="Preparing your roadmap"
+      subtitle="Applying your schedule and getting everything ready."
     >
-      <div className="max-w-md mx-auto w-full bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-sm text-center">
+      <div className="max-w-md mx-auto w-full bg-white p-8 sm:p-12 rounded-3xl border-2 border-[#FFDCBC] text-center">
         {loading ? (
           <div className="flex flex-col items-center gap-6">
-            <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center">
-              <Loader2 className="animate-spin text-purple-600 w-10 h-10" />
+            <div className="w-20 h-20 bg-[#E5F6FF] rounded-full flex items-center justify-center">
+              <Loader2 className="animate-spin text-[#00A9FF] w-10 h-10" />
             </div>
-            <p className="text-slate-500 text-sm">
-              This will only take a few moments.
+            <p className="text-[#4A5568] text-sm">
+              This will only take a moment.
             </p>
           </div>
         ) : (
@@ -105,9 +105,10 @@ export default function ActivationPage() {
             </div>
             <button
               onClick={handleRetry}
-              className="mt-2 w-full py-4 bg-slate-900 text-white font-bold rounded-xl shadow-sm hover:bg-slate-800 transition-colors"
+              className="mt-2 w-full py-4 bg-[#00A9FF] text-white font-bold rounded-full uppercase tracking-wide hover:bg-[#0096e6] transition-all active:translate-y-1"
+              style={{ boxShadow: "0 4px 0 #004B74" }}
             >
-              Retry Activation
+              Retry
             </button>
           </div>
         )}

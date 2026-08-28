@@ -20,7 +20,7 @@ export default function DiagnosticResultsSkeleton() {
           <div className="mx-auto h-5 w-[420px] max-w-full rounded-lg bg-slate-200" />
         </header>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-5 h-7 w-48 rounded-lg bg-slate-200" />
 
           <div className="space-y-3">
@@ -44,7 +44,7 @@ export default function DiagnosticResultsSkeleton() {
             }).map((_, index) => (
               <div
                 key={index}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="rounded-2xl border-2 border-[#FFDCBC] bg-white p-5 shadow-sm"
               >
                 <div className="mb-5 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-slate-200" />
@@ -67,7 +67,7 @@ export default function DiagnosticResultsSkeleton() {
             (_, index) => (
               <div
                 key={index}
-                className="h-36 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="h-36 rounded-2xl border-2 border-[#FFDCBC] bg-white p-5 shadow-sm"
               >
                 <div className="mb-5 h-5 w-32 rounded bg-slate-200" />
                 <div className="space-y-3">

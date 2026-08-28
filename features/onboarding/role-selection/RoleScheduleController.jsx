@@ -31,57 +31,32 @@ const ROLE_OPTIONS = [
   {
     id: "student",
     title: "Student",
-    icon: (
-      <GraduationCap
-        className="text-green-600"
-        size={24}
-      />
-    ),
-    bg: "bg-green-50",
+    icon: <GraduationCap className="text-[#001D32]" size={24} />,
+    bg: "bg-slate-100",
   },
   {
     id: "writer",
     title: "Writer",
-    icon: (
-      <PenTool
-        className="text-amber-600"
-        size={24}
-      />
-    ),
-    bg: "bg-amber-50",
+    icon: <PenTool className="text-[#001D32]" size={24} />,
+    bg: "bg-slate-100",
   },
   {
     id: "designer",
     title: "Designer",
-    icon: (
-      <Palette
-        className="text-pink-600"
-        size={24}
-      />
-    ),
-    bg: "bg-pink-50",
+    icon: <Palette className="text-[#001D32]" size={24} />,
+    bg: "bg-slate-100",
   },
   {
     id: "developer",
     title: "Developer",
-    icon: (
-      <Code
-        className="text-blue-600"
-        size={24}
-      />
-    ),
-    bg: "bg-blue-50",
+    icon: <Code className="text-[#001D32]" size={24} />,
+    bg: "bg-slate-100",
   },
   {
     id: "other",
     title: "Other",
-    icon: (
-      <Briefcase
-        className="text-purple-600"
-        size={24}
-      />
-    ),
-    bg: "bg-purple-50",
+    icon: <Briefcase className="text-[#001D32]" size={24} />,
+    bg: "bg-slate-100",
   },
 ];
 
@@ -283,33 +258,36 @@ export default function RoleScheduleController() {
                     setRole(opt.id);
                     setErrorMsg("");
                   }}
-                  className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white ${isSelected
-                      ? "border-purple-600 shadow-[0_4px_20px_rgba(147,51,234,0.15)] ring-1 ring-purple-600"
-                      : "border-slate-200 hover:border-slate-300 shadow-sm"
-                    }`}
+                  className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? "border-[#4EC3FF] bg-[#A8E2FF]"
+                      : "border-[#FFDCBC] bg-white hover:border-[#4EC3FF]"
+                  }`}
                 >
-                  <div
-                    className={`w-12 h-12 rounded-xl ${opt.bg} flex items-center justify-center shrink-0`}
-                  >
+                  <div className={`w-12 h-12 rounded-xl ${isSelected ? 'bg-white/50' : opt.bg} flex items-center justify-center shrink-0`}>
                     {opt.icon}
                   </div>
 
                   <div className="ml-4 flex-1">
-                    <p className="text-base font-bold text-slate-900">
+                    <p className={`text-base font-bold ${isSelected ? 'text-[#001D32]' : 'text-[#001D32]'}`}>
                       {opt.title}
                     </p>
                   </div>
 
-                  <div className="text-purple-600">
-                    {isSelected ? (
-                      <CheckCircle2 className="w-6 h-6 fill-purple-600 text-white" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full border-2 border-slate-200" />
-                    )}
+                  <div className="flex items-center justify-center">
+                    <div className={`w-6 h-6 rounded flex items-center justify-center border-2 transition-colors ${
+                      isSelected ? "border-[#00A9FF] bg-[#00A9FF]" : "border-[#FFDCBC] bg-white"
+                    }`}>
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
-            },
+            }
           )}
 
           {errorMsg && (
@@ -321,14 +299,14 @@ export default function RoleScheduleController() {
           <div className="mt-8">
             <button
               type="button"
-              onClick={
-                handleRoleNext
-              }
+              onClick={handleRoleNext}
               disabled={!role}
-              className={`w-full py-4 text-white font-bold text-lg rounded-xl transition-all ${role
-                  ? "bg-slate-900 hover:bg-slate-800 shadow-md"
+              className={`w-full py-4 text-white font-bold text-lg rounded-full uppercase tracking-wide transition-all ${
+                role
+                  ? "bg-[#00A9FF] hover:bg-[#0096e6] active:translate-y-1"
                   : "bg-slate-300 cursor-not-allowed"
-                }`}
+              }`}
+              style={role ? { boxShadow: "0 4px 0 #004B74" } : {}}
             >
               Continue
             </button>
@@ -357,16 +335,10 @@ export default function RoleScheduleController() {
         </button>
 
         <div className="flex flex-col gap-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="mb-4 flex items-center gap-2 text-slate-800">
-              <Globe
-                size={20}
-                className="text-purple-600"
-              />
-
-              <h3 className="text-base font-bold">
-                Timezone
-              </h3>
+          <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 sm:p-8">
+            <div className="mb-4 flex items-center gap-2 text-[#001D32]">
+              <Globe size={20} className="text-[#00A9FF]" />
+              <h3 className="text-base font-bold">Timezone</h3>
             </div>
 
             <select
@@ -378,7 +350,7 @@ export default function RoleScheduleController() {
 
                 setErrorMsg("");
               }}
-              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-purple-600/50 focus:border-purple-600"
+              className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
             >
               <option
                 value=""
@@ -406,16 +378,10 @@ export default function RoleScheduleController() {
             </select>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="mb-5 flex items-center gap-2 text-slate-800">
-              <Clock
-                size={20}
-                className="text-purple-600"
-              />
-
-              <h3 className="text-base font-bold">
-                Daily Learning Window
-              </h3>
+          <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 sm:p-8">
+            <div className="mb-5 flex items-center gap-2 text-[#001D32]">
+              <Clock size={20} className="text-[#00A9FF]" />
+              <h3 className="text-base font-bold">Daily Learning Window</h3>
             </div>
 
             <div className="space-y-5">
@@ -458,7 +424,7 @@ export default function RoleScheduleController() {
 
                     setErrorMsg("");
                   }}
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-purple-600/50 focus:border-purple-600"
+                  className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
                 >
                   <option value="MORNING">
                     Morning
@@ -509,7 +475,7 @@ export default function RoleScheduleController() {
 
                       setErrorMsg("");
                     }}
-                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-purple-600/50 focus:border-purple-600"
+                    className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
                   />
                 </div>
 
@@ -541,7 +507,7 @@ export default function RoleScheduleController() {
 
                       setErrorMsg("");
                     }}
-                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-purple-600/50 focus:border-purple-600"
+                    className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
                   />
                 </div>
               </div>
@@ -577,30 +543,23 @@ export default function RoleScheduleController() {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={
+            disabled={loading || !user}
+            className={`flex h-14 w-full items-center justify-center gap-2 rounded-full font-bold uppercase tracking-wide text-white transition-all ${
               loading || !user
-            }
-            className={`flex h-14 w-full items-center justify-center gap-2 rounded-xl text-lg font-bold text-white transition-all ${loading || !user
-                ? "bg-slate-400 cursor-not-allowed"
-                : "bg-slate-900 shadow-md hover:bg-slate-800"
-              }`}
+                ? "bg-slate-300 cursor-not-allowed"
+                : "bg-[#00A9FF] hover:bg-[#0096e6] active:translate-y-1"
+            }`}
+            style={(!loading && user) ? { boxShadow: "0 4px 0 #004B74" } : {}}
           >
             {loading ? (
               <>
-                <Loader2
-                  className="animate-spin"
-                  size={20}
-                />
-
+                <Loader2 className="animate-spin" size={20} />
                 Saving...
               </>
             ) : (
               <>
                 Complete Setup
-
-                <ArrowRight
-                  size={20}
-                />
+                <ArrowRight size={20} />
               </>
             )}
           </button>

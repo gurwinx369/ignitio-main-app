@@ -14,7 +14,7 @@ export const CLIENT_SUBSCRIPTION_PLANS = [
         price: "₹599",
         period: "per month",
         checkoutDescription: "Ignitio Premium — Monthly",
-        badge: null,
+        badge: "Hot Pick",
         helper: null,
     },
     {

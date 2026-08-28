@@ -62,7 +62,7 @@ export default function DiagnosticResults() {
         if (!res.success) {
           setError(
             res.message ||
-              "We couldn't load your results. Please try again.",
+            "We couldn't load your results. Please try again.",
           );
           return;
         }
@@ -158,13 +158,13 @@ export default function DiagnosticResults() {
       if (!res.success) {
         throw new Error(
           res.message ||
-            "An error occurred while continuing.",
+          "An error occurred while continuing.",
         );
       }
 
       const destination =
         ONBOARDING_STEP_ROUTES[
-          res.nextStep
+        res.nextStep
         ];
 
       if (!destination) {
@@ -229,9 +229,8 @@ export default function DiagnosticResults() {
   }
 
   return (
-    <OnboardingShell step={2}>
-      {preparationStatus !==
-        "idle" && (
+    <div className="min-h-dvh flex flex-col bg-[#07131D] text-white relative">
+      {preparationStatus !== "idle" && (
         <LearningPlanPreparation
           status={preparationStatus}
           error={preparationError}
@@ -239,61 +238,124 @@ export default function DiagnosticResults() {
         />
       )}
 
-      <header className="mb-10 text-center">
-        <h1 className="mb-4 text-3xl font-bold sm:text-4xl">
-          Your Diagnostic Results
-        </h1>
+      <div className="w-full max-w-[430px] mx-auto flex flex-col pt-12 pb-12 px-4 flex-grow">
+        <header className="mb-10 text-center">
+          <h1 className="mb-4 text-3xl font-bold sm:text-4xl text-white">
+            Your Diagnostic Results
+          </h1>
 
-        <p className="text-lg text-muted-foreground">
-          We&apos;ve reviewed your
-          skills. Here is how your
-          learning recommendations are
-          taking shape.
-        </p>
-      </header>
+          <p className="text-lg text-slate-300">
+            We've reviewed your skills. Here is how your learning recommendations are taking shape.
+          </p>
+        </header>
 
-      {error && (
-        <div className="mb-6 rounded-xl border border-error-200 bg-error-50 p-4 text-error-800">
-          {error}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+            {error}
+          </div>
+        )}
+
+        <div className="w-full flex-grow mt-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-10 px-4 leading-tight">
+            {(data.summary?.passedChecks ?? 0) > 0
+              ? "Your roadmap adapts around what you already know."
+              : "Your personalized roadmap is ready."}
+          </h2>
+
+          {/* Roadmap spine + alternating nodes */}
+          <div className="relative flex flex-col items-center">
+            {/* Vertical spine */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-[#00A9FF] -translate-x-1/2" />
+
+            {data.areas.map((area, index) => {
+              const isLeft = index % 2 === 0;
+              return (
+                <div
+                  key={area.id}
+                  className="relative w-full flex items-center mb-8"
+                >
+                  {/* Module card */}
+                  <div
+                    className={`w-[44%] ${isLeft ? "mr-auto pr-3" : "ml-auto pl-3"
+                      }`}
+                  >
+                    <div className="bg-[#102235] border border-slate-700/60 rounded-2xl p-3 shadow-sm">
+                      <p className="text-white text-[13px] font-bold leading-snug mb-1">
+                        {area.title}
+                      </p>
+                      {area.moduleLabel && (
+                        <span className="text-[10px] font-semibold text-[#00A9FF] uppercase tracking-wide">
+                          {area.moduleLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Spine node dot */}
+                  <div className="absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#00A9FF] border-2 border-[#07131D] z-10 shadow-[0_0_8px_rgba(0,169,255,0.6)]" />
+
+                  {/* Connector line from node to card */}
+                  {/* LEFT card: connector extends from spine (center) toward card (left), so it sits right of center */}
+                  {/* RIGHT card: connector extends from spine (center) toward card (right), so it sits left of center */}
+                  <div
+                    className={`absolute top-1/2 h-[2px] bg-[#00A9FF]/40 w-[8%] ${isLeft
+                      ? "right-[calc(50%+8px)]"
+                      : "left-[calc(50%+8px)]"
+                      }`}
+                  />
+
+                  {/* Status label — opposite side from card */}
+                  <div
+                    className={`absolute top-[calc(50%2px)] ${isLeft
+                      ? "left-[calc(50%+20px)] text-left"
+                      : "right-[calc(50%+20px)] text-right"
+                      }`}
+                  >
+                    <span className="whitespace-nowrap text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
+                      {area.status === "passed"
+                        ? "skip"
+                        : area.status === "partial"
+                          ? "refresh"
+                          : "include"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8 pb-4 pt-6 border-t border-slate-700/40">
+            {data.pacing?.label && (
+              <div className="flex-1 bg-[#102235] border border-slate-700/60 rounded-xl p-3 text-center">
+                <p className="text-[11px] font-semibold text-[#00A9FF] uppercase tracking-wide mb-1">
+                  Pacing
+                </p>
+                <p className="text-white text-sm font-bold">
+                  {data.pacing.label}
+                </p>
+              </div>
+            )}
+            {data.goal?.label && (
+              <div className="flex-1 bg-[#102235] border border-slate-700/60 rounded-xl p-3 text-center">
+                <p className="text-[11px] font-semibold text-[#00A9FF] uppercase tracking-wide mb-1">
+                  Goal
+                </p>
+                <p className="text-white text-sm font-bold">
+                  {data.goal.label}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      <ResultsSummary
-        summary={data.summary}
-      />
-
-      <div className="mt-10">
-        <h2 className="mb-6 text-2xl font-bold">
-          Skill Analysis
-        </h2>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {data.areas.map((area) => (
-            <SkillResultCard
-              key={area.id}
-              area={area}
-            />
-          ))}
+        <div className="mt-6">
+          <ResultsActions
+            onContinue={handleContinue}
+            isContinuing={preparationStatus === "preparing"}
+          />
         </div>
+
       </div>
-
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        <PacingSummary
-          pacing={data.pacing}
-        />
-
-        <GoalSummary
-          goal={data.goal}
-        />
-      </div>
-
-      <ResultsActions
-        onContinue={handleContinue}
-        isContinuing={
-          preparationStatus ===
-          "preparing"
-        }
-      />
-    </OnboardingShell>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ export default function PaywallSkeleton() {
         role="status"
         aria-busy="true"
         aria-label="Loading access options"
-        className="w-full animate-pulse rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10"
+        className="w-full animate-pulse rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 shadow-sm sm:p-10"
       >
         <span className="sr-only">
           Loading access options
@@ -20,7 +20,7 @@ export default function PaywallSkeleton() {
           <div className="mx-auto h-5 w-96 max-w-full rounded-lg bg-slate-100" />
         </header>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6 sm:p-8">
+        <div className="rounded-3xl border-2 border-[#FFDCBC] bg-slate-50/60 p-6 sm:p-8">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <div className="mb-3 h-7 w-36 rounded-lg bg-slate-200" />

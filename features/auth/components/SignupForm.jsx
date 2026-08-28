@@ -88,7 +88,11 @@ export default function SignupForm() {
     if (result.success) {
       try {
         const profile = await ensureUserProfile(result.user);
-        router.replace(getOnboardingRoute(profile));
+        if (result.authMode === "new_signup") {
+          router.replace("/home/onboarding");
+        } else {
+          router.replace(getOnboardingRoute(profile));
+        }
       } catch (err) {
         isHandlingAuthActionRef.current = false;
         setError(err.message || "Failed to provision user profile");
@@ -111,7 +115,11 @@ export default function SignupForm() {
     if (result.success) {
       try {
         const profile = await ensureUserProfile(result.user);
-        router.replace(getOnboardingRoute(profile));
+        if (result.authMode === "new_signup") {
+          router.replace("/home/onboarding");
+        } else {
+          router.replace(getOnboardingRoute(profile));
+        }
       } catch (err) {
         isHandlingAuthActionRef.current = false;
         setError(err.message || "Failed to provision user profile");

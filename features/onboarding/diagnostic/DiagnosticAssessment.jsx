@@ -22,6 +22,44 @@ import OrderingQuestion from "./components/questions/OrderingQuestion";
 import CodeBlock from "./components/questions/CodeBlock";
 import OnboardingShell from "../components/OnboardingShell";
 
+// Maps question IDs to their FINAL Figma SVG assets.
+// WebP placeholders have been removed — questions without an approved
+// Figma SVG are intentionally absent and will render centered (no visual).
+const QUESTION_ASSET_MAP = {
+  // ── Final Figma Kyle SVGs ────────────────────────────────────────────────────
+  [QUESTION_IDS.Q2]: {
+    src: "/onboarding/figma/kyle/kyle-writing-notebook.svg",
+    alt: "Kyle writing in a notebook",
+    isSvg: true,
+  },
+  [QUESTION_IDS.Q2b]: {
+    src: "/onboarding/figma/kyle/kyle-ai-chip.svg",
+    alt: "Kyle with an AI chip",
+    isSvg: true,
+  },
+  [QUESTION_IDS.Q4]: {
+    src: "/onboarding/figma/kyle/kyle-roadmap.svg",
+    alt: "Kyle with a roadmap",
+    isSvg: true,
+  },
+  [QUESTION_IDS.Q5]: {
+    src: "/onboarding/figma/kyle/kyle-books-question.svg",
+    alt: "Kyle with books",
+    isSvg: true,
+  },
+  [QUESTION_IDS.Q6]: {
+    src: "/onboarding/figma/kyle/kyle-prompt-laptop.svg",
+    alt: "Kyle with a prompt laptop",
+    isSvg: true,
+  },
+  [QUESTION_IDS.Q7]: {
+    src: "/onboarding/figma/kyle/kyle-magnifier.svg",
+    alt: "Kyle with a magnifier",
+    isSvg: true,
+  },
+  // q1, q3, q7b, q9, q10 — no approved final SVG → centered layout (no entry)
+};
+
 const DEFAULT_ANSWERS = Object.freeze({
   [QUESTION_IDS.Q1]: null,
   [QUESTION_IDS.CASUAL_API_USAGE]: null,
@@ -183,9 +221,9 @@ export default function DiagnosticAssessment({
         currentHistoryIndex >= 0
           ? previousHistory.slice(0, currentHistoryIndex + 1)
           : pruneVisitedHistory(
-              previousHistory,
-              latestResolvedRoute,
-            );
+            previousHistory,
+            latestResolvedRoute,
+          );
 
       return [...validHistory, nextQuestionId];
     });
@@ -232,13 +270,13 @@ export default function DiagnosticAssessment({
         const validHistory =
           currentHistoryIndex >= 0
             ? previousHistory.slice(
-                0,
-                currentHistoryIndex + 1,
-              )
+              0,
+              currentHistoryIndex + 1,
+            )
             : pruneVisitedHistory(
-                previousHistory,
-                latestResolvedRoute,
-              );
+              previousHistory,
+              latestResolvedRoute,
+            );
 
         return [...validHistory, nextQuestionId];
       });
@@ -328,6 +366,8 @@ export default function DiagnosticAssessment({
       return null;
     }
 
+    const isGrid = [QUESTION_IDS.CASUAL_API_USAGE, QUESTION_IDS.Q9, QUESTION_IDS.Q10].includes(currentQuestion.id);
+
     switch (currentQuestion.type) {
       case "SINGLE_CHOICE":
         return (
@@ -335,6 +375,7 @@ export default function DiagnosticAssessment({
             question={currentQuestion}
             value={currentValue}
             onChange={handleAnswerChange}
+            isGrid={isGrid}
           />
         );
 
@@ -344,6 +385,7 @@ export default function DiagnosticAssessment({
             question={currentQuestion}
             value={currentValue}
             onChange={handleAnswerChange}
+            isGrid={isGrid}
           />
         );
 
@@ -376,44 +418,129 @@ export default function DiagnosticAssessment({
   const displayedCurrentStep =
     currentStepIndex >= 0 ? currentStepIndex + 1 : 1;
 
+  const hasAsset = !!QUESTION_ASSET_MAP[currentQuestion?.id];
+
   const assessmentContent = (
-    <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
-      <DiagnosticProgress
-        current={displayedCurrentStep}
-        total={Math.max(resolvedRoute.length, 1)}
-      />
-
-      <div className="mb-8">
-        <h2 className="mb-3 text-2xl font-bold text-[#19183b]">
-          {currentQuestion?.title}
-        </h2>
-
-        {currentQuestion?.description && (
-          <p className="mb-6 text-gray-600">
-            {currentQuestion.description}
-          </p>
-        )}
-
-        <CodeBlock code={currentQuestion?.code} />
-
-        {renderQuestion()}
+    <div className="flex flex-col w-full max-w-[1100px] mx-auto min-h-[calc(100dvh-4rem)] lg:relative lg:left-1/2 lg:w-[calc(100vw-64px)] lg:max-w-[1100px] lg:-translate-x-1/2 lg:py-10">
+      {/* One-time entrance animation for SVG illustrations */}
+      <style>{`
+        @keyframes diag-svg-enter {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .diag-svg-enter {
+          animation: diag-svg-enter 380ms ease-out both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .diag-svg-enter { animation: none; opacity: 1; transform: none; }
+        }
+      `}</style>
+      {/* Top Header: Back Button + Progress Bar */}
+      <div className="flex items-center w-full mb-8 relative h-10 col-span-full">
+        <div className="absolute left-0 z-10">
+          {visitedQuestionIds.length > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={isSubmitting}
+              className="text-[#001D32] hover:bg-slate-200/50 w-10 h-10 flex items-center justify-center rounded-full font-bold text-xl transition-colors disabled:opacity-50"
+              aria-label="Go back"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+          )}
+        </div>
+        <div className="flex-grow flex justify-center px-12">
+          <DiagnosticProgress
+            current={displayedCurrentStep}
+            total={Math.max(resolvedRoute.length, 1)}
+          />
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <div className={hasAsset ? "lg:grid lg:grid-cols-2 lg:gap-0" : "max-w-[580px] mx-auto w-full"}>
+        {/* Left Column: Image */}
+        {hasAsset && (
+          <div className="flex justify-center lg:justify-end mb-8 lg:mb-0 lg:pt-8 px-2 lg:pr-16">
+            <div className="relative w-full max-w-[280px] lg:max-w-[360px] flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element -- SVG: next/image requires explicit dimensions which break SVG aspect ratios */}
+              <img
+                key={currentQuestion.id}
+                src={QUESTION_ASSET_MAP[currentQuestion.id].src}
+                alt={QUESTION_ASSET_MAP[currentQuestion.id].alt}
+                className="diag-svg-enter w-auto h-auto max-w-[150px] lg:max-w-[320px] object-contain"
+              />
+            </div>
+          </div>
+        )}
 
-      <DiagnosticNav
-        canGoBack={visitedQuestionIds.length > 1}
-        onBack={handleBack}
-        onContinue={handleContinue}
-        canContinue={!isContinueDisabled()}
-        skippable={currentQuestion?.skippable}
-        onSkip={handleSkip}
-        isSubmitting={isSubmitting}
-      />
+        {/* Right Column: Interaction */}
+        <div className="flex flex-col lg:w-full lg:max-w-[500px] lg:justify-self-start">
+          <div className={`mb-8 ${!hasAsset && [QUESTION_IDS.CASUAL_API_USAGE].includes(currentQuestion?.id)
+            ? "max-w-md mx-auto text-center"
+            : ""
+            }`}>
+
+            <h2 className="mb-3 font-bold text-[#001D32] text-2xl px-2 lg:pl-0">
+              {currentQuestion?.title}
+            </h2>
+
+            {currentQuestion?.description && (
+              <p className="mb-6 text-[#4A5568] text-base px-2 lg:pl-0">
+                {currentQuestion.description}
+              </p>
+            )}
+
+            <CodeBlock code={currentQuestion?.code} />
+
+            {currentQuestion?.id === QUESTION_IDS.Q5 && (
+              <div className="rounded-[14px] overflow-hidden mb-6 border border-slate-200 shadow-sm mx-2">
+                <div className="bg-[#F1F5F9] px-4 h-10 flex items-center justify-between border-b border-slate-200">
+                  <div className="flex gap-2 w-16">
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
+                  </div>
+                  <div className="text-[13px] font-semibold text-slate-500">
+                    Exercise
+                  </div>
+                  <div className="w-16"></div>
+                </div>
+                <div className="bg-white p-5 flex flex-col gap-4">
+                  <div className="p-4 rounded-xl border border-slate-200 bg-[#FCFCFC] flex flex-col items-center">
+                    <span className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Pair A</span>
+                    <span className="font-medium text-[#334155] text-center">&quot;I want to return this product&quot; <br /><span className="text-slate-400 text-sm">vs</span><br /> &quot;How do I get a refund?&quot;</span>
+                  </div>
+                  <div className="p-4 rounded-xl border border-slate-200 bg-[#FCFCFC] flex flex-col items-center">
+                    <span className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Pair B</span>
+                    <span className="font-medium text-[#334155] text-center">&quot;I want to return this product&quot; <br /><span className="text-slate-400 text-sm">vs</span><br /> &quot;I love this product&quot;</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 text-left px-2 lg:pl-0">
+              {renderQuestion()}
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 mx-2">
+              {error}
+            </div>
+          )}
+
+          <div className="px-2 pb-6">
+            <DiagnosticNav
+              canContinue={!isContinueDisabled()}
+              onContinue={handleContinue}
+              skippable={currentQuestion?.skippable}
+              onSkip={handleSkip}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 

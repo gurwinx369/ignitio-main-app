@@ -263,7 +263,11 @@ export default function ProtectedRoute({
                     profileObj,
                 );
 
-            if (pathname !== canonicalStep) {
+            const isDiagnosticGateway =
+                pathname === ONBOARDING_PREFIX &&
+                canonicalStep === `${ONBOARDING_PREFIX}/diagnostic`;
+
+            if (pathname !== canonicalStep && !isDiagnosticGateway) {
                 router.replace(
                     canonicalStep,
                 );
@@ -343,7 +347,14 @@ export default function ProtectedRoute({
                     profileObj,
                 );
 
-            if (pathname !== canonicalStep) {
+            const isDiagnosticGateway =
+                pathname === ONBOARDING_PREFIX &&
+                canonicalStep === `${ONBOARDING_PREFIX}/diagnostic`;
+
+            if (
+                pathname !== canonicalStep &&
+                !isDiagnosticGateway
+            ) {
                 return null;
             }
         }

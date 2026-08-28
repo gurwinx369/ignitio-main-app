@@ -49,13 +49,13 @@ export default function SkillResultCard({ area }) {
     STATUS_CONFIG.needs_work;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="flex h-full flex-col rounded-2xl border-2 border-[#FFDCBC] bg-white p-5 shadow-sm hover:border-[#4EC3FF] transition-colors">
       <div className="mb-3 flex items-start justify-between">
-        <h3 className="text-lg font-bold leading-tight">
+        <h3 className="text-lg font-bold leading-tight text-[#001D32]">
           {title}
         </h3>
 
-        <span className="ml-2 whitespace-nowrap rounded-full bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground">
+        <span className="ml-2 whitespace-nowrap rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
           {moduleLabel}
         </span>
       </div>
@@ -63,17 +63,17 @@ export default function SkillResultCard({ area }) {
       <div className="mb-3 flex items-center gap-2">
         <Icon
           aria-hidden="true"
-          className={`h-5 w-5 ${iconClassName}`}
+          className={`h-5 w-5 ${iconClassName.replace('text-success', 'text-[#00A9FF]').replace('text-primary', 'text-purple-600').replace('text-warning', 'text-orange-500')}`}
         />
 
         <span
-          className={`text-sm font-semibold ${iconClassName}`}
+          className={`text-sm font-semibold ${iconClassName.replace('text-success', 'text-[#00A9FF]').replace('text-primary', 'text-purple-600').replace('text-warning', 'text-orange-500')}`}
         >
           {label}
         </span>
       </div>
 
-      <p className="mt-auto flex-grow text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-auto flex-grow text-sm leading-relaxed text-slate-600">
         {explanation}
       </p>
     </div>

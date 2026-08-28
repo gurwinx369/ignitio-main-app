@@ -32,8 +32,8 @@ export default function PremiumBenefits() {
     <ul className="space-y-3">
       {BENEFITS.map((b) => (
         <li key={b.id} className="flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-success mt-0.5 shrink-0" aria-hidden="true" />
-          <span className="text-sm text-foreground leading-snug">{b.text}</span>
+          <CheckCircle2 className="w-5 h-5 text-[#00A9FF] mt-0.5 shrink-0" aria-hidden="true" />
+          <span className="text-sm text-[#001D32] leading-snug font-bold">{b.text}</span>
         </li>
       ))}
     </ul>

@@ -38,6 +38,7 @@ import PaywallHeader from "./components/PaywallHeader";
 import PremiumPlanCard from "./components/PremiumPlanCard";
 import PaywallActions from "./components/PaywallActions";
 import PaymentStatus from "./components/PaymentStatus";
+import PaymentExplainer from "./components/PaymentExplainer";
 import OnboardingShell from "../components/OnboardingShell";
 import {
   DEFAULT_SUBSCRIPTION_PLAN,
@@ -57,6 +58,9 @@ export default function Paywall() {
   // Page-level state
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
+  
+  // UI Flow state
+  const [paywallStep, setPaywallStep] = useState("explainer"); // "explainer" | "plans"
 
   // Checkout state
   const [isPremiumLoading, setIsPremiumLoading] = useState(false);
@@ -370,31 +374,56 @@ export default function Paywall() {
   // ── Render: paywall ───────────────────────────────────────────────────────────
   return (
     <OnboardingShell step={3}>
-      <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-10">
+      <div className="w-full">
+        {paywallStep === "explainer" ? (
+          <div className="w-full flex flex-col items-center">
+            <PaymentExplainer />
+            <div className="mt-8 w-full max-w-sm px-4">
+              <button
+                type="button"
+                onClick={() => setPaywallStep("plans")}
+                className="w-full bg-[#00A9FF] text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide transition-all hover:bg-[#0096e6] active:translate-y-1"
+                style={{ boxShadow: "0 4px 0 #004B74" }}
+              >
+                CHOOSE MY PLAN
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full flex flex-col">
+            <div className="mb-6 px-4">
+              <button 
+                onClick={() => setPaywallStep("explainer")}
+                className="text-[#001D32] hover:bg-slate-200/50 w-10 h-10 flex items-center justify-center rounded-full font-bold transition-colors"
+                aria-label="Back to explainer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+            </div>
 
-        <PaywallHeader />
+            <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-10">
+              <PaywallHeader />
 
-        <PremiumPlanCard
-          selectedPlan={selectedPlan}
-          onSelectPlan={setSelectedPlan}
-          disabled={
-            isPremiumLoading ||
-            isSkipping
-          }
-        />
+              <PremiumPlanCard
+                selectedPlan={selectedPlan}
+                onSelectPlan={setSelectedPlan}
+                disabled={isPremiumLoading || isSkipping}
+              />
 
-        <PaywallActions
-          isPremiumLoading={isPremiumLoading}
-          isSkipping={isSkipping}
-          onPremium={handlePremium}
-          onSkip={handleSkip}
-        />
+              <PaywallActions
+                isPremiumLoading={isPremiumLoading}
+                isSkipping={isSkipping}
+                onPremium={handlePremium}
+                onSkip={handleSkip}
+              />
 
-        <PaymentStatus
-          variant={statusVariant}
-          message={statusMessage}
-        />
-
+              <PaymentStatus
+                variant={statusVariant}
+                message={statusMessage}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </OnboardingShell>
   );
