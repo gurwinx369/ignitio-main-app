@@ -493,7 +493,7 @@ const UserProfileSchema = new Schema(
 
     roadmap_name: {
       type: String,
-      default: "Prompt engineering",
+      default: null,
       trim: true,
     },
 

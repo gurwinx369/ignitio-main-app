@@ -546,10 +546,28 @@ export default function RoadmapTemplate({ roadmapData }) {
         // Premium GenAI must wait for trusted server acceptance.
         if (!isGenAiRoadmap) {
             setCompletedLevels(sortedCompleted);
+
             writeLocalRoadmapProgress({
                 roadmapId: roadmapData.id,
                 completedLevels: sortedCompleted
             });
+
+            if (typeof window !== "undefined") {
+                localStorage.setItem(
+                    "has_completed_first_lesson",
+                    "true"
+                );
+
+                window.dispatchEvent(
+                    new CustomEvent("lesson_completed", {
+                        detail: {
+                            levelId,
+                            roadmapId: roadmapData.id
+                        }
+                    })
+                );
+            }
+
             triggerCompletionToast();
         }
 
@@ -558,9 +576,12 @@ export default function RoadmapTemplate({ roadmapData }) {
         // GenAI progress is server-owned. Without an authenticated user,
         // do not mutate completion/unlock state.
         if (isGenAiRoadmap && !user) {
-            console.warn("Cannot complete GenAI level without an authenticated user");
+            console.warn(
+                "Cannot complete GenAI level without an authenticated user"
+            );
             return;
         }
+
 
         if (user) {
             try {
@@ -781,6 +802,21 @@ export default function RoadmapTemplate({ roadmapData }) {
     }, [activeDay, completedLevels]);
 
     const isCurrentDayAssignmentPassed = activeDay ? !!assignmentPassedDays[activeDay.id] : false;
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            if (!selectedLevel) {
+                window.__IS_ON_ROADMAP_SCREEN = true;
+                window.dispatchEvent(new Event("entered_roadmap_screen"));
+            } else {
+                window.__IS_ON_ROADMAP_SCREEN = false;
+            }
+            return () => {
+                window.__IS_ON_ROADMAP_SCREEN = false;
+            };
+        }
+    }, [selectedLevel]);
+
 
     const renderContent = () => {
         if (

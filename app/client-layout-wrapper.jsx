@@ -1,17 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Loader from '@/layout/Loader';
+import { useEffect } from 'react';
 import { AuthProvider } from "@/features/context/AuthContext";
 import { PostHogProvider } from './providers';
 
 export default function ClientLayoutWrapper({ children, bodyClass }) {
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 3000);
-        return () => clearTimeout(timer);
-    }, []);
 
     // Preload YouTube IFrame API on app mount to reduce cold-start latency
     useEffect(() => {
@@ -31,15 +25,9 @@ export default function ClientLayoutWrapper({ children, bodyClass }) {
 
     return (
         <body className={bodyClass}>
-            {isLoading ? (
-                <Loader />
-            ) : (
-                <>
-                    <AuthProvider>
-                        <PostHogProvider>{children}</PostHogProvider>
-                    </AuthProvider>
-                </>
-            )}
+            <AuthProvider>
+                <PostHogProvider>{children}</PostHogProvider>
+            </AuthProvider>
         </body>
     );
 }

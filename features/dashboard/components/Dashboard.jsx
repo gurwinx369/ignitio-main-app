@@ -7,6 +7,9 @@ import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
+import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
+import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
+import CCourseCard from "@/components/ui/courseCards/c-course-card";
 import { useAuth } from "@/features/context/AuthContext";
 import {
   getPromptEngineeringRoadmapByRole,
@@ -15,6 +18,9 @@ import {
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
+import { systemDesignRoadmapData } from "@/data/systemDesignData";
+import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
+import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 import { Home, BookOpen, User } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
@@ -32,6 +38,9 @@ const redirects = {
   GitGithub: "/home/roadmaps/git-github",
   CPP: "/home/roadmaps/cpp",
   PromptEngineering: "/home/roadmaps/prompt-engineering",
+  SystemDesign: "/home/roadmaps/system-design-fundamentals",
+  Python: "/home/roadmaps/python-beginner",
+  CLang: "/home/roadmaps/c-beginner",
 };
 
 export default function Dashboard() {
@@ -178,6 +187,36 @@ export default function Dashboard() {
       });
     }
 
+    roadmapsData.push({
+      id: systemDesignRoadmapData.id,
+      title: systemDesignRoadmapData.title,
+      route: redirects.SystemDesign,
+      totalLevels: systemDesignRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
+      legacySections: [],
+    });
+
+    roadmapsData.push({
+      id: pythonBeginnerRoadmapData.id,
+      title: pythonBeginnerRoadmapData.title,
+      route: redirects.Python,
+      totalLevels: pythonBeginnerRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
+      legacySections: [],
+    });
+
+    roadmapsData.push({
+      id: clangBeginnerRoadmapData.id,
+      title: clangBeginnerRoadmapData.title,
+      route: redirects.CLang,
+      totalLevels: clangBeginnerRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
+      legacySections: [],
+    });
+
     const progressMap = {};
 
     for (const roadmap of roadmapsData) {
@@ -191,7 +230,7 @@ export default function Dashboard() {
           if (Array.isArray(parsed)) {
             completedLevelsCount = parsed.length;
           }
-        } catch (e) {}
+        } catch (e) { }
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -202,7 +241,7 @@ export default function Dashboard() {
               if (Array.isArray(parsed)) {
                 completedLevelsCount += parsed.length;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
       }
@@ -254,6 +293,14 @@ export default function Dashboard() {
   const handleRedirectCPP = () => handleRedirect(redirects.CPP);
   const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
   const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa");
+  const handleRedirectSystemDesign = () =>
+    handleRedirect(redirects.SystemDesign);
+
+  const handleRedirectPython = () =>
+    handleRedirect(redirects.Python);
+
+  const handleRedirectCLang = () =>
+    handleRedirect(redirects.CLang);
 
   const displayName = profileData?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
@@ -268,6 +315,57 @@ export default function Dashboard() {
   };
 
   const carouselRoadmaps = [];
+
+  // System Design
+  carouselRoadmaps.push({
+    id: systemDesignRoadmapData.id,
+    component: (
+      <SystemDesignCourseCard
+        onClick={handleRedirectSystemDesign}
+        levelsFinished={
+          roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[systemDesignRoadmapData.id]?.total ||
+          systemDesignRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
+
+  // Python
+  carouselRoadmaps.push({
+    id: pythonBeginnerRoadmapData.id,
+    component: (
+      <PythonCourseCard
+        onClick={handleRedirectPython}
+        levelsFinished={
+          roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
+          pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
+
+  // C Language
+  carouselRoadmaps.push({
+    id: clangBeginnerRoadmapData.id,
+    component: (
+      <CCourseCard
+        onClick={handleRedirectCLang}
+        levelsFinished={
+          roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
+          clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
 
   // Prompt Engineering
   carouselRoadmaps.push({

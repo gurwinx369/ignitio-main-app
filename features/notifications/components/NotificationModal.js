@@ -1,27 +1,76 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+import { usePathname } from "next/navigation";
 import { useNotification } from "../context/NotificationContext";
 import { useAuth } from "@/features/context/AuthContext";
 import axios from "axios";
+import { hasUserCompletedAnyLesson } from "@/lib/roadmaps/progress.helpers";
 
 export default function NotificationModal() {
   const { permission, requestPermission } = useNotification();
   const { user } = useAuth();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [buttonPressed, setButtonPressed] = useState(false);
 
-  useEffect(() => {
-    if (permission === "default") {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-        setIsVisible(true);
-      }, 100);
-      return () => clearTimeout(timer);
+  const checkAndShowModal = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    // 1. Never show again in the current session if user closed or dismissed it
+    try {
+      if (sessionStorage.getItem("notification_modal_dismissed_session") === "true") {
+        return;
+      }
+    } catch (e) {
+      // ignore storage access errors
     }
-  }, [permission]);
+
+    // 2. Must have permission as 'default'
+    if (permission !== "default") return;
+
+    // 3. User must have completed at least 1 lesson
+    if (!hasUserCompletedAnyLesson()) return;
+
+    // 4. Must NOT be inside a level view
+    if (window.__IS_IN_LESSON_VIEW) return;
+
+    // 5. Must be strictly on a Roadmap Screen (pathname contains '/roadmaps' or RoadmapTemplate screen active)
+    const isRoadmapRoute =
+      (pathname && pathname.includes("/roadmaps")) ||
+      window.__IS_ON_ROADMAP_SCREEN === true;
+
+    if (!isRoadmapRoute) return;
+
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+      setIsVisible(true);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [permission, pathname]);
+
+  useEffect(() => {
+    const cleanup = checkAndShowModal();
+    return cleanup;
+  }, [checkAndShowModal, pathname]);
+
+  useEffect(() => {
+    const handleCheckModal = () => {
+      checkAndShowModal();
+    };
+
+    window.addEventListener("returned_to_roadmap", handleCheckModal);
+    window.addEventListener("entered_roadmap_screen", handleCheckModal);
+
+    return () => {
+      window.removeEventListener("returned_to_roadmap", handleCheckModal);
+      window.removeEventListener("entered_roadmap_screen", handleCheckModal);
+    };
+  }, [checkAndShowModal]);
 
   useEffect(() => {
     if (permission === "granted" && isOpen) {
@@ -31,9 +80,17 @@ export default function NotificationModal() {
   }, [permission, isOpen]);
 
   const handleClose = () => {
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("notification_modal_dismissed_session", "true");
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
     setIsVisible(false);
     setTimeout(() => setIsOpen(false), 300);
   };
+
 
   const handleAccept = async () => {
     // Check if user is logged in

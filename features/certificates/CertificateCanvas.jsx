@@ -92,18 +92,22 @@ export default function CertificateCanvas({ certificate, canvasId }) {
             style={{ objectFit: 'fill' }}
             onError={() => setImgError(true)}
           />
-          <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.providedOn, fontSize: '21px', fontWeight: 800, color: '#111111', textAlign: 'left', lineHeight: 1 }}>
-            {providedOn}
-          </div>
-          <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.day, fontSize: '17px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
-            {labelText}
-          </div>
-          <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.quizzes, fontSize: '18px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
-            {quizCount}
-          </div>
-          <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.minutes, fontSize: '18px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
-            {duration} min
-          </div>
+          {certificate.certificateKey !== "c-level-1" && (
+            <>
+              <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.providedOn, fontSize: '21px', fontWeight: 800, color: '#111111', textAlign: 'left', lineHeight: 1 }}>
+                {providedOn}
+              </div>
+              <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.day, fontSize: '17px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
+                {labelText}
+              </div>
+              <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.quizzes, fontSize: '18px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
+                {quizCount}
+              </div>
+              <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.minutes, fontSize: '18px', fontWeight: 900, color: '#111111', textAlign: 'center', lineHeight: 1 }}>
+                {duration} min
+              </div>
+            </>
+          )}
         </>
       )}
 

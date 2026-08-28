@@ -17,7 +17,7 @@ const JDOODLE_CONFIG = {
 // Rate limiting store (in-memory, resets on server restart)
 // For production, use Redis or a database
 const rateLimitStore = new Map();
-const RATE_LIMIT_MS = 10000; // 10 seconds
+const RATE_LIMIT_MS = 3000; // 3 seconds
 
 /**
  * Get client IP for rate limiting
@@ -118,11 +118,13 @@ export async function POST(request) {
       );
     }
 
-    // Language configuration (C++ 17)
-    const languageConfig = {
-      lang: 'cpp',
-      versionIndex: '0' // C++ 17
+    // Language configuration — supports cpp, python3, and c
+    const LANGUAGE_MAP = {
+      cpp:     { lang: 'cpp',     versionIndex: '0' }, // C++ 17
+      python3: { lang: 'python3', versionIndex: '3' }, // Python 3
+      c:       { lang: 'c',       versionIndex: '4' }, // C (GCC)
     };
+    const languageConfig = LANGUAGE_MAP[language] || LANGUAGE_MAP.cpp;
 
     // Make request to JDoodle API
     const response = await axios.post(

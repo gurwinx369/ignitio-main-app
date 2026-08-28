@@ -1,12 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {BookOpen, Maximize2, Minimize2, RotateCcw} from 'lucide-react';
+import {BookOpen, Maximize2, Minimize2, RotateCcw, Terminal, Code2} from 'lucide-react';
 import {CompilerPage} from '@/features/compiler';
 
-const TabBar = ({handleReset, toggleFullscreen, isFullscreen, isCompiler = false}) => (
+const TabBar = ({handleReset, toggleFullscreen, isFullscreen, isCompiler = false, compilerLabel = 'C++ Compiler'}) => (
     <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">
-                {isCompiler ? '💻 C++ Compiler' : '📄 Static Notebook View'}
+                {isCompiler ? `💻 ${compilerLabel}` : '📄 Static Notebook View'}
             </span>
         </div>
         <div className="flex items-center gap-2">
@@ -234,6 +234,9 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
 
     // Determine if this is C++ roadmap
     const isCppRoadmap = roadmapType === 'cpp';
+    // ponytail: same pattern as cpp/python, language prop does the differentiation
+    const isPythonRoadmap = roadmapType === 'python-beginner';
+    const isCRoadmap = roadmapType.startsWith('c-language');
 
     // Get current notebook (for Git/GitHub roadmap)
     const currentNotebook = notebookMapping[level.id] || notebookMapping['A1'];
@@ -342,6 +345,7 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                         toggleFullscreen={toggleFullscreen}
                         isFullscreen={isFullscreen}
                         isCompiler={true}
+                        compilerLabel="C++ Compiler"
                     />
 
                     <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
@@ -388,6 +392,222 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                                     <h4 className="font-semibold text-green-900 text-xs mb-1">Pro Tip</h4>
                                     <p className="text-green-800 text-xs">
                                         Use fullscreen mode for a distraction-free coding experience.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Render C Language Compiler Tab
+    if (isCRoadmap) {
+        return (
+            <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'max-w-7xl mx-auto px-4 py-4 md:py-8'}`}>
+                {isFullscreen ? (
+                    <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-[#f97316] to-[#ea580c] rounded-lg flex items-center justify-center shadow-sm">
+                                <Terminal className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-900 text-sm">{level.title || level.name || 'C Level'}</h3>
+                                <p className="text-xs text-gray-600">C Compiler</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="text-gray-600 hover:text-gray-900 p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                            <Minimize2 className="w-5 h-5"/>
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="mb-4 md:mb-6 rounded-xl md:rounded-2xl p-4 md:p-6 border border-[#fed7aa] bg-[#fff7ed] shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#f97316] to-[#ea580c] rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                                    <Terminal className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+                                        {level.title || level.name || 'C Level'}
+                                    </h2>
+                                    <p className="text-gray-600 text-xs md:text-sm">{level.description || 'Practice your C programming skills'}</p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#ffedd5] text-[#c2410c] border border-[#fed7aa]">
+                                            <Terminal className="w-3.5 h-3.5" /> Interactive Compiler
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fef9c3] text-[#a16207] border border-[#fef08a]">
+                                            <Code2 className="w-3.5 h-3.5" /> C (GCC)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
+                    <TabBar
+                        handleReset={handleReset}
+                        toggleFullscreen={toggleFullscreen}
+                        isFullscreen={isFullscreen}
+                        isCompiler={true}
+                        compilerLabel="C Compiler"
+                    />
+
+                    <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
+                        <CompilerPage key={compilerKey} language="c" />
+                    </div>
+
+                    {!isFullscreen && (
+                        <div className="bg-gray-50 px-3 md:px-6 py-2 md:py-3 border-t border-gray-200">
+                            <div className="flex items-center justify-center gap-1.5">
+                                <Code2 className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-xs text-gray-500">
+                                    Write and run C code directly in your browser
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {!isFullscreen && !isMobile && (
+                    <div className="mt-6 grid md:grid-cols-2 gap-4">
+                        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/20">
+                                    <Terminal className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-orange-900 text-sm mb-0.5">Live C Compiler</h4>
+                                    <p className="text-orange-800/90 text-xs leading-relaxed">
+                                        Write and run C (GCC) code directly in your browser. No setup required.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-green-500/20">
+                                    <Code2 className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-green-900 text-sm mb-0.5">Pro Tip</h4>
+                                    <p className="text-green-800/90 text-xs leading-relaxed">
+                                        Use fullscreen mode for a distraction-free C coding experience.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Render Python Compiler Tab
+    // ponytail: copy of cpp block with language="python3" — refactor to shared block if a 3rd language is added
+    if (isPythonRoadmap) {
+        return (
+            <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'max-w-7xl mx-auto px-4 py-4 md:py-8'}`}>
+                {isFullscreen ? (
+                    <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] rounded-lg flex items-center justify-center shadow-sm">
+                                <Terminal className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-900 text-sm">{level.title || level.name || 'Python Level'}</h3>
+                                <p className="text-xs text-gray-600">Python Compiler</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="text-gray-600 hover:text-gray-900 p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                            <Minimize2 className="w-5 h-5"/>
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="mb-4 md:mb-6 rounded-xl md:rounded-2xl p-4 md:p-6 border border-[#f1e4d2] bg-[#fffaf3] shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                                    <Terminal className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+                                        {level.title || level.name || 'Python Level'}
+                                    </h2>
+                                    <p className="text-gray-600 text-xs md:text-sm">{level.description || 'Practice your Python skills'}</p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
+                                            <Terminal className="w-3.5 h-3.5" /> Interactive Compiler
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
+                                            <Code2 className="w-3.5 h-3.5" /> Python 3
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
+                    <TabBar
+                        handleReset={handleReset}
+                        toggleFullscreen={toggleFullscreen}
+                        isFullscreen={isFullscreen}
+                        isCompiler={true}
+                    />
+
+                    <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
+                        <CompilerPage key={compilerKey} language="python3" />
+                    </div>
+
+                    {!isFullscreen && (
+                        <div className="bg-gray-50 px-3 md:px-6 py-2 md:py-3 border-t border-gray-200">
+                            <div className="flex items-center justify-center gap-1.5">
+                                <Code2 className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-xs text-gray-500">
+                                    Write and run Python 3 code directly in your browser
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {!isFullscreen && !isMobile && (
+                    <div className="mt-6 grid md:grid-cols-2 gap-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/20">
+                                    <Terminal className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-amber-900 text-sm mb-0.5">Live Python Compiler</h4>
+                                    <p className="text-amber-800/90 text-xs leading-relaxed">
+                                        Write and run Python 3 code directly in your browser. No setup required.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-green-500/20">
+                                    <Code2 className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-green-900 text-sm mb-0.5">Pro Tip</h4>
+                                    <p className="text-green-800/90 text-xs leading-relaxed">
+                                        Use fullscreen mode for a distraction-free Python coding experience.
                                     </p>
                                 </div>
                             </div>

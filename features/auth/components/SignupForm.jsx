@@ -82,25 +82,32 @@ export default function SignupForm() {
       return;
     }
 
-    isHandlingAuthActionRef.current = true;
-    const result = await signup(form.email, form.password);
+    try {
+      isHandlingAuthActionRef.current = true;
+      const result = await signup(form.email, form.password);
 
-    if (result.success) {
-      try {
-        const profile = await ensureUserProfile(result.user);
-        if (result.authMode === "new_signup") {
-          router.replace("/home/onboarding");
-        } else {
-          router.replace(getOnboardingRoute(profile));
+      if (result.success) {
+        try {
+          const profile = await ensureUserProfile(result.user);
+
+          if (result.authMode === "new_signup") {
+            router.replace("/home/onboarding");
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
         }
-      } catch (err) {
+      } else {
         isHandlingAuthActionRef.current = false;
-        setError(err.message || "Failed to provision user profile");
+        setError(result.error || "Check your email or password.");
         setLoading(false);
       }
-    } else {
+    } catch {
       isHandlingAuthActionRef.current = false;
-      setError(result.error || "Check your email or password.");
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
@@ -109,30 +116,37 @@ export default function SignupForm() {
     setError("");
     setLoading(true);
 
-    isHandlingAuthActionRef.current = true;
-    const result = await loginWithGoogle();
+    try {
+      isHandlingAuthActionRef.current = true;
+      const result = await loginWithGoogle();
 
-    if (result.success) {
-      try {
-        const profile = await ensureUserProfile(result.user);
-        if (result.authMode === "new_signup") {
-          router.replace("/home/onboarding");
-        } else {
-          router.replace(getOnboardingRoute(profile));
+      if (result.success) {
+        try {
+          const profile = await ensureUserProfile(result.user);
+
+          if (result.authMode === "new_signup") {
+            router.replace("/home/onboarding");
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
         }
-      } catch (err) {
+      } else if (result.error === null) {
+        // Cancelled popup
         isHandlingAuthActionRef.current = false;
-        setError(err.message || "Failed to provision user profile");
+        setLoading(false);
+        return;
+      } else {
+        isHandlingAuthActionRef.current = false;
+        setError(result.error || "Failed to sign up with Google");
         setLoading(false);
       }
-    } else if (result.error === null) {
-      // Cancelled popup
+    } catch {
       isHandlingAuthActionRef.current = false;
-      setLoading(false);
-      return;
-    } else {
-      isHandlingAuthActionRef.current = false;
-      setError(result.error || "Failed to sign up with Google");
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
@@ -145,9 +159,6 @@ export default function SignupForm() {
 
   return (
     <>
-      <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-            `}</style>
 
       <div
         className="min-h-screen flex items-center justify-center p-4"
@@ -161,7 +172,7 @@ export default function SignupForm() {
               <h1
                 className="text-center mb-8 text-5xl font-bold tracking-tight"
                 style={{
-                  fontFamily: "'Pixelify Sans', cursive",
+                  fontFamily: "var(--font-pixelify)",
                   color: "#1a1a2e",
                 }}
               >
@@ -176,7 +187,7 @@ export default function SignupForm() {
                 <h2
                   className="text-4xl font-bold mb-8"
                   style={{
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter)",
                     color: "#1a1a2e",
                   }}
                 >
@@ -196,7 +207,7 @@ export default function SignupForm() {
                       htmlFor="email"
                       className="block mb-2 text-lg font-medium"
                       style={{
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter)",
                         color: "#1a1a2e",
                       }}
                     >
@@ -215,7 +226,7 @@ export default function SignupForm() {
                       placeholder="you@ignitio.cloud"
                       className="w-full px-4 py-4 rounded-2xl text-lg transition-all duration-200 outline-none"
                       style={{
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter)",
                         backgroundColor: "#E8E3F3",
                         border:
                           focusedInput === "email"
@@ -232,7 +243,7 @@ export default function SignupForm() {
                       htmlFor="password"
                       className="block mb-2 text-lg font-medium"
                       style={{
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter)",
                         color: "#1a1a2e",
                       }}
                     >
@@ -251,7 +262,7 @@ export default function SignupForm() {
                       placeholder="pass123"
                       className="w-full px-4 py-4 rounded-2xl text-lg transition-all duration-200 outline-none"
                       style={{
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter)",
                         backgroundColor: "#E8E3F3",
                         border:
                           focusedInput === "password"
@@ -268,7 +279,7 @@ export default function SignupForm() {
                     disabled={loading || !form.email || !form.password}
                     className="w-full py-4 rounded-2xl text-white text-lg font-semibold uppercase tracking-wide transition-all duration-100 hover:brightness-110 disabled:opacity-50 active:translate-y-1"
                     style={{
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "var(--font-inter)",
                       backgroundColor: "#00A9FF",
                       boxShadow: "0 4px 0 #0088CC",
                       transform: "translateY(0)",
@@ -297,7 +308,7 @@ export default function SignupForm() {
                   <div className="flex-1 h-px bg-gray-300"></div>
                   <span
                     className="px-4 text-gray-400 text-sm"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
+                    style={{ fontFamily: "var(--font-inter)" }}
                   >
                     or
                   </span>
@@ -310,7 +321,7 @@ export default function SignupForm() {
                   disabled={loading}
                   className="w-full py-4 rounded-2xl text-lg font-medium transition-all duration-100 hover:bg-opacity-90 disabled:opacity-50 flex items-center justify-center gap-3"
                   style={{
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter)",
                     backgroundColor: "#FCF5EE",
                     color: "#5f6368",
                     border: "2px solid #dadce0",
@@ -358,7 +369,7 @@ export default function SignupForm() {
                   <p
                     className="text-base"
                     style={{
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "var(--font-inter)",
                       color: "#6b7280",
                     }}
                   >
@@ -366,15 +377,16 @@ export default function SignupForm() {
                     <Link
                       href="/auth/login"
                       onClick={(e) => {
-                          if (isNavigating) {
-                              e.preventDefault();
-                              return;
-                          }
-                          setIsNavigating(true);
-                          posthog?.capture("auth_navigation_clicked", { target: "login" });
+                        if (isNavigating) {
+                          e.preventDefault();
+                          return;
+                        }
+                        setIsNavigating(true);
+                        posthog?.capture("auth_navigation_clicked", { target: "login" });
                       }}
                       className="font-semibold hover:underline transition-colors duration-200 inline-flex items-center gap-1"
                       style={{
+                        fontFamily: "var(--font-inter)",
                         color: "#00A9FF",
                         opacity: isNavigating ? 0.6 : 1,
                         cursor: isNavigating ? "not-allowed" : "pointer"
@@ -384,6 +396,35 @@ export default function SignupForm() {
                     </Link>
                   </p>
                 </div>
+
+                {/* Legal Terms & Privacy Disclaimer */}
+                <p
+                  className="mt-6 text-center text-xs sm:text-sm leading-relaxed"
+                  style={{
+                    fontFamily: "var(--font-inter)",
+                    color: "#6b7280",
+                  }}
+                >
+                  By continuing, you agree to Ignitio&#39;s{" "}
+                  <a
+                    href="https://ignitio.cloud/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium hover:opacity-80 transition-opacity underline decoration-[#00A9FF] underline-offset-4"
+                  >
+                    Terms &amp; Conditions
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="https://ignitio.cloud/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium hover:opacity-80 transition-opacity underline decoration-[#00A9FF] underline-offset-4"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
               </div>
             </div>
 
@@ -408,7 +449,7 @@ export default function SignupForm() {
                 <blockquote
                   className="text-lg sm:text-xl lg:text-2xl font-medium leading-relaxed mb-6 mx-auto"
                   style={{
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter)",
                     color: "#1a1a2e",
                     lineHeight: "1.7",
                     maxWidth: "500px",
@@ -424,7 +465,7 @@ export default function SignupForm() {
                   <p
                     className="text-base sm:text-lg font-semibold"
                     style={{
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "var(--font-inter)",
                       color: "#1a1a2e",
                     }}
                   >
@@ -433,7 +474,7 @@ export default function SignupForm() {
                   <p
                     className="text-sm sm:text-base mt-1"
                     style={{
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "var(--font-inter)",
                       color: "#6b7280",
                     }}
                   >

@@ -41,6 +41,28 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  /* ─── Vibration effect (ponytail: simplest robust loop) ── */
+  useEffect(() => {
+    let intervalId;
+    if (!revealComplete) {
+      if (typeof window !== "undefined" && window.navigator?.vibrate) {
+        try {
+          intervalId = setInterval(() => window.navigator.vibrate(100), 150);
+        } catch (e) {}
+      }
+    } else {
+      if (typeof window !== "undefined" && window.navigator?.vibrate) {
+        try { window.navigator.vibrate(0); } catch (e) {}
+      }
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (typeof window !== "undefined" && window.navigator?.vibrate) {
+        try { window.navigator.vibrate(0); } catch (e) {}
+      }
+    };
+  }, [revealComplete]);
+
   /* ─── Reveal timer ───────────────────────────────────────── */
   useEffect(() => {
     if (!prefersReducedMotion) return;

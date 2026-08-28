@@ -47,6 +47,17 @@ const ExpandableProgressCard = ({
         if (onLevelViewChange) {
             onLevelViewChange(selectedLevel !== null);
         }
+        if (typeof window !== "undefined") {
+            if (!selectedLevel) {
+                window.__IS_ON_ROADMAP_SCREEN = true;
+                window.dispatchEvent(new Event("entered_roadmap_screen"));
+            } else {
+                window.__IS_ON_ROADMAP_SCREEN = false;
+            }
+            return () => {
+                window.__IS_ON_ROADMAP_SCREEN = false;
+            };
+        }
     }, [selectedLevel, onLevelViewChange]);
 
     const handleLevelClick = (level) => {
@@ -59,8 +70,13 @@ const ExpandableProgressCard = ({
             const newCompleted = [...completedLevels, levelId];
             setCompletedLevels(newCompleted);
             localStorage.setItem(`progress_${roadmapType}_${id}`, JSON.stringify(newCompleted));
+            if (typeof window !== "undefined") {
+                localStorage.setItem("has_completed_first_lesson", "true");
+                window.dispatchEvent(new CustomEvent("lesson_completed", { detail: { levelId } }));
+            }
         }
     };
+
 
     const handleBack = () => {
         setSelectedLevel(null);

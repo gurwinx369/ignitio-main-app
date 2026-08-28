@@ -44,6 +44,10 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const prevLevelIdRef = useRef(null);
 
     const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
+    const isPythonRoadmap = roadmapType === 'python-beginner';
+    const isCRoadmap = roadmapType.startsWith('c-language');
+    const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap && !isCRoadmap;
+    const showPracticeTab = !isKyleRoadmap || isPythonRoadmap || isCRoadmap;
 
     const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
     const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;
@@ -58,13 +62,23 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
     const shouldPauseVideo = showQuizModal || showAssignmentModal;
 
     useEffect(() => {
-        if (isKyleRoadmap && activeTab === 'practice') {
+        if (typeof window !== "undefined") {
+            window.__IS_IN_LESSON_VIEW = true;
+            return () => {
+                window.__IS_IN_LESSON_VIEW = false;
+                window.dispatchEvent(new Event("returned_to_roadmap"));
+            };
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!showPracticeTab && activeTab === 'practice') {
             setActiveTab('video');
         }
-        if (!isKyleRoadmap && activeTab === 'kyle') {
+        if (!showAskKyleTab && activeTab === 'kyle') {
             setActiveTab('video');
         }
-    }, [isKyleRoadmap, activeTab]);
+    }, [showPracticeTab, showAskKyleTab, activeTab]);
 
     // Update quiz logic when level changes
     useEffect(() => {
@@ -196,7 +210,7 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                             >
                                 Video
                             </button>
-                            {isKyleRoadmap ? (
+                            {showAskKyleTab && (
                                 <button
                                     onClick={() => setActiveTab('kyle')}
                                     className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'kyle'
@@ -206,7 +220,8 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                                 >
                                     Ask Kyle
                                 </button>
-                            ) : (
+                            )}
+                            {showPracticeTab && (
                                 <button
                                     onClick={() => setActiveTab('practice')}
                                     className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === 'practice'
@@ -238,10 +253,10 @@ const LevelContent = ({ level, onBack, onComplete, isCompleted, roadmapType = 'g
                     shouldPauseVideo={shouldPauseVideo}
                 />
             </div>
-            {activeTab === 'practice' && !isKyleRoadmap && (
+            {activeTab === 'practice' && showPracticeTab && (
                 <PracticeTab level={level} roadmapType={roadmapType} />
             )}
-            {activeTab === 'kyle' && isKyleRoadmap && (
+            {activeTab === 'kyle' && showAskKyleTab && (
                 <div className="pb-12">
                     <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
                 </div>
