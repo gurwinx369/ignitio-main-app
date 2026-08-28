@@ -1044,7 +1044,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Introduction to Arrays & Basic Access",
           transcript:
             'Chapter 7 opens by defining an array as a collection of similar elements, motivated by the problem of storing marks for many students — creating a separate variable for each one quickly becomes impossible (who would create 90 variables by hand?). Declaring `int marks[90];` reserves space for 90 integers, and elements are assigned and accessed just like normal variables: `marks[0] = 45;`, `marks[1] = 95;`, printed with `%d`. Clarifies that valid indices run from 0 to 89 — `marks[90]` reserves 90 elements but 90 itself is not a valid index. Introduces the idea of contiguous memory locations for array elements, then shows accessing elements via `scanf("%d", &marks[0])`, first typed out one by one for five students\' marks, and then rewritten using a `for` loop for both taking input and printing output.',
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 23798,
           endSec: 24204,
           durationInMinutes: 7,
@@ -1060,7 +1060,7 @@ export const clangBeginnerRoadmapData = {
             "Array Initialization Styles, Memory Layout & Pointer Basics",
           transcript:
             "Shows a faster way to build small arrays by direct initialization, e.g. `int cgpa[3] = {9, 8, 8};`, without needing to take input, and notes that the size can even be omitted entirely (`int cgpa[] = {...}`) since the compiler counts the elements automatically. Explains how array elements sit in memory as contiguous blocks — e.g. a 4-byte integer at one address is immediately followed by the next element's 4 bytes, and so on. Transitions into pointer arithmetic: declaring `int a = 5;`, printing its address with `%u`, storing that address in `int* ptr = &a;`, and observing that while the actual address changes on every run of the program, `ptr` and `&a` always match each other — reinforced with a hotel-room analogy (you'll get 'a' large room, just not necessarily the same one as last time).",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 24204,
           endSec: 24518,
           durationInMinutes: 5,
@@ -1074,7 +1074,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Pointer Increment & Array Traversal",
           transcript:
             "Writing `ptr++` changes the value of `ptr`, but not necessarily by 1 — the increment equals however many bytes the pointer's data type takes on that architecture. For an integer pointer on a 4-byte-int system, `ptr++` jumps forward by 4; rerunning the same logic with a character pointer instead confirms it jumps forward by only 1 byte, since `char` takes 1 byte. This generalizes to other pointer operations — adding or subtracting a number from a pointer, subtracting one pointer from another, and comparing two pointers. Using this, a pointer is pointed at the first element of the `marks` array, and printing the addresses of consecutive elements confirms they're exactly 4 bytes apart, setting up pointer-based array traversal.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 24518,
           endSec: 24845,
           durationInMinutes: 5,
@@ -1088,7 +1088,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Array-Pointer Equivalence & Passing Arrays to Functions",
           transcript:
             "A new program declares `int* ptr = &marks[0];`, an integer pointer pointing to the array's first element. The compiler offers a shortcut: just using the array's bare name (`marks`) is equivalent to `&marks[0]` — the address of the first element — so `marks` and `&marks[0]` mean the same thing. A `for` loop then prints the array both by regular indexing and by dereferencing the pointer, showing that without incrementing, `*ptr` repeats the same first value every time — `ptr++` is needed each iteration to walk through each element in turn. Finally, passing an array to a function is shown to pass just the address of its first element; a quick audience challenge confirms that yes, a function receiving an array's name absolutely can modify the caller's original array, since this is call by reference.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 24845,
           endSec: 25208,
           durationInMinutes: 6,
@@ -1103,7 +1103,7 @@ export const clangBeginnerRoadmapData = {
           concept: "2D Arrays — Declaration, Memory Layout & Input/Display",
           transcript:
             "Introduces multi-dimensional arrays with `int arr[3][2] = {...};`, accessing elements via `arr[row][col]`, and explains that in memory a 2D array is stored row-major — each row is 'unrolled' and placed one after another in contiguous blocks, just like a 1D array. A quick quiz asks for a 2D array built from user input with a display function to print its contents: nested `for` loops handle this, an outer loop for rows and an inner loop for columns, used first with `scanf` to read each `arr[i][j]` and then with `printf` to display each value labeled by its position. After testing with sample values, an alternate compact print format is shown — printing just the numbers with spaces and a newline after each row — producing a clean grid-style layout on screen.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 25208,
           endSec: 25557,
           durationInMinutes: 6,
@@ -1125,7 +1125,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Pointer Arithmetic & Indexing Trick",
           transcript:
             "Problem 1 builds an array of 10 numbers and uses pointer arithmetic to verify that `ptr + 2` points to the third element (where `ptr` points to the array's first element) — checked live by printing the address and value at `ptr + 3` as well, confirming it correctly lands on the fourth element. Problem 2 asks whether the statement 'if s3 is a 1D array of integers, then `*(s + 3)` refers to the third element' is true — the answer is false, since zero-based indexing means `s + 3` actually points to the fourth element, not the third, a classic off-by-one trap.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 25557,
           endSec: 25787,
           durationInMinutes: 4,
@@ -1140,7 +1140,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Building & Generalizing an Array-Based Table",
           transcript:
             "Problem 3 creates an array of 10 integers and fills it with the multiplication table of 5 using a `for` loop (`arr[i] = 5 * (i + 1)`, since the loop index runs 0–9 but the table needs to start at ×1), then prints the results with a custom snippet built for reusable `printf` statements. Problem 4 repeats the same program but generalizes it for any number `n` provided by the user instead of a hard-coded 5, simply swapping the literal 5 for the input variable throughout — tested by printing the tables of 4 and 1, with a lighthearted aside about kids not memorizing their multiplication tables anymore.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 25787,
           endSec: 26116,
           durationInMinutes: 5,
@@ -1154,7 +1154,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — In-Place Array Reversal Algorithm",
           transcript:
             "Problem 5 writes a function that reverses an array passed to it. Starting from the familiar three-line swap technique (`temp = a; a = b; b = temp;`), the logic is extended to arrays: to reverse `{1,2,3,4,5,6}`, the first element swaps with the last, the second with the second-last, the third with the third-last, and so on — meaning index `i` swaps with index `n - i - 1`. Tracing this shows the loop only needs to run up to the array's midpoint (`i` from 0 to `n/2 - 1`), since running it all the way to `n` would swap everything back to its original order. The function is implemented with a `temp` variable and `arr[i] = arr[n-i-1]` style swaps inside a loop bounded by `n/2`, verified by printing the array before and after reversal — a common mistake (looping all the way to `n` instead of stopping at `n/2`) is called out explicitly.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 26116,
           endSec: 26630,
           durationInMinutes: 9,
@@ -1170,7 +1170,7 @@ export const clangBeginnerRoadmapData = {
             "Practice — Positive-Count Function & 2D Multiplication Tables",
           transcript:
             "Problem 6 writes a `countPositives` function that loops through an array, incrementing a counter each time an element is greater than 0, and returns the total — tested on an array mixing positive and negative integers. Problem 7 builds a `3 × 10` two-dimensional array to hold the multiplication tables of 2, 7, and 9 all at once: a nested loop fills row `i` with the table of a chosen base number (`base[i] * (j + 1)`), and a second nested loop prints each row, producing all three multiplication tables from a single 2D array.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 26630,
           endSec: 26951,
           durationInMinutes: 5,
@@ -1185,7 +1185,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Custom Input & 3D Array Memory Addresses",
           transcript:
             "As a follow-up to Problem 7, the 3×10 multiplication-table program is adapted to accept three custom numbers from the user via `scanf` instead of hard-coded 2, 7, and 9, correctly producing the tables for whichever numbers are entered. Problem 9 then builds a three-dimensional array (`arr[3][3][4]`) and uses a triple-nested `for` loop to print the address of every single element using `%u`, confirming the addresses increase in fixed 4-byte steps across the entire structure — wrapping up Chapter 7's practice set before the course moves on to Chapter 8: Strings.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 26951,
           endSec: 27151,
           durationInMinutes: 3,
@@ -1207,7 +1207,7 @@ export const clangBeginnerRoadmapData = {
           concept: "String Basics — Null Termination & Printing",
           transcript:
             "Chapter 8 opens by defining a string as a one-dimensional character array terminated by a null character, used to mark where the string ends — demonstrated by manually building 'Harry' as H-A-R-R-Y followed by \\0. The contiguous memory layout of characters is explained through a hotel-room and train-seat analogy (consecutive addresses like 8221, 8221+1, 8221+2...), the same logic already seen with arrays. A string is first built with individual characters and printed using a for loop with %c, printing each element to reconstruct 'a', 'b', 'c'. The same string is then rebuilt directly using double quotes (char st[] = \"abc\"), revealing that double-quote syntax automatically appends the null character — proven by looping one extra index and seeing the null character appear at the end. Finally, the lesson shows that an entire string can be printed in a single line using %s instead of looping character-by-character with %c, since the string's name is already the address of its first element, which is called out as a major convenience C provides over manual iteration.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 27151,
           endSec: 27607,
           durationInMinutes: 8,
@@ -1222,7 +1222,7 @@ export const clangBeginnerRoadmapData = {
           concept: "String I/O Functions & Pointer-Based Declaration",
           transcript:
             'This lesson covers reading strings with scanf using %s and st (not &st, since an array name is already an address), noting that scanf automatically appends a null character when Enter is pressed, but only works for single-word strings since it cannot handle spaces or multi-word input. To solve this, gets() is introduced as a function that reads a full multi-word string including spaces, demonstrated by reading \'Harry is good\' into a buffer. puts() is then shown as the counterpart for printing, which additionally moves the cursor to the next line after output, unlike printf. A ChatGPT-style explanation follows on why gets() should be avoided — due to buffer overflow risks — and why fgets() is the recommended safer replacement, noting gets() was deprecated in the C11 standard. Finally, the lesson shows declaring a string using a character pointer (char *ptr = "Harry"), explaining that unlike array-declared strings which cannot be reinitialized once defined, a pointer-declared string can be reassigned to point at an entirely different string later (ptr = "Rohan"), making pointers the right choice when a string needs to change repeatedly throughout a program.',
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 27607,
           endSec: 27933,
           durationInMinutes: 5,
@@ -1237,7 +1237,7 @@ export const clangBeginnerRoadmapData = {
           concept: "string.h Library Functions",
           transcript:
             "This lesson works through the essential functions in the string.h header. strlen(st) is demonstrated on the string 'Harry', correctly returning 5 by counting all characters excluding the null character. strcpy(target, source) is then shown copying a source string into a target character array, with a live debug walkthrough fixing an initial mismatch caused by comparing the wrong variables. strcat(s1, s2) is demonstrated concatenating two strings together, with the caveat that the first string's buffer must have enough extra space to hold the combined result — shown by declaring both arrays with 56 characters and merging 'Harry' with ' Bhai' into 'Harry Bhai'. Finally, strcmp(s1, s2) is introduced as a function that returns 0 when two strings are equal, a negative value when the first string would come earlier in dictionary (ASCII) order, and a positive value when the second string would come earlier — demonstrated with 'far' vs 'aa jog' and reinforced by checking actual ASCII values, including edge cases like a leading pipe character.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 27933,
           endSec: 28296,
           durationInMinutes: 6,
@@ -1252,7 +1252,7 @@ export const clangBeginnerRoadmapData = {
           concept: "strcmp Mnemonics & Practice Set Intro",
           transcript:
             "This short segment offers memory tricks for exam recall of strcmp's return convention — phrases like 'far joke is negative' and 'deep joke is negative' (D comes before J alphabetically, so strcmp(\"deep\",\"joke\") is negative) are suggested as easy ways to remember which comparison order yields a negative versus positive result. The lesson then transitions into the Chapter 8 practice set: Question 1 asks which function is used to take a multi-word string as input, answered as gets() since scanf cannot handle spaces; Question 2 asks for a program that takes a string as input from the user and prints it back using both %c and %s approaches, setting up the next hands-on segment.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 28296,
           endSec: 28463,
           durationInMinutes: 3,
@@ -1267,7 +1267,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — String I/O and Custom strlen Implementation",
           transcript:
             "Continuing Question 2, a 6-character char array is declared to hold 'Harry' plus its null terminator, read in with scanf and %s, and printed back with printf and %s, confirmed working correctly. The character-by-character alternative is then built using a for loop with %c up to index 4 followed by a manually appended null character at index 5 — but running it reveals that pressing Enter after each single-character scanf read causes the newline to be consumed as input, corrupting the read; this is fixed by adding fflush(stdin) after each scanf call, which clears the leftover newline and lets the full string be entered correctly. Question 3 then asks for a custom implementation of strlen: starting with a while loop that reads characters from the string until it hits the null character, incrementing a counter each iteration, with live debugging to fix an uninitialized index variable and an off-by-one bug caused by counting the null character itself (fixed with count = i - 1). The logic is finally wrapped into a reusable myStrlen(char *str) function and tested successfully against strings of varying lengths, including ones with spaces.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 28463,
           endSec: 28844,
           durationInMinutes: 6,
@@ -1282,7 +1282,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — String Slicing & Custom strcpy",
           transcript:
             "Question 4 asks for a slice function that changes the original string so it becomes the sliced substring between positions m and n (both treated as inclusive since the problem doesn't specify otherwise). The solution repoints two character pointers — one to the start position m and one just past the end position n — then sets the pointer at position n to a null character, effectively truncating the string there while the returned pointer starts from position m. This is tested by slicing indices 1 through 5, then adjusting the bounds to confirm edge cases work correctly, walking through exactly how the pointer arithmetic reshapes what the string 'contains' in memory. Question 5 then implements a custom strcpy: since both target and source are arrays, a for loop runs from 0 up to myStrlen(source), copying each character with target[i] = source[i], with debugging to fix naming and a missing null terminator at the end (target[i] = '\\0'). The final myStrcpy(target, source) is tested by copying 'Harry' into an empty target array and printing both source and target to confirm identical output.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 28844,
           endSec: 29275,
           durationInMinutes: 7,
@@ -1297,7 +1297,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Encryption, Decryption & Character Search",
           transcript:
             "Question 6 builds a simple encryption scheme by looping through a string and incrementing each character's ASCII value by 1 (str[i] = str[i] + 1), turning 'Harry' into garbled output — demonstrated further by encrypting a full sentence into unreadable text as a lighthearted secret-message example. Question 7 writes the matching decryption by subtracting 1 from each character's ASCII value instead, correctly restoring the original sentence, reinforcing that this shift-based scheme is a very basic cipher. Question 8 counts how many times a given character appears in a string using an if check inside a loop (if str[i] == target character, increment count), tested by counting occurrences of 'z' and 'r' in different strings. Question 9, the final problem in the Chapter 8 practice set, checks whether a character exists in a string at all: an if statement sets a 'contains' flag to true and breaks out of the loop as soon as a match is found, printing 'Yes it contains' or 'Does not contain' accordingly, wrapping up the chapter's practice set.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 29275,
           endSec: 29611,
           durationInMinutes: 6,
@@ -1318,7 +1318,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Structures — Introduction & First Program",
           transcript:
             "Chapter 9 opens by contrasting arrays and strings (which only hold similar data types) with structures, which can hold dissimilar data types together under one name — motivated by wanting a single 'employee' variable containing a code, salary, and name simultaneously. The first program declares struct employee outside main with int code, float salary, and char name fields, following the syntax of struct keyword, name, and semicolon-terminated closing brace. Assigning a string directly with e1.name = \"Harry\" throws an error since character arrays can't be assigned this way once declared, so strcpy(e1.name, \"Harry\") is used instead (requiring string.h). All three fields are printed with %d, %f, %s to confirm the struct correctly holds an integer, float, and character array together. The Quick Quiz then asks for a program storing three employees' details from user-defined (input) data using the declared structure — begun by taking e1.code via scanf with the same %d and &e1.code syntax already familiar from primitives.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 29611,
           endSec: 30006,
           durationInMinutes: 7,
@@ -1333,7 +1333,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Why Structures & Array of Structures",
           transcript:
             "The Quick Quiz is completed by taking salary (%f) and name (%s) input for e1, then duplicating the block for e2 and e3 using a second file and VS Code's 'change all occurrences' feature to safely rename variables without corrupting the original code — with a caution to beginners against rushing multi-cursor edits during exams. Missing backslash-n formatting is fixed for clean output, and the program is tested with three full sets of employee values. The lesson then explains why structures matter: they keep data organized and make data management easy, especially as the number of attributes per record grows — with 15, 20, or more attributes, maintaining separate variables (employee_code, employee_salary, employee_name, etc.) becomes impractical, whereas a struct groups them under one name. This naturally leads into arrays of structures: just as arrays of integers, floats, and characters exist, structures can be collected into arrays too, with the syntax demonstrated via a new struct.c file declaring struct employee again as a foundation for the next examples.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 30006,
           endSec: 30365,
           durationInMinutes: 6,
@@ -1348,7 +1348,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Struct Initialization & Contiguous Memory Layout",
           transcript:
             "This lesson shows an alternative way to initialize a structure in one line — struct employee harry = {100, 71.2, \"Harry\"} — setting code, salary, and name simultaneously, verified by printing all three fields via harry.code, harry.salary, and harry.name (with VS Code's autocomplete confirming the compiler recognizes harry as a struct offering code/name/salary suggestions after the dot). The lesson then explains that structures, like arrays, are stored in contiguous memory locations: for a struct employee instance with a 4-byte integer, a 4-byte float, and a character array, the memory layout is walked through with example addresses (e.g. starting at 7881, each 4-byte field pushing the next field's address forward by 4), reinforcing that all struct members sit back-to-back in memory.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 30365,
           endSec: 30572,
           durationInMinutes: 3,
@@ -1363,7 +1363,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Pointer to Structures, Arrow Operator & typedef",
           transcript:
             "A pointer to structure is created with struct employee *ptr = &e1, storing e1's address; accessing a member requires dereferencing first — (*ptr).code — with the star required inside the parentheses, demonstrated by setting and printing e1.code as 56 through the pointer. The arrow operator is then introduced as shorthand for exactly the same operation: ptr->code instead of (*ptr).code, producing identical output with far less typing — described as something the language's creators added specifically because typing star-parens-dot repeatedly is tedious. A function prototype for passing a struct to a function (void show(struct employee e)) is given as a quiz exercise to complete. Finally, the typedef keyword is introduced as a way to create alias names for data types — demonstrated first trivially with typedef int Harry (so 'Harry' becomes usable exactly like int), then applied meaningfully to typedef struct employee EP, letting 'EP e1' replace the more verbose 'struct employee e1' everywhere in the code, including for pointer declarations like EP *ptr1.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 30572,
           endSec: 30927,
           durationInMinutes: 6,
@@ -1378,7 +1378,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Vector Structure & Sum Function",
           transcript:
             "The structures concept wraps up before moving into the Chapter 9 practice set. Problem 1 asks for a 2D vector represented with a structure: struct vector with int i and int j components, instantiated as v1 = {1, 1} and printed with %d i + %d j format using v.i and v.j — extendable to 3D by adding a k component. Problem 2 asks for a sumVector function returning struct vector, taking two struct vector parameters v1 and v2, and returning a new vector v3 built from v1.i + v2.i and v1.j + v2.j. Live debugging catches two mistakes — printing v1's fields instead of v3's, and accidentally adding i to j instead of i to i — both fixed by carefully matching components, and the function is also shown rewritten more compactly using typedef struct vector V to shorten every 'struct vector' occurrence to just 'V'.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 30927,
           endSec: 31378,
           durationInMinutes: 8,
@@ -1393,7 +1393,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Array vs Struct Reasoning & Arrow Operator Demo",
           transcript:
             "Problem 3 asks what to use for storing 20 integers in memory — array or structure — answered as array, since structures exist for dissimilar data types, not for grouping many values of the same type; the point is reinforced with an analogy about not using a sledgehammer to kill a mosquito. Problem 4 asks for a program illustrating the arrow operator: a struct employee is declared with int salary and float score fields, aliased via typedef as EMP, and an employee e1 plus a pointer struct employee *ptr1 = &e1 are created. The lesson re-derives the arrow operator from first principles — dereferencing with (*ptr1).salary versus the equivalent shorthand ptr1->salary — then prints both salary and score fields using either syntax, confirming both produce identical output (e.g. salary 56, score 45.3), reinforcing that ptr->field and (*ptr).field are fully interchangeable.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 31378,
           endSec: 31769,
           durationInMinutes: 7,
@@ -1409,7 +1409,7 @@ export const clangBeginnerRoadmapData = {
             "Practice — Complex Number Structure & Array with Live Display",
           transcript:
             "Problem 5 builds a struct representing a complex number with float real and float imaginary parts, aliased with typedef as C, instantiated and printed in the form 'real + imaginary i' (e.g. '1 + 2i'), with a brief aside on what a complex number is for anyone unfamiliar. Problem 6 extends this into an array of complex numbers, taking real and imaginary parts as input from the user for each array element via scanf and displaying them with a display step inside the input loop so each complex number appears as soon as it's entered, looping from index 0 up to a fixed count. Problem 7, which asks for the same structure built using the typedef keyword, is noted as already demonstrated earlier in the chapter.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 31769,
           endSec: 31996,
           durationInMinutes: 4,
@@ -1424,7 +1424,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Bank Account Modeling & Date Comparison Logic",
           transcript:
             "Problem 8 designs a struct bank_account with an integer account number, a 34-character name field, an 11-character IFSC code field (including room for the null terminator), and a float balance — explained as a basic-level model where field choices depend on what information is actually needed, not a single fixed 'correct' answer. Problem 9, flagged as notably harder than it looks, builds a struct date with integer month, day, and year fields, then writes a compare(struct date d1, struct date d2) function returning 1 if d1 is in the future, 0 if the dates are equal, and -1 if d1 is in the past. The logic is built step by step with live debugging: first checking full equality across year, month, and day (returning 0), then comparing years (returning 1 if d1's year is greater), falling through to compare months when years are equal, and finally days when months are also equal — with each level using if/else-if chains and careful attention to which date's field is compared against which. The function is tested against equal dates, future dates, and past dates to confirm correct -1/0/1 results, and Problem 9's follow-up (rewriting the date struct with typedef as DT) is completed by aliasing struct date to DT throughout, after which the chapter closes with excitement about moving on to the next chapter.",
-          videoId: "c-language-video",
+          videoId: "aZb0iu4uGwA",
           startSec: 31996,
           endSec: 32519,
           durationInMinutes: 9,
@@ -1445,7 +1445,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Files vs Volatile Memory",
           transcript:
             "This lesson introduces files as data stored permanently on a disk, in contrast to Random Access Memory, which is fast but volatile. It explains that when a C program runs, it is compiled into an executable, loaded temporarily into RAM, executed, and then cleared from RAM — which is why files are used to persist large amounts of data.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 32519,
           endSec: 32645,
           durationInMinutes: 2,
@@ -1459,7 +1459,7 @@ export const clangBeginnerRoadmapData = {
           concept: "File Pointer and fopen",
           transcript:
             "This lesson explains that a file pointer is a structure that must be created before working with a file, and introduces the pseudocode pattern for opening a file: specifying the filename with its extension and the mode in which it should be opened using fopen.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 32645,
           endSec: 32754,
           durationInMinutes: 2,
@@ -1473,7 +1473,7 @@ export const clangBeginnerRoadmapData = {
           concept: "File Opening Modes",
           transcript:
             "This lesson covers the multiple modes C offers for opening a file: 'r' for reading text files, 'rb' for reading binary files, 'w' for writing, 'wb' for writing in binary, and 'a' for appending, noting that append mode creates the file if it does not already exist.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 32754,
           endSec: 32835,
           durationInMinutes: 1,
@@ -1487,7 +1487,7 @@ export const clangBeginnerRoadmapData = {
           concept: "fscanf and NULL Pointer Check",
           transcript:
             "This lesson demonstrates opening a file in read mode, declaring an integer, and using fscanf with the file pointer to read a value into it, printing the result. It shows that reading again with fscanf advances the file pointer to the next value each time. It then covers a quick quiz on modifying the program to check whether fopen returned NULL, which indicates the file does not exist, using an if-else block to print an appropriate message.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 32835,
           endSec: 32975,
           durationInMinutes: 2,
@@ -1501,7 +1501,7 @@ export const clangBeginnerRoadmapData = {
           concept: "fclose and Resource Management",
           transcript:
             "This lesson explains, using a refrigerator analogy, why it is good practice to close a file once you are done working with it. It covers the fclose syntax and explains that for long-running programs, failing to close a file keeps it locked by the program, which can prevent other processes from deleting or modifying it. Calling fclose tells the operating system the resource is free.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 32975,
           endSec: 33095,
           durationInMinutes: 2,
@@ -1515,7 +1515,7 @@ export const clangBeginnerRoadmapData = {
           concept: "fprintf and Write Mode",
           transcript:
             "This lesson shows how to open a file in write mode and use fprintf, which mirrors fscanf's syntax but writes instead of reads. It demonstrates that opening a file in write mode clears all existing content in the file before the new data is written, which is an important behavior to remember.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33095,
           endSec: 33193,
           durationInMinutes: 2,
@@ -1529,7 +1529,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Append Mode",
           transcript:
             "This lesson introduces append mode as the solution to write mode's file-erasing behavior. Opening a file in append mode adds new data to the end of the existing file content instead of overwriting it, which is demonstrated by running the program multiple times and watching new values accumulate at the end of the file.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33193,
           endSec: 33226,
           durationInMinutes: 1,
@@ -1543,7 +1543,7 @@ export const clangBeginnerRoadmapData = {
           concept: "fgetc and fputc",
           transcript:
             "This lesson covers fgetc for reading a single character from a file and fputc for writing a single character to a file. It demonstrates reading the first character of a file, then switches to write mode to write a character, showing that write mode overwrites the file while append mode adds the character to the end.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33226,
           endSec: 33321,
           durationInMinutes: 2,
@@ -1557,7 +1557,7 @@ export const clangBeginnerRoadmapData = {
           concept: "EOF Detection and Character-by-Character Reading",
           transcript:
             "This lesson explains that fgetc returns the constant EOF once all characters from a file have been read, and shows how to use this to detect the end of a file. It builds a program that runs an infinite while loop, reads one character at a time with fgetc, prints each character, and breaks out of the loop as soon as the character read equals EOF.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33321,
           endSec: 33451,
           durationInMinutes: 2,
@@ -1571,7 +1571,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Reading Multiple Integers",
           transcript:
             "This practice problem asks for a program that reads three integers from a file. The lesson creates a text file containing three numbers, opens it in read mode, uses fscanf with three format specifiers in a single call to read all three integers at once, and prints them back out with fprintf-style formatting.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33489,
           endSec: 33616,
           durationInMinutes: 2,
@@ -1585,7 +1585,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Writing a Multiplication Table",
           transcript:
             "This practice problem asks for a program that writes a multiplication table into a text file in a readable, well-formatted way. The lesson opens a file in write mode, runs a for loop from 0 to 9, and uses fprintf to write each multiplication result followed by a newline character into the file.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33616,
           endSec: 33754,
           durationInMinutes: 2,
@@ -1599,7 +1599,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Copying Files Character by Character",
           transcript:
             "This practice problem builds on the earlier character-by-character reading program. It reuses the fgetc-based reading loop but adds a second file pointer opened in append mode, writing each character read from the source file into the destination file twice, as required by the problem statement.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33754,
           endSec: 33906,
           durationInMinutes: 3,
@@ -1613,7 +1613,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Formatted Employee Data Output",
           transcript:
             "This practice problem takes a name and salary for two employees as input from the user using scanf, storing names in character arrays and salaries in integers. It then opens a file in write mode and uses fprintf with a specific format string to write each employee's name and salary as comma-separated values, each on its own line.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 33906,
           endSec: 34174,
           durationInMinutes: 4,
@@ -1627,7 +1627,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — Modifying a Stored Value",
           transcript:
             "This practice problem asks for a program that reads an integer stored in a file, doubles it, and writes the result back. The lesson opens the file in read mode with fscanf to retrieve the number, closes the file, reopens it in write mode, and uses fprintf to write back twice the original value.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34174,
           endSec: 34251,
           durationInMinutes: 1,
@@ -1648,7 +1648,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Project Setup and Game Rules",
           transcript:
             "This lesson explains the rules of Snake-Water-Gun: snake drinks water so snake beats water, gun shoots snake so gun beats snake, and water sinks gun so water beats gun. It sets up a new project folder and declares integer variables representing the player's and computer's choices, using 0 for snake, 1 for water, and 2 for gun.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34251,
           endSec: 34400,
           durationInMinutes: 2,
@@ -1662,7 +1662,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Random Number Generation for Game Logic",
           transcript:
             "This lesson takes the player's choice as input using scanf, then generates the computer's choice using rand seeded with srand and time. It walks through an initial mistake where the random number only produced 0 or 1, and corrects it by using modulo 3 instead of modulo 2 so the generated number correctly falls between 0 and 2.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34400,
           endSec: 34526,
           durationInMinutes: 2,
@@ -1676,7 +1676,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Conditional Logic for Game Outcomes",
           transcript:
             "This lesson builds a full if-else-if chain covering all nine combinations of player and computer choices, determining whether the result is a draw, a win, or a loss based on the Snake-Water-Gun rules. It tests the finished program with several rounds of input to confirm each outcome matches the expected rule, completing the mini project.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34526,
           endSec: 34766,
           durationInMinutes: 4,
@@ -1697,7 +1697,7 @@ export const clangBeginnerRoadmapData = {
           concept: "The Need for Dynamic Memory Allocation",
           transcript:
             "This lesson explains that C, as a low-level language, allows direct control over memory management. It demonstrates a common problem: trying to declare an array whose size is a variable read from user input, which C does not allow directly, motivating the need for dynamic memory allocation through four functions: malloc, calloc, free, and realloc.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34766,
           endSec: 34903,
           durationInMinutes: 2,
@@ -1711,7 +1711,7 @@ export const clangBeginnerRoadmapData = {
           concept: "malloc and sizeof",
           transcript:
             "This lesson introduces malloc, which stands for memory allocation, and takes a number of bytes as input, returning a pointer to newly allocated memory. It explains the sizeof operator, which reports how many bytes a data type occupies on the current architecture, and shows how to multiply this by the number of elements needed. It also covers why the result of malloc must be type-cast to match the pointer type, and includes the stdlib.h header required to use it.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 34903,
           endSec: 35061,
           durationInMinutes: 3,
@@ -1725,7 +1725,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — malloc with Floats",
           transcript:
             "This quick quiz asks for a dynamically allocated array of five floats using malloc. The lesson adapts the earlier integer example to use a float pointer and sizeof(float), assigns five decimal values into the array, and prints them using a format specifier with controlled decimal precision.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35061,
           endSec: 35185,
           durationInMinutes: 2,
@@ -1739,7 +1739,7 @@ export const clangBeginnerRoadmapData = {
           concept: "calloc vs malloc",
           transcript:
             "This lesson introduces calloc, short for contiguous allocation, and compares it to malloc. It explains that calloc takes two separate arguments — the number of elements and the size of each element — rather than one combined byte count, and that memory allocated with calloc is initialized to zero by default, unlike malloc, which leaves garbage values. It closes with a quick quiz recreating a dynamic integer array of a given size using calloc.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35185,
           endSec: 35350,
           durationInMinutes: 3,
@@ -1753,7 +1753,7 @@ export const clangBeginnerRoadmapData = {
           concept: "free and Memory Management",
           transcript:
             "This lesson explains that free releases memory that was allocated with malloc or calloc, and is especially important in low-memory environments where efficient programs must release memory as soon as it is no longer needed. It demonstrates the free syntax and shows what happens if a pointer's memory is freed before its value is printed, resulting in garbage output.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35350,
           endSec: 35472,
           durationInMinutes: 2,
@@ -1767,7 +1767,7 @@ export const clangBeginnerRoadmapData = {
           concept: "realloc for Resizing Memory",
           transcript:
             "This lesson introduces realloc, which takes an existing pointer and a new size, and returns a pointer to memory resized to hold that new amount. It demonstrates taking a pointer originally allocated to store five integers and reallocating it to store ten integers instead, wrapping up the four core dynamic memory allocation functions.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35472,
           endSec: 35570,
           durationInMinutes: 2,
@@ -1781,7 +1781,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — malloc and calloc for Fixed-Size Arrays",
           transcript:
             "This practice problem asks for a dynamically created array of size six capable of storing six integers, first solved using malloc with hardcoded values, then extended so the six integers are entered by the user with a for loop and fscanf-style input, and printed back out. The same problem is then re-solved using calloc, changing only the allocation call while keeping the rest of the logic the same.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35609,
           endSec: 35795,
           durationInMinutes: 3,
@@ -1796,7 +1796,7 @@ export const clangBeginnerRoadmapData = {
           concept: "Practice — realloc for Growing an Array",
           transcript:
             "This practice problem builds a dynamic array sized for five integers, prints its values, then calls realloc with the same pointer and a new size to grow the array so it can hold ten integers, demonstrating that the array now stores and prints all ten values correctly after reallocation.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35795,
           endSec: 35877,
           durationInMinutes: 1,
@@ -1811,7 +1811,7 @@ export const clangBeginnerRoadmapData = {
             "Practice — Combining Multiplication Tables with realloc/calloc",
           transcript:
             "This practice problem creates a dynamic array storing the multiplication table of seven for the first 10 multiples, using a loop where each element is set to seven times its index plus one. It then uses realloc to extend the array so it holds 15 multiples instead of 10, verifying the values extend correctly up to 105. The same solution is then rebuilt using calloc in place of malloc to reinforce the difference in initial allocation.",
-          videoId: "REPLACE_WITH_VIDEO_ID",
+          videoId: "aZb0iu4uGwA",
           startSec: 35877,
           endSec: 36097,
           durationInMinutes: 4,
