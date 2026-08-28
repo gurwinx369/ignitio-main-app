@@ -152,3 +152,4 @@ test_subscription_renewal_reconciliation.js
 test_subscription_webhook_atomic_payment.js
 test_subscription_verify_atomic_payment.js
 test_subscription_create_client.js
+docs
