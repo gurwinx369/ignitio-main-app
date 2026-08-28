@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/features/context/AuthContext";
-import { User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft, Edit2, X, Check, Loader2, } from "lucide-react";
+import { User, Flame, Award, BookOpen, Clock, ShieldCheck, Mail, ArrowLeft, Edit2, X, Check, Loader2, CalendarDays, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getUnlockedCertificates } from "@/features/certificates/certificateStorage";
 import CertificateCard from "@/features/certificates/CertificateCard";
 import { resolveCertificateTemplate } from "@/features/certificates/CertificateCanvas";
+import StreakCalendarModal from "@/features/dashboard/components/StreakCalendarModal";
 
 const BANNER_PRESETS = {
   cyan: {
@@ -94,6 +95,10 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [
+    streakCalendarOpen,
+    setStreakCalendarOpen,
+  ] = useState(false);
 
   const [localCertificates, setLocalCertificates] = useState([]);
   const [syncedToMongo, setSyncedToMongo] = useState(false);
@@ -355,6 +360,74 @@ export default function ProfilePage() {
 
   const isAtRisk = streak?.status === "at_risk";
 
+  /*
+ * Current streak month.
+ *
+ * Prefer the streak-local "today" date
+ * returned by the profile API.
+ */
+  const currentStreakMonth = (() => {
+    const today =
+      streak?.week?.find(
+        (day) =>
+          day.isToday,
+      );
+
+    if (
+      typeof today?.dateLocal ===
+      "string"
+    ) {
+      return today.dateLocal.slice(
+        0,
+        7,
+      );
+    }
+
+    const now =
+      new Date();
+
+    return `${now.getFullYear()}-${String(
+      now.getMonth() + 1,
+    ).padStart(2, "0")}`;
+  })();
+
+  /*
+   * Do not let monthly history navigation
+   * go before the user's account month.
+   */
+  const minimumStreakMonth = (() => {
+    const sourceDate =
+      joinedAt ||
+      user?.metadata?.creationTime;
+
+    if (!sourceDate) {
+      return currentStreakMonth;
+    }
+
+    const createdAt =
+      new Date(
+        sourceDate,
+      );
+
+    if (
+      Number.isNaN(
+        createdAt.getTime(),
+      )
+    ) {
+      return currentStreakMonth;
+    }
+
+    const createdMonth =
+      `${createdAt.getUTCFullYear()}-${String(
+        createdAt.getUTCMonth() + 1,
+      ).padStart(2, "0")}`;
+
+    return createdMonth >
+      currentStreakMonth
+      ? currentStreakMonth
+      : createdMonth;
+  })();
+
   const selectedBanner =
     BANNER_PRESETS[bannerColor || "cyan"] || BANNER_PRESETS.cyan;
 
@@ -564,6 +637,30 @@ export default function ProfilePage() {
               </p>
             </div>
 
+            <button
+              type="button"
+              onClick={() =>
+                setStreakCalendarOpen(true)
+              }
+              className="relative min-h-[110px] rounded-2xl border border-cyan-100 bg-white/70 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-md"
+            >
+              <ArrowRight className="absolute right-3 top-3 h-4 w-4 text-cyan-500" />
+
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-cyan-50 text-cyan-600">
+                  <CalendarDays className="h-4 w-4" />
+                </div>
+
+                <p className="text-xs font-bold uppercase tracking-wider text-cyan-700">
+                  Monthly
+                </p>
+
+                <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                  View Streak
+                </p>
+              </div>
+            </button>
+
             <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 p-4 shadow-sm backdrop-blur-sm">
               {streak?.todayCompleted ? (
                 <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -728,6 +825,44 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {streakCalendarOpen && (
+        <StreakCalendarModal
+          open={true}
+          onClose={() =>
+            setStreakCalendarOpen(
+              false,
+            )
+          }
+          user={user}
+          initialMonth={
+            currentStreakMonth
+          }
+          currentMonth={
+            currentStreakMonth
+          }
+          minimumMonth={
+            minimumStreakMonth
+          }
+          liveWeek={
+            streak?.week ||
+            []
+          }
+          lastCompletedDateLocal={
+            streak
+              ?.lastCompletedDateLocal ||
+            null
+          }
+          currentCount={
+            streak?.currentCount ||
+            0
+          }
+          longestCount={
+            streak?.longestCount ||
+            0
+          }
+        />
+      )}
 
       {isEditing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm">

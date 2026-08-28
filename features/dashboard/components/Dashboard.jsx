@@ -345,8 +345,8 @@ export default function Dashboard() {
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 mb-12" ref={currentRoadmapRef}>
           {/* Row 1 equivalent on desktop */}
           <div className="lg:col-span-2">
-            <MissionControlCard 
-              activeRoadmap={activeRoadmap} 
+            <MissionControlCard
+              activeRoadmap={activeRoadmap}
               isClient={isClient}
               isNavigating={isNavigating}
               onNavigate={() => {
@@ -356,15 +356,16 @@ export default function Dashboard() {
             />
           </div>
           <div className="lg:col-span-1">
-            <StreakStatusCard 
-              streak={profileData?.streak} 
+            <StreakStatusCard
+              streak={profileData?.streak}
               isLoadingProfile={isLoadingProfile}
+              user={user}
             />
           </div>
 
           {/* Row 2 equivalent on desktop */}
           <div className="lg:col-span-2">
-            <ActiveRoadmapCard 
+            <ActiveRoadmapCard
               activeRoadmap={activeRoadmap}
               isClient={isClient}
               isNavigating={isNavigating}
@@ -375,7 +376,7 @@ export default function Dashboard() {
             />
           </div>
           <div className="lg:col-span-1">
-            <LearningStatsCard 
+            <LearningStatsCard
               profileData={profileData}
               roadmapsData={allRoadmaps}
             />
@@ -393,15 +394,15 @@ export default function Dashboard() {
           <div className="flex justify-center items-center w-full">
             <div className="w-full max-w-[760px]">
               <GenAiPremiumCard
-                  status={status}
-                  onRetry={retry}
-                  onNavigatePremium={() =>
-                      handleRedirect("/home/premium/genai")
-                  }
-                  onNavigatePaywall={() =>
-                      handleRedirect("/home/premium/genai/paywall")
-                  }
-                />
+                status={status}
+                onRetry={retry}
+                onNavigatePremium={() =>
+                  handleRedirect("/home/premium/genai")
+                }
+                onNavigatePaywall={() =>
+                  handleRedirect("/home/premium/genai/paywall")
+                }
+              />
             </div>
           </div>
         </section>
