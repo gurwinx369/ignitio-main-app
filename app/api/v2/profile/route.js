@@ -6,6 +6,7 @@ import { UserCertificate } from "@/models/v2/user.certificate.model";
 import { LessonCompletion } from "@/models/v2/lesson.completion.model";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState, addLocalDays, buildWeeklyStreakCalendar } from "@/lib/users/streak.service";
+import { resolveCertificateTemplate } from "@/features/certificates/certificateTemplateResolver";
 
 export async function GET(request) {
   await connectToDB();
@@ -128,7 +129,7 @@ export async function GET(request) {
         dayTitle: c.dayTitle,
         title: c.title,
         description: c.description,
-        imageKey: c.imageKey,
+        imageKey: resolveCertificateTemplate(c),
         unlockedAt: c.unlockedAtUTC instanceof Date ? c.unlockedAtUTC.toISOString() : (c.unlockedAtUTC || new Date().toISOString()),
         // Top-level display fields for CertificateCanvas compatibility
         providedOn: meta.providedOn || "",

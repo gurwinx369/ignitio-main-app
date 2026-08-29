@@ -148,6 +148,26 @@ const CERTIFICATE_RULES = [
   }
 ];
 
+export function getCertificateTemplateByKey(certificateKey) {
+  if (!certificateKey) return null;
+
+  return (
+    CERTIFICATE_RULES.find(
+      (rule) => rule.certificateKey === certificateKey
+    )?.template || null
+  );
+}
+
+export function getKnownCertificateTemplates() {
+  return [
+    ...new Set(
+      CERTIFICATE_RULES
+        .map((rule) => rule.template)
+        .filter(Boolean)
+    ),
+  ];
+}
+
 export function checkCertificateUnlock({ roadmapData, completedLevels, levelId, dayId, triggerType }) {
   if (!roadmapData || !completedLevels) return null;
 

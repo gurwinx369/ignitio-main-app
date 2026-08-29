@@ -1,65 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/features/context/AuthContext";
 import { Flame, Lightbulb, Clock } from 'lucide-react';
+import { resolveCertificateTemplate } from "./certificateTemplateResolver";
 
 export const CERTIFICATE_WIDTH = 735;
 export const CERTIFICATE_HEIGHT = 934;
 
-const KNOWN_TEMPLATES = [
-  "prompt-day-1.png",
-  "dsa-milestone.png",
-  "c-course-milestone.jpg",
-];
-const DEFAULT_TEMPLATE = "prompt-day-1.png";
-
-/**
- * Resolves a safe certificate template filename from any certificate shape.
- * Works for both localStorage certs (have .template) and MongoDB certs (have .imageKey).
- * Never returns undefined.
- *
- * @param {object} cert
- * @returns {string}  a filename like "prompt-day-1.png"
- */
-export function resolveCertificateTemplate(cert) {
-  if (!cert) return DEFAULT_TEMPLATE;
-
-  // Canonical certificate identity must win over stale stored template/imageKey
-  const identity = cert.certificateKey || cert.dayId || "";
-
-  if (identity === "c-level-1") {
-    return "c-course-milestone.jpg";
-  }
-
-  if (identity.startsWith("dsa")) {
-    return "dsa-milestone.png";
-  }
-
-  if (identity.startsWith("prompt")) {
-    return "prompt-day-1.png";
-  }
-
-  // Explicit template field
-  if (
-    cert.template &&
-    KNOWN_TEMPLATES.includes(cert.template)
-  ) {
-    return cert.template;
-  }
-
-  // MongoDB imageKey
-  if (
-    cert.imageKey &&
-    KNOWN_TEMPLATES.includes(cert.imageKey)
-  ) {
-    return cert.imageKey;
-  }
-
-  if (cert.imageKey === "c-course-milestone") {
-    return "c-course-milestone.jpg";
-  }
-
-  return DEFAULT_TEMPLATE;
-}
 
 const TEMPLATE_TEXT_POSITIONS = {
   providedOn: { top: 53, left: 594, width: 900 },

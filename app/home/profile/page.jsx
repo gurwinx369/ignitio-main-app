@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getUnlockedCertificates } from "@/features/certificates/certificateStorage";
 import CertificateCard from "@/features/certificates/CertificateCard";
-import { resolveCertificateTemplate } from "@/features/certificates/CertificateCanvas";
+import { resolveCertificateTemplate } from "@/features/certificates/certificateTemplateResolver";
 import StreakCalendarModal from "@/features/dashboard/components/StreakCalendarModal";
 
 const BANNER_PRESETS = {
@@ -169,7 +169,7 @@ export default function ProfilePage() {
       dayId: cert.dayId,
       dayTitle: cert.dayTitle,
       description: cert.description,
-      imageKey: cert.imageKey || resolved,
+      imageKey: resolved,
       template: resolved,
       // Top-level display fields CertificateCanvas reads directly
       providedOn: cert.providedOn || meta.providedOn || "",
@@ -200,7 +200,7 @@ export default function ProfilePage() {
           dayTitle: cert.dayTitle || "",
           title: cert.milestoneTitle || cert.title || cert.certificateKey,
           description: cert.description || "",
-          imageKey: cert.imageKey || cert.template || resolveCertificateTemplate(cert),
+          imageKey: resolveCertificateTemplate(cert),
           unlockedAt: cert.unlockedAt,
           metadata: {
             completedLevelsCount: Number(cert.completedLevelsCount || 0),
