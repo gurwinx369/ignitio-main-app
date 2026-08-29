@@ -18,6 +18,53 @@ const CreateUserValidator = z.object({
   role: z.enum(["student", "writer", "designer", "developer", "other"]).optional().nullable(),
 });
 
+async function ensureCanonicalOnboardingState(profile) {
+  if (!profile) {
+    return profile;
+  }
+
+  if (
+    profile.onboardingComplete ||
+    profile.onboardingState?.step
+  ) {
+    return profile;
+  }
+
+  const updatedProfile = await UserProfile.findOneAndUpdate(
+    {
+      _id: profile._id,
+      onboardingComplete: { $ne: true },
+    },
+    {
+      $set: {
+        onboardingVersion: ONBOARDING_VERSIONS.V4,
+
+        // Set the whole embedded document rather than a dotted child path.
+        // This safely handles legacy documents where onboardingState is
+        // missing or explicitly null.
+        onboardingState: {
+          step: "diagnostic",
+          paywallSeen: false,
+          roleSelected: false,
+        },
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+      timestamps: false,
+    },
+  )
+    .select("-__v")
+    .lean();
+
+  if (!updatedProfile) {
+    throw new Error("Failed to initialize onboarding state");
+  }
+
+  return updatedProfile;
+}
+
 // SECTION 2: TOKEN VERIFICATION HELPER
 // Extracts and verifies the Firebase ID token
 // from the Authorization header.
@@ -108,7 +155,11 @@ export async function POST(request) {
     }
 
     if (existingProfile) {
+      existingProfile =
+        await ensureCanonicalOnboardingState(existingProfile);
+
       await normalizeUserProfileRetentionFields(existingProfile._id);
+
       return NextResponse.json(
         {
           message: "User profile found",
@@ -159,16 +210,22 @@ export async function POST(request) {
   } catch (err) {
     if (err.code === 11000) {
       // Race condition fallback
-      const duplicateProfile = await UserProfile.findOne({ email: tokenEmail }).lean();
+      let duplicateProfile = await UserProfile.findOne({
+        email: tokenEmail
+      }).lean();
+
       if (duplicateProfile) {
         if (duplicateProfile.firebaseUID !== decodedToken.uid) {
-          // Use updateOne to avoid full-document validation on legacy profiles
           await UserProfile.updateOne(
             { _id: duplicateProfile._id },
             { $set: { firebaseUID: decodedToken.uid } },
             { timestamps: false }
           );
         }
+
+        duplicateProfile =
+          await ensureCanonicalOnboardingState(duplicateProfile);
+
         await normalizeUserProfileRetentionFields(duplicateProfile._id);
         return NextResponse.json(
           {
@@ -281,6 +338,9 @@ export async function GET(request) {
     }
 
     await normalizeUserProfileRetentionFields(userProfile._id);
+
+    userProfile =
+      await ensureCanonicalOnboardingState(userProfile);
 
     const requiresOnboarding = !isOnboardingComplete(userProfile);
 

@@ -1,4 +1,4 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const UserProfileSchema = new Schema(
     {
@@ -52,9 +52,14 @@ const UserProfileSchema = new Schema(
             ref: "Roadmap",
         },
     },
-    {timestamps: true},
+    { timestamps: true },
 );
 
 export const UserProfile =
-    mongoose.models.UserProfile || mongoose.model("UserProfile", UserProfileSchema)
+    mongoose.models.LegacyUserProfile ||
+    mongoose.model(
+        "LegacyUserProfile",
+        UserProfileSchema,
+        "userprofiles",
+    );
 
