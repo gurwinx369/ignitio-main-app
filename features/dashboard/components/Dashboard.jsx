@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
@@ -21,18 +21,17 @@ import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
-import { Home, BookOpen, User } from "lucide-react";
+import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
 import FeedbackModal from "./FeedbackModal";
-import MissionControlCard from "./MissionControlCard";
 import StreakStatusCard from "./StreakStatusCard";
-import ActiveRoadmapCard from "./ActiveRoadmapCard";
-import LearningStatsCard from "./LearningStatsCard";
 import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
+
+import DashboardBottomNav from "./DashboardBottomNav";
 
 const redirects = {
   GitGithub: "/home/roadmaps/git-github",
@@ -52,8 +51,6 @@ export default function Dashboard() {
     status,
     retry,
   } = usePremiumAccess();
-
-  const currentRoadmapRef = useRef(null);
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
@@ -75,12 +72,8 @@ export default function Dashboard() {
   const [profileData, setProfileData] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // We store the full list of parsed roadmaps so we can feed them to LearningStats and Carousel
+  // We store the full list of parsed roadmaps so we can feed them to Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);
-
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [pathname]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -304,16 +297,6 @@ export default function Dashboard() {
 
   const displayName = profileData?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
-  const scrollToTask = () => {
-    if (currentRoadmapRef.current) {
-      currentRoadmapRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const carouselRoadmaps = [];
 
   // System Design
@@ -419,75 +402,102 @@ export default function Dashboard() {
     )
   });
 
+  /**
+   * New-user guard:
+   * Only show the empty state after client-side resolution completes.
+   * Prevents existing learners from seeing "Choose your first roadmap" briefly.
+   *
+   * isClient becomes true after localStorage is read (useEffect).
+   * If isClient is false, we haven't resolved yet → do not show empty state.
+   */
+  const clientResolved = isClient;
+  const hasActiveRoadmap = Boolean(activeRoadmap);
+
   return (
-    <div className="min-h-screen bg-[#fffaf3] pb-24 font-sans text-slate-900">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+    <div className="min-h-screen bg-[#fffaf3] font-sans text-slate-900">
+      {/* ── HOME TAB ── */}
+      {activeTab === "home" && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-40">
 
-        {/* Header (Desktop + Mobile) */}
-        <HomeHeader
-          displayName={displayName}
-          onOpenFeedback={() => setIsFeedbackOpen(true)}
-          onScrollToTask={scrollToTask}
-        />
+          <HomeHeader
+            displayName={displayName}
+            onOpenFeedback={() => setIsFeedbackOpen(true)}
+          />
 
-        <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+          <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
 
-        {/* 
-          Dashboard Layout 
-          Mobile: Single column stacked
-          Desktop: 
-          Row 1: MissionControl (full/2/3) + StreakStatus (1/3)
-          Row 2: ActiveRoadmap (1/2) + LearningStats (1/2)
-        */}
-
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 mb-12" ref={currentRoadmapRef}>
-          {/* Row 1 equivalent on desktop */}
-          <div className="lg:col-span-2">
-            <MissionControlCard
-              activeRoadmap={activeRoadmap}
-              isClient={isClient}
-              isNavigating={isNavigating}
-              onNavigate={() => {
-                if (activeRoadmap) handleRedirect(activeRoadmap.route);
-                else handleRedirect(redirects.PromptEngineering); // fallback
-              }}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <StreakStatusCard
-              streak={profileData?.streak}
-              isLoadingProfile={isLoadingProfile}
-              user={user}
-            />
-          </div>
-
-          {/* Row 2 equivalent on desktop */}
-          <div className="lg:col-span-2">
-            <ActiveRoadmapCard
-              activeRoadmap={activeRoadmap}
-              isClient={isClient}
-              isNavigating={isNavigating}
-              onNavigate={() => {
-                if (activeRoadmap) handleRedirect(activeRoadmap.route);
-                else scrollToTask();
-              }}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <LearningStatsCard
-              profileData={profileData}
-              roadmapsData={allRoadmaps}
-            />
-          </div>
-        </div>
-
-        {/* Premium Worlds */}
-        <section className="mb-12 w-full">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">Premium Worlds</h2>
-              <p className="text-sm text-slate-500 mt-1">Master advanced skills with GenAI.</p>
+          {/* Loading state — show skeleton while client resolves */}
+          {!clientResolved && (
+            <div className="flex flex-col gap-5">
+              <div className="animate-pulse bg-white rounded-3xl h-52 border border-slate-200 shadow-sm" />
+              <div className="animate-pulse bg-white rounded-3xl h-40 border border-slate-200 shadow-sm" />
             </div>
+          )}
+
+          {/* New-user empty state — only after resolution, only if no roadmap */}
+          {clientResolved && !hasActiveRoadmap && (
+            <div className="flex flex-col items-center justify-center text-center py-16 px-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#06b6d4]/10 flex items-center justify-center mb-6">
+                <Globe2 className="w-8 h-8 text-[#0891b2]" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">
+                Choose your first roadmap
+              </h2>
+              <p className="text-slate-500 text-sm max-w-xs mb-8 leading-relaxed">
+                Start with a structured learning path and build your first learning streak.
+              </p>
+              <button
+                onClick={() => setActiveTab("worlds")}
+                className="px-8 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 active:scale-[0.98] transition-all duration-150 text-sm"
+              >
+                Start Roadmap
+              </button>
+            </div>
+          )}
+
+          {/* Existing learner — streak + roadmap */}
+          {clientResolved && hasActiveRoadmap && (
+            <div className="flex flex-col gap-6">
+              {/* Streak module */}
+              <StreakStatusCard
+                streak={profileData?.streak}
+                isLoadingProfile={isLoadingProfile}
+                user={user}
+              />
+
+              {/* Current roadmap — actual course card */}
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">
+                  Your Roadmap
+                </p>
+                <div className="w-full max-w-[640px] mx-auto">
+                  {carouselRoadmaps.find((r) => r.id === activeRoadmap.id)?.component}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── WORLDS TAB ── */}
+      {activeTab === "worlds" && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-40">
+          {/* RoadmapWorldsCarousel renders its own "Roadmap Worlds" heading internally */}
+          <RoadmapWorldsCarousel
+            roadmaps={carouselRoadmaps}
+            initialActiveId={activeRoadmap?.id}
+          />
+        </div>
+      )}
+
+      {/* ── PREMIUM TAB ── */}
+      {activeTab === "premium" && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-40">
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Premium Worlds</h1>
+            <p className="text-sm text-slate-500 mt-2">
+              Master advanced skills with GenAI.
+            </p>
           </div>
           <div className="flex justify-center items-center w-full">
             <div className="w-full max-w-[760px]">
@@ -503,42 +513,11 @@ export default function Dashboard() {
               />
             </div>
           </div>
-        </section>
-
-        {/* Carousel */}
-        <RoadmapWorldsCarousel roadmaps={carouselRoadmaps} initialActiveId={activeRoadmap?.id} />
-
-        {/* Existing Mobile Bottom Nav */}
-        <div className="mx-auto w-full max-w-[480px] mb-8 sm:hidden mt-8">
-          <div className="grid grid-cols-3 gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-sm">
-            <button
-              onClick={() => {
-                if (activeRoadmap) {
-                  router.push(activeRoadmap.route);
-                } else {
-                  scrollToTask();
-                }
-              }}
-              className="min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-            >
-              <BookOpen className="w-4 h-4 shrink-0" />
-            </button>
-            <button
-              onClick={scrollToTop}
-              className="min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors bg-slate-900 text-white shadow-sm"
-            >
-              <Home className="w-4 h-4 shrink-0" />
-            </button>
-            <button
-              onClick={() => router.push("/home/profile")}
-              className="min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-            >
-              <User className="w-4 h-4 shrink-0" />
-            </button>
-          </div>
         </div>
+      )}
 
-      </div>
+      {/* ── FIXED BOTTOM NAVIGATION ── */}
+      <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }

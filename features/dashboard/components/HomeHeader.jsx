@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, Target, Menu, X, LogOut, UserCircle, Gamepad2, CreditCard } from "lucide-react";
+import { MessageSquare, Menu, X, LogOut, UserCircle, Gamepad2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/features/context/AuthContext";
 
@@ -96,7 +96,7 @@ function ProfileMenu() {
   );
 }
 
-export default function HomeHeader({ displayName, onOpenFeedback, onScrollToTask }) {
+export default function HomeHeader({ displayName, onOpenFeedback }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
@@ -111,13 +111,6 @@ export default function HomeHeader({ displayName, onOpenFeedback, onScrollToTask
         >
           <MessageSquare className="w-4 h-4 shrink-0" />
           <span className="truncate">Feedback</span>
-        </button>
-        <button
-          onClick={onScrollToTask}
-          className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 bg-[#06b6d4]/10 text-[#0891b2] rounded-xl shadow-sm text-sm font-bold hover:bg-[#06b6d4]/20 transition-colors flex"
-        >
-          <Target className="w-4 h-4 shrink-0" />
-          <span className="truncate">Daily Task</span>
         </button>
         <ProfileMenu />
       </div>
