@@ -4,48 +4,76 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
-const CONSENT_VERSION = "2026-07-07";
-const CONSENT_STORAGE_PREFIX = "ignitio:required-consent:v1";
-
 export default function RequiredConsentModal() {
   const { user } = useAuth();
   const pathname = usePathname();
+  
   const [isOpen, setIsOpen] = useState(false);
+  const [isCheckingConsent, setIsCheckingConsent] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   useEffect(() => {
-    // Only check when user is available and we are not on an onboarding route
-    if (!user || !user.uid) return;
+    // Only check when user is available
+    if (!user || !user.uid) {
+      return;
+    }
+
     if (pathname && pathname.startsWith("/home/onboarding")) {
       setIsOpen(false);
       return;
     }
 
-    try {
-      const storageKey = `${CONSENT_STORAGE_PREFIX}:${user.uid}`;
-      const savedData = localStorage.getItem(storageKey);
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        if (
-          parsed.acceptedTerms &&
-          parsed.acceptedPrivacy
-        ) {
-          setIsOpen(false);
-          return;
-        }
-      }
-      // If we reach here, either no record, or invalid record, show modal
-      setIsOpen(true);
-    } catch (err) {
-      console.error("Error reading consent from localStorage", err);
-      setIsOpen(true);
-    }
-  }, [user, pathname]);
+    const abortController = new AbortController();
 
-  // Disable body scroll when modal is open
+    const checkConsent = async () => {
+      try {
+        setIsCheckingConsent(true);
+        setError(null);
+        
+        const token = await user.getIdToken();
+        const res = await fetch("/api/v2/legal-consent", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-store",
+          },
+          signal: abortController.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error("check_error");
+        }
+
+        const data = await res.json();
+        
+        if (data.accepted === true) {
+          setIsOpen(false);
+        } else {
+          setIsOpen(true);
+        }
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        console.error("Error checking consent", err);
+        setError({ type: "check", message: "We could not verify your consent status. Please try again." });
+        setIsOpen(true);
+      } finally {
+        setIsCheckingConsent(false);
+      }
+    };
+
+    checkConsent();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [user, pathname, retryTrigger]);
+
+  // Disable body scroll when modal is open and we aren't checking
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isCheckingConsent) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "auto";
@@ -53,31 +81,45 @@ export default function RequiredConsentModal() {
     return () => {
       document.body.style.overflow = "auto";
     };
-  }, [isOpen]);
+  }, [isOpen, isCheckingConsent]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!user || !user.uid) return;
     if (!acceptedTerms) return;
 
     try {
-      const storageKey = `${CONSENT_STORAGE_PREFIX}:${user.uid}`;
-      const consentRecord = {
-        acceptedTerms: true,
-        acceptedPrivacy: true,
-        termsVersion: CONSENT_VERSION,
-        privacyVersion: CONSENT_VERSION,
-        acceptedAt: new Date().toISOString()
-      };
-      localStorage.setItem(storageKey, JSON.stringify(consentRecord));
-      setIsOpen(false);
+      setIsSaving(true);
       setError(null);
+      
+      const token = await user.getIdToken(true); // force fresh token
+      
+      const res = await fetch("/api/v2/legal-consent", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error("save_error");
+      }
+
+      const data = await res.json();
+      if (data.accepted === true) {
+        setIsOpen(false);
+        setError(null);
+      } else {
+        throw new Error("save_error_not_accepted");
+      }
     } catch (err) {
-      console.error("Error saving consent to localStorage", err);
-      setError("We could not save your confirmation. Please try again.");
+      console.error("Error saving consent to API", err);
+      setError({ type: "save", message: "We could not save your confirmation. Please try again." });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (isCheckingConsent || !isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -103,7 +145,8 @@ export default function RequiredConsentModal() {
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="w-5 h-5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary focus:ring-offset-2 dark:bg-zinc-800 transition-colors"
+                disabled={isSaving || error?.type === "check"}
+                className="w-5 h-5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary focus:ring-offset-2 dark:bg-zinc-800 transition-colors disabled:opacity-50"
               />
             </div>
             <div className="text-sm text-zinc-700 dark:text-zinc-300">
@@ -128,19 +171,28 @@ export default function RequiredConsentModal() {
 
           {error && (
             <div className="text-sm text-destructive dark:text-red-400 font-medium">
-              {error}
+              {error.message}
             </div>
           )}
         </div>
 
-        <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
-          <Button
-            onClick={handleContinue}
-            disabled={!acceptedTerms}
-            className="w-full sm:w-auto"
-          >
-            Continue to Ignitio
-          </Button>
+        <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end gap-3">
+          {error?.type === "check" ? (
+            <Button
+              onClick={() => setRetryTrigger(prev => prev + 1)}
+              className="w-full sm:w-auto"
+            >
+              Retry
+            </Button>
+          ) : (
+            <Button
+              onClick={handleContinue}
+              disabled={!acceptedTerms || isSaving}
+              className="w-full sm:w-auto"
+            >
+              {isSaving ? "Saving..." : "Continue to Ignitio"}
+            </Button>
+          )}
         </div>
       </div>
     </div>
