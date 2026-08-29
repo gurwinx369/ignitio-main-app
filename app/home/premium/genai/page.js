@@ -1,19 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-    Home,
-    RotateCw,
-    Sparkles,
-} from "lucide-react";
-
-import Loader from "@/layout/Loader";
-import { useAuth } from "@/features/context/AuthContext";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import { useCalibrationStatus } from "@/features/premium/calibration/useCalibrationStatus";
-import { usePremiumUpgrade } from "@/features/premium/upgrade/usePremiumUpgrade";
-import RoadmapTemplate from "@/components/roadmap/RoadmapTemplate";
+import Loader from "@/layout/Loader";
+import GenAiTierCard from "@/features/premium/genai/components/GenAiTierCard";
+import Profile from "@/layout/Profile";
+import { ArrowLeft, RotateCw, Home } from "lucide-react";
+import { GENAI_TIERS } from "@/features/premium/genai/config/genAiTiers";
 
 function VerificationError({
     message,
@@ -61,22 +56,8 @@ function VerificationError({
     );
 }
 
-export default function GenAiPremiumPage() {
+export default function GenAiTierHub() {
     const router = useRouter();
-    const { user } = useAuth();
-    const [runtimeData, setRuntimeData] = useState(null);
-    const [runtimeError, setRuntimeError] = useState(false);
-    const [scheduleState, setScheduleState] =
-        useState({
-            status: "idle",
-            checkedUid: null,
-            error: null,
-        });
-
-    const [
-        scheduleRetryKey,
-        setScheduleRetryKey,
-    ] = useState(0);
 
     const {
         status,
@@ -93,26 +74,9 @@ export default function GenAiPremiumPage() {
             enabled: calibrationEnabled,
         });
 
-    const scheduleReady =
-        scheduleState.status === "ready" &&
-        scheduleState.checkedUid ===
-        user?.uid;
-
-    const upgradeEnabled =
-        calibrationEnabled &&
-        calibration.status === "ready" &&
-        scheduleReady;
-
-    const upgrade =
-        usePremiumUpgrade({
-            enabled: upgradeEnabled,
-        });
-
     useEffect(() => {
         if (status === "foundation") {
-            router.replace(
-                "/home/premium/genai/paywall",
-            );
+            router.replace("/home/premium/genai/paywall");
         }
     }, [status, router]);
 
@@ -120,222 +84,18 @@ export default function GenAiPremiumPage() {
         if (
             status === "premium" &&
             hasGenAiAccess === true &&
-            calibration.status ===
-            "required"
+            calibration.status === "required"
         ) {
-            router.replace(
-                "/home/premium/genai/calibration",
-            );
+            router.replace("/home/premium/genai/calibration");
         }
-    }, [
-        status,
-        hasGenAiAccess,
-        calibration.status,
-        router,
-    ]);
+    }, [status, hasGenAiAccess, calibration.status, router]);
 
-    useEffect(() => {
-        if (
-            status !== "premium" ||
-            hasGenAiAccess !== true ||
-            calibration.status !== "ready" ||
-            !user
-        ) {
-            return;
-        }
-
-        const controller = new AbortController();
-        let isActive = true;
-
-        const checkSchedule = async () => {
-            if (isActive) {
-                setScheduleState({
-                    status: "loading",
-                    checkedUid: user.uid,
-                    error: null,
-                });
-            }
-
-            try {
-                const token = await user.getIdToken();
-                const res = await fetch("/api/v2/user", {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    cache: "no-store",
-                    signal: controller.signal,
-                });
-
-                if (!res.ok) {
-                    throw new Error("Failed to verify schedule");
-                }
-
-                const data = await res.json();
-                const windows = data?.user?.schedulePreference?.windows;
-                const hasRealSchedule = Array.isArray(windows) && windows.length > 0;
-
-                if (isActive) {
-                    setScheduleState({
-                        status: hasRealSchedule
-                            ? "ready"
-                            : "required",
-                        checkedUid: user.uid,
-                        error: null,
-                    });
-                }
-            } catch (err) {
-                if (err?.name === "AbortError") {
-                    return;
-                }
-                if (isActive) {
-                    setScheduleState({
-                        status: "error",
-                        checkedUid: user.uid,
-                        error: err,
-                    });
-                }
-            }
-        };
-
-        void checkSchedule();
-
-        return () => {
-            isActive = false;
-            controller.abort();
-        };
-    }, [
-        status,
-        hasGenAiAccess,
-        calibration.status,
-        user,
-        scheduleRetryKey,
-    ]);
-
-    useEffect(() => {
-        if (
-            scheduleState.status ===
-            "required" &&
-            scheduleState.checkedUid ===
-            user?.uid
-        ) {
-            router.replace(
-                "/home/premium/genai/schedule",
-            );
-        }
-    }, [
-        scheduleState.status,
-        scheduleState.checkedUid,
-        user?.uid,
-        router,
-    ]);
-    useEffect(() => {
-        if (
-            upgrade.status === "error" &&
-            upgrade.upgradeStatus ===
-            "calibration_required"
-        ) {
-            router.replace(
-                "/home/premium/genai/calibration",
-            );
-        }
-    }, [
-        upgrade.status,
-        upgrade.upgradeStatus,
-        router,
-    ]);
-
-    useEffect(() => {
-        if (
-            upgrade.status !== "ready" ||
-            !user ||
-            runtimeData ||
-            runtimeError
-        ) {
-            return;
-        }
-
-        const controller = new AbortController();
-        let isActive = true;
-
-        const loadRuntime = async () => {
-            try {
-                const token = await user.getIdToken();
-
-                const res = await fetch(
-                    "/api/v2/premium/genai/runtime",
-                    {
-                        method: "GET",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                        cache: "no-store",
-                        signal: controller.signal,
-                    },
-                );
-
-                if (!res.ok) {
-                    let payload = null;
-
-                    try {
-                        payload = await res.json();
-                    } catch {
-                        // Keep generic error below.
-                    }
-
-                    throw new Error(
-                        payload?.error ||
-                        payload?.message ||
-                        `Failed to load Premium GenAI runtime: ${res.status}`,
-                    );
-                }
-
-                const data = await res.json();
-
-                if (isActive) {
-                    setRuntimeData(data);
-                }
-            } catch (err) {
-                if (err?.name === "AbortError") {
-                    return;
-                }
-
-                console.error(
-                    "[Premium GenAI] Runtime load failed:",
-                    err,
-                );
-
-                if (isActive) {
-                    setRuntimeError(true);
-                }
-            }
-        };
-
-        void loadRuntime();
-
-        return () => {
-            isActive = false;
-            controller.abort();
-        };
-    }, [
-        upgrade.status,
-        user,
-        runtimeData,
-        runtimeError,
-    ]);
-
-    /*
-     * Access errors must be handled before
-     * calibration's disabled idle state.
-     */
     if (status === "error") {
         return (
             <VerificationError
                 message="We could not verify your Premium access at this time. Please try again."
                 onRetry={retry}
-                onHome={() =>
-                    router.push("/home")
-                }
+                onHome={() => router.push("/home")}
             />
         );
     }
@@ -347,161 +107,98 @@ export default function GenAiPremiumPage() {
         return <Loader />;
     }
 
-    if (
-        status === "premium" &&
-        hasGenAiAccess === true
-    ) {
-        if (
-            calibration.status === "error"
-        ) {
+    if (status === "premium" && hasGenAiAccess === true) {
+        if (calibration.status === "error") {
             return (
                 <VerificationError
                     message="We could not verify your GenAI calibration status at this time. Please try again."
                     onRetry={calibration.retry}
-                    onHome={() =>
-                        router.push("/home")
-                    }
+                    onHome={() => router.push("/home")}
                 />
             );
         }
 
         if (
             calibration.status === "idle" ||
-            calibration.status ===
-            "loading" ||
-            calibration.status ===
-            "required"
+            calibration.status === "loading" ||
+            calibration.status === "required"
         ) {
             return <Loader />;
         }
 
-        if (
-            calibration.status === "ready"
-        ) {
-            if (scheduleState.status === "error") {
-                return (
-                    <VerificationError
-                        message="We could not verify your learning schedule at this time. Please try again."
-                        onRetry={() => {
-                            setScheduleRetryKey(
-                                (current) => current + 1,
-                            );
-                        }}
-                        onHome={() => router.push("/home")}
-                    />
-                );
-            }
+        if (calibration.status === "ready") {
+            return (
+                <div className="min-h-screen bg-[var(--color-primary)] bg-[#fffaf3] pb-24 font-sans relative">
+                    <div className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#fffaf3]/80 backdrop-blur-md border-b border-gray-200/50">
+                        <div className="max-w-[1150px] mx-auto flex items-center justify-between gap-4">
+                            <button
+                                onClick={() => router.push('/home')}
+                                className="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white/90 hover:bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+                            >
+                                <ArrowLeft className="w-4 h-4" /> 
+                                <span className="hidden sm:inline">Back to Dashboard</span>
+                                <span className="sm:hidden">Back</span>
+                            </button>
+                            <Profile compact />
+                        </div>
+                    </div>
+                    
+                    <main className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 md:pt-16">
+                        <div className="mb-12 text-center md:text-left">
+                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8b5cf6] mb-3">
+                                GENAI LEARNING PATH
+                            </p>
+                            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
+                                Choose your next level
+                            </h1>
+                            <p className="text-[17px] text-slate-600 max-w-2xl mx-auto md:mx-0">
+                                Build from AI foundations to production-ready agentic systems.
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+                            <div className="hidden lg:block absolute top-[140px] left-[16%] right-[16%] h-[2px] bg-slate-200 z-0"></div>
 
-            if (
-                scheduleState.status === "idle" ||
-                scheduleState.status === "loading" ||
-                scheduleState.status === "required"
-            ) {
-                return <Loader />;
-            }
-
-            if (
-                upgrade.status === "idle" ||
-                upgrade.status === "loading"
-            ) {
-                return <Loader />;
-            }
-
-            if (
-                upgrade.status === "error"
-            ) {
-                /*
-                 * Server says calibration is no longer
-                 * reusable. The redirect effect above
-                 * owns navigation back to calibration.
-                 */
-                if (
-                    upgrade.upgradeStatus ===
-                    "calibration_required"
-                ) {
-                    return <Loader />;
-                }
-
-                const retryUpgrade =
-                    async () => {
-                        /*
-                         * Entitlement may have changed
-                         * between the access check and
-                         * the upgrade POST.
-                         *
-                         * Re-check trusted access first.
-                         */
-                        if (
-                            upgrade.upgradeStatus ===
-                            "not_entitled"
-                        ) {
-                            const accessState =
-                                await retry();
-
-                            if (
-                                accessState?.status !==
-                                "premium" ||
-                                accessState
-                                    ?.hasGenAiAccess !==
-                                true
-                            ) {
-                                return;
-                            }
-                        }
-
-                        await upgrade.retry();
-                    };
-
-                let message =
-                    "We could not prepare your Premium GenAI roadmap. Your existing progress has not been changed. Please try again.";
-
-                if (
-                    upgrade.upgradeStatus ===
-                    "not_entitled"
-                ) {
-                    message =
-                        "We could not confirm your Premium GenAI access. Please verify your access and try again.";
-                } else if (
-                    upgrade.upgradeStatus ===
-                    "conflict"
-                ) {
-                    message =
-                        "Your Premium roadmap changed while we were preparing it. Please retry so we can use the latest version safely.";
-                }
-
-                return (
-                    <VerificationError
-                        message={message}
-                        onRetry={retryUpgrade}
-                        onHome={() =>
-                            router.push("/home")
-                        }
-                    />
-                );
-            }
-
-            if (
-                upgrade.status === "ready"
-            ) {
-                if (runtimeError) {
-                    return (
-                        <VerificationError
-                            message="We could not load your Premium GenAI roadmap at this time. Please try again."
-                            onRetry={() => {
-                                setRuntimeError(false);
-                                setRuntimeData(null);
-                            }}
-                            onHome={() => router.push("/home")}
-                        />
-                    );
-                }
-
-                if (!runtimeData) {
-                    return <Loader />;
-                }
-
-                return <RoadmapTemplate roadmapData={runtimeData} />;
-            }
+                            <div className="z-10">
+                                <GenAiTierCard
+                                    tierName="BEGINNER"
+                                    subtitle="Foundation"
+                                    duration="Weeks 1–4"
+                                    topics={["Prompt Engineering", "Python", "Files & Git", "LangChain"]}
+                                    project="Roastify"
+                                    state={GENAI_TIERS.beginner.released ? "unlocked" : "locked"}
+                                    ctaText={GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next"}
+                                    onClick={() => GENAI_TIERS.beginner.released && router.push(GENAI_TIERS.beginner.route)}
+                                />
+                            </div>
+                            
+                            <div className="z-10">
+                                <GenAiTierCard
+                                    tierName="INTERMEDIATE"
+                                    subtitle="RAG Engineering"
+                                    duration="Weeks 5–8"
+                                    topics={["RAG", "Evaluation", "FastAPI", "Structured Outputs"]}
+                                    state={GENAI_TIERS.intermediate.released ? "unlocked" : "locked"}
+                                    ctaText={GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next"}
+                                    onClick={() => GENAI_TIERS.intermediate.released && router.push(GENAI_TIERS.intermediate.route)}
+                                />
+                            </div>
+                            
+                            <div className="z-10">
+                                <GenAiTierCard
+                                    tierName="ADVANCED"
+                                    subtitle="Agentic Systems"
+                                    duration="Weeks 9–12"
+                                    topics={["LangGraph", "Observability", "Portfolio", "Interview"]}
+                                    state={GENAI_TIERS.advanced.released ? "unlocked" : "locked"}
+                                    ctaText={GENAI_TIERS.advanced.released ? "Start Advanced" : "Coming next"}
+                                    onClick={() => GENAI_TIERS.advanced.released && router.push(GENAI_TIERS.advanced.route)}
+                                />
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
         }
     }
 

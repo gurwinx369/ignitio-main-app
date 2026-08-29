@@ -23,7 +23,7 @@ import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/cert
 import { useBehaviorQuiz } from '@/features/kyle/behavior-quiz/useBehaviorQuiz';
 import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
 
-export default function RoadmapTemplate({ roadmapData }) {
+export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
     const router = useRouter();
     const { user } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
@@ -872,10 +872,14 @@ export default function RoadmapTemplate({ roadmapData }) {
                 <div className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[var(--color-primary)]/80 backdrop-blur-md border-b border-gray-200/50">
                     <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                         <button
-                            onClick={() => router.push('/home')}
+                            onClick={() => router.push(backHref)}
                             className="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white/90 hover:bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
                         >
-                            <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Back to Home</span><span className="sm:hidden">Back</span>
+                            <ArrowLeft className="w-4 h-4" /> 
+                            <span className="hidden sm:inline">
+                                {backHref !== '/home' ? 'Back to Hub' : 'Back to Home'}
+                            </span>
+                            <span className="sm:hidden">Back</span>
                         </button>
                         <Profile compact />
                     </div>
