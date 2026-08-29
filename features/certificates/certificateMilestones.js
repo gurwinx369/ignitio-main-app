@@ -89,7 +89,7 @@ const CERTIFICATE_RULES = [
     certificateKey: "c-level-1",
     roadmapFamily: "c-language",
     milestoneTitle: "Completed C Language First Level",
-    template: "c-course-milestone.png",
+    template: "c-course-milestone.jpg",
     condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
       // ponytail: simplest logic for first level completion, reusing the pattern
       if (!roadmapData.id.startsWith("c-language")) return false;

@@ -758,8 +758,9 @@ export default function RoadmapTemplate({ roadmapData }) {
                 });
             }
 
+            const alreadyUnlocked = hasUnlockedCertificate(certificate.certificateKey, certificate.roadmapFamily);
             const saved = saveUnlockedCertificate(certificate);
-            if (saved) {
+            if (saved && !alreadyUnlocked) {
                 setUnlockedCertificate(certificate);
             }
         }
@@ -1378,10 +1379,16 @@ export default function RoadmapTemplate({ roadmapData }) {
                             );
                         }
 
+                        const alreadyUnlocked =
+                            hasUnlockedCertificate(
+                                certificate.certificateKey,
+                                certificate.roadmapFamily
+                            );
+
                         const saved =
                             saveUnlockedCertificate(certificate);
 
-                        if (saved) {
+                        if (saved && !alreadyUnlocked) {
                             setUnlockedCertificate(
                                 certificate
                             );
