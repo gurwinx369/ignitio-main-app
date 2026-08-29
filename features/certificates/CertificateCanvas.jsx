@@ -5,7 +5,11 @@ import { Flame, Lightbulb, Clock } from 'lucide-react';
 export const CERTIFICATE_WIDTH = 735;
 export const CERTIFICATE_HEIGHT = 934;
 
-const KNOWN_TEMPLATES = ["prompt-day-1.png", "dsa-milestone.png"];
+const KNOWN_TEMPLATES = [
+  "prompt-day-1.png",
+  "dsa-milestone.png",
+  "c-course-milestone.jpg",
+];
 const DEFAULT_TEMPLATE = "prompt-day-1.png";
 
 /**
@@ -19,18 +23,41 @@ const DEFAULT_TEMPLATE = "prompt-day-1.png";
 export function resolveCertificateTemplate(cert) {
   if (!cert) return DEFAULT_TEMPLATE;
 
-  // 1. Explicit template field (localStorage shape) — use if it's a known file
-  if (cert.template && KNOWN_TEMPLATES.includes(cert.template)) return cert.template;
+  // Canonical certificate identity must win over stale stored template/imageKey
+  const identity = cert.certificateKey || cert.dayId || "";
 
-  // 2. imageKey matches a known template filename exactly
-  if (cert.imageKey && KNOWN_TEMPLATES.includes(cert.imageKey)) return cert.imageKey;
+  if (identity === "c-level-1") {
+    return "c-course-milestone.jpg";
+  }
 
-  // 3. imageKey or certificateKey without extension resolves to a known template
-  const slug = cert.imageKey || cert.certificateKey || cert.dayId || "";
-  if (slug.startsWith("dsa")) return "dsa-milestone.png";
-  if (slug.includes("prompt") || slug.includes("day")) return "prompt-day-1.png";
+  if (identity.startsWith("dsa")) {
+    return "dsa-milestone.png";
+  }
 
-  // 4. Fall back to the default
+  if (identity.startsWith("prompt")) {
+    return "prompt-day-1.png";
+  }
+
+  // Explicit template field
+  if (
+    cert.template &&
+    KNOWN_TEMPLATES.includes(cert.template)
+  ) {
+    return cert.template;
+  }
+
+  // MongoDB imageKey
+  if (
+    cert.imageKey &&
+    KNOWN_TEMPLATES.includes(cert.imageKey)
+  ) {
+    return cert.imageKey;
+  }
+
+  if (cert.imageKey === "c-course-milestone") {
+    return "c-course-milestone.jpg";
+  }
+
   return DEFAULT_TEMPLATE;
 }
 

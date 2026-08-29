@@ -36,7 +36,7 @@ function toSafeCard(cert) {
     dayTitle: cert.dayTitle,
     title: cert.title,
     description: cert.description,
-    imageKey: cert.imageKey,
+    imageKey: resolveImageKey(cert),
     unlockedAt: cert.unlockedAtUTC instanceof Date
       ? cert.unlockedAtUTC.toISOString()
       : cert.unlockedAtUTC || new Date().toISOString(),
@@ -60,14 +60,42 @@ function toSafeCard(cert) {
 // Safe image key resolver
 // Only persists known template filenames; rejects arbitrary paths.
 // ──────────────────────────────────────────────
-const KNOWN_IMAGE_KEYS = ["prompt-day-1.png", "dsa-milestone.png"];
+const KNOWN_IMAGE_KEYS = [
+  "prompt-day-1.png",
+  "dsa-milestone.png",
+  "c-course-milestone.jpg",
+];
+
 const DEFAULT_IMAGE_KEY = "prompt-day-1.png";
 
-function resolveImageKey(raw) {
-  if (!raw) return DEFAULT_IMAGE_KEY;
-  if (KNOWN_IMAGE_KEYS.includes(raw)) return raw;
-  if (raw.startsWith("dsa")) return "dsa-milestone.png";
-  if (raw.includes("prompt") || raw.includes("day")) return "prompt-day-1.png";
+function resolveImageKey(cert) {
+  if (!cert) return DEFAULT_IMAGE_KEY;
+
+  // Canonical identity wins over stale Mongo imageKey
+  const identity = cert.certificateKey || cert.dayId || "";
+
+  if (identity === "c-level-1") {
+    return "c-course-milestone.jpg";
+  }
+
+  if (identity.startsWith("dsa")) {
+    return "dsa-milestone.png";
+  }
+
+  if (identity.startsWith("prompt")) {
+    return "prompt-day-1.png";
+  }
+
+  const raw = cert.imageKey || "";
+
+  if (KNOWN_IMAGE_KEYS.includes(raw)) {
+    return raw;
+  }
+
+  if (raw === "c-course-milestone") {
+    return "c-course-milestone.jpg";
+  }
+
   return DEFAULT_IMAGE_KEY;
 }
 
@@ -206,7 +234,7 @@ export async function POST(request) {
               dayTitle: cert.dayTitle || "",
               title: cert.title,
               description: cert.description || "",
-              imageKey: resolveImageKey(cert.imageKey || cert.certificateKey || cert.dayId),
+              imageKey: resolveImageKey(cert),
               "metadata.completedLevelsCount": cert.metadata?.completedLevelsCount ?? 0,
               "metadata.totalLevelsInDay": cert.metadata?.totalLevelsInDay ?? 0,
               "metadata.quizCompletedCount": cert.metadata?.quizCompletedCount ?? 0,
