@@ -50,7 +50,7 @@ async function ensureCanonicalOnboardingState(profile) {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
       timestamps: false,
     },
