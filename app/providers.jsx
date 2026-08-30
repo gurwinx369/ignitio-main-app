@@ -24,6 +24,14 @@ function PostHogPageViewTracker() {
 export function PostHogProvider({ children }) {
   useEffect(() => {
     const initPostHog = () => {
+      // Filter out localhost and dev traffic
+      if (
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ) {
+        return;
+      }
+
       if (!posthog.__loaded && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
         posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
           api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -31,7 +39,6 @@ export function PostHogProvider({ children }) {
           defaults: '2026-01-30',
           capture_pageview: false, // We handle this manually
           capture_pageleave: true,
-          advanced_disable_decide: true, // Prevents synchronous feature flags fetch from blocking critical render path
         })
       }
     }

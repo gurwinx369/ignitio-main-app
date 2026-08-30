@@ -12,6 +12,7 @@ import {
     getAdditionalUserInfo,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../lib/firebase/firebase";
+import posthog from "posthog-js";
 
 const AuthContext = createContext({});
 
@@ -78,8 +79,26 @@ export const AuthProvider = ({ children }) => {
                 } else if (!storedUid) {
                     localStorage.setItem("ignitio:active_uid", user.uid);
                 }
+                
+                // Identify user in PostHog
+                try {
+                    posthog.identify(user.uid, { 
+                        email: user.email, 
+                        name: user.displayName 
+                    });
+                } catch (e) {
+                    console.error("Posthog identify error:", e);
+                }
+
                 setUser(user);
             } else {
+                // Clear PostHog session when unauthenticated
+                try {
+                    posthog.reset();
+                } catch (e) {
+                    console.error("Posthog reset error:", e);
+                }
+                
                 setUser(null);
             }
             setLoading(false);
