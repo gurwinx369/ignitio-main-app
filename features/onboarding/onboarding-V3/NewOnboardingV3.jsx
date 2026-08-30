@@ -21,7 +21,7 @@ const NewOnboardingV3 = () => {
 
   const handleNextFromProfession = () => {
     if (profession) {
-      handleComplete();
+      handleComplete(profession);
     }
   };
 
@@ -47,9 +47,7 @@ const NewOnboardingV3 = () => {
       }
 
       const idToken = await user.getIdToken();
-      const resolvedProfession = (
-        professionOverride || profession
-      ).toLowerCase();
+      const resolvedProfession = (professionOverride || profession).toLowerCase();
       const payload = {
         email: user.email,
         role: resolvedProfession, // role must be one of: student, writer, designer, developer, other

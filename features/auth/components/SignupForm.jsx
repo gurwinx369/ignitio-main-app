@@ -45,11 +45,11 @@ export default function SignupForm() {
       const result = await signup(form.email, form.password);
 
       if (result.success) {
-        const fromPreview = typeof window !== 'undefined' && !!localStorage.getItem('ignitio:preview_payload');
         if (result.authMode === "existing_login") {
-          router.replace('/home');
+          router.replace("/home");
         } else {
-          router.replace(fromPreview ? '/home/onboarding?from=preview' : '/home/onboarding');
+          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
+          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
         }
       } else {
         isHandlingAuthActionRef.current = false;
@@ -72,11 +72,11 @@ export default function SignupForm() {
       const result = await loginWithGoogle();
 
       if (result.success) {
-        const fromPreview = typeof window !== 'undefined' && !!localStorage.getItem('ignitio:preview_payload');
         if (result.authMode === "new_signup") {
-          router.replace(fromPreview ? '/home/onboarding?from=preview' : '/home/onboarding');
+          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
+          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
         } else {
-          router.replace('/home');
+          router.replace("/home");
         }
       } else if (result.error === null) {
         // Cancelled popup

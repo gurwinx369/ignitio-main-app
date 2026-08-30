@@ -100,7 +100,6 @@ export const AuthProvider = ({ children }) => {
                 console.log("Signup successful");
             }
             
-            clearTargetedStorage();
             localStorage.setItem("ignitio:active_uid", result.user.uid);
             
             return { success: true, user: result.user, authMode: "new_signup" };
@@ -115,7 +114,6 @@ export const AuthProvider = ({ children }) => {
                         console.log("Fallback login successful");
                     }
 
-                    clearTargetedStorage();
                     localStorage.setItem("ignitio:active_uid", loginResult.user.uid);
 
                     return { success: true, user: loginResult.user, authMode: "existing_login" };
@@ -196,7 +194,6 @@ export const AuthProvider = ({ children }) => {
             const authMode = additionalUserInfo?.isNewUser ? "new_signup" : "existing_login";
 
             if (authMode === "new_signup") {
-                clearTargetedStorage();
                 localStorage.setItem("ignitio:active_uid", result.user.uid);
             }
 

@@ -31,6 +31,7 @@ export function PostHogProvider({ children }) {
           defaults: '2026-01-30',
           capture_pageview: false, // We handle this manually
           capture_pageleave: true,
+          advanced_disable_decide: true, // Prevents synchronous feature flags fetch from blocking critical render path
         })
       }
     }

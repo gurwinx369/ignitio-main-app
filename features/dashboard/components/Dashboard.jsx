@@ -30,6 +30,9 @@ function resolveRoadmapData(roadmapId, role) {
   if (!roadmapId) return null;
   if (roadmapId === "git-github") return gitGithubRoadmapData;
   if (roadmapId === "cpp") return cppRoadmapData;
+  if (roadmapId === "system-design-fundamentals") return systemDesignRoadmapData;
+  if (roadmapId === "python-beginner") return pythonBeginnerRoadmapData;
+  if (roadmapId === "c-beginner") return clangBeginnerRoadmapData;
   if (roadmapId.startsWith("prompt-engineering"))
     return getPromptEngineeringRoadmapByRole(role);
   if (roadmapId.startsWith("dsa")) return getDsaRoadmapByRole(role);
