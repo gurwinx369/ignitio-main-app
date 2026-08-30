@@ -195,7 +195,8 @@ const UserProfileSchema = new Schema(
     },
     roadmap_name: {
       type: String,
-      default: "Prompt engineering",
+      default: null,
+      trim: true,
     },
     // Ref to KyleHistory — created lazily on first quiz or assignment submission.
     kyleHistory: {

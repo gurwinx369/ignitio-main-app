@@ -1,6 +1,7 @@
 export function getRoadmapFamily(roadmapId) {
   if (roadmapId?.startsWith("dsa")) return "dsa";
   if (roadmapId?.startsWith("prompt-engineering")) return "prompt-engineering";
+  if (roadmapId?.startsWith("c-language")) return "c-language";
   return roadmapId;
 }
 
@@ -85,6 +86,19 @@ const CERTIFICATE_RULES = [
     }
   },
   {
+    certificateKey: "c-level-1",
+    roadmapFamily: "c-language",
+    milestoneTitle: "Completed C Language First Level",
+    template: "c-course-milestone.jpg",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      // ponytail: simplest logic for first level completion, reusing the pattern
+      if (!roadmapData.id.startsWith("c-language")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
     certificateKey: "dsa-day-10",
     roadmapFamily: "dsa",
     milestoneTitle: "Completed 10 Days of DSA",
@@ -165,13 +179,13 @@ export function getEligibleCertificates({ roadmapData, completedLevels, assignme
   const eligible = [];
 
   for (const rule of CERTIFICATE_RULES) {
-    const isLevelBased = rule.certificateKey === "dsa-level-1";
+    const isLevelBased = rule.certificateKey === "dsa-level-1" || rule.certificateKey === "c-level-1";
 
     let triggerType = isLevelBased ? "level" : "day";
     let dayId = null;
     let levelId = null;
 
-    if (rule.certificateKey === "dsa-level-1") {
+    if (rule.certificateKey === "dsa-level-1" || rule.certificateKey === "c-level-1") {
       const firstLevel = roadmapData.days?.[0]?.levels?.[0];
       levelId = firstLevel?.id;
       if (!levelId || !completedLevels.includes(levelId)) continue;

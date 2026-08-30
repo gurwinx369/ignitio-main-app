@@ -249,6 +249,8 @@ export async function PATCH(request, { params }) {
         totalLevels: canonicalTotalLevels,
         startedAt: null,
       });
+    } else if (!progress.roadmapTitle && data.roadmapTitle) {
+      progress.roadmapTitle = data.roadmapTitle;
     }
 
     let userActivityUpdates = { last_active_on: now };
@@ -256,8 +258,19 @@ export async function PATCH(request, { params }) {
 
     if (data.action === "start_lesson") {
       progress.status = "in_progress";
-      if (data.levelId) progress.lastActiveLevelId = data.levelId;
-      if (!progress.startedAt) progress.startedAt = now;
+
+      if (data.levelId) {
+        progress.lastActiveLevelId = data.levelId;
+      }
+
+      if (!progress.startedAt) {
+        progress.startedAt = now;
+      }
+
+      if (progress.roadmapTitle) {
+        userActivityUpdates.roadmap_name = progress.roadmapTitle;
+      }
+
       meaningfulLearningActivity = true;
     } else if (data.action === "complete_level") {
       if (data.levelId && !progress.completedLevels.includes(data.levelId)) {

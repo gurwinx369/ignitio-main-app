@@ -1,28 +1,38 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { usePostHog } from 'posthog-js/react';
+import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import Profile from "@/layout/Profile";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
+import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
+import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
+import CCourseCard from "@/components/ui/courseCards/c-course-card";
 import { useAuth } from "@/features/context/AuthContext";
-import { getPromptEngineeringRoadmapByRole, promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData } from "@/data/promptEngineering";
+import {
+  getPromptEngineeringRoadmapByRole,
+  promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData,
+} from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
+import { systemDesignRoadmapData } from "@/data/systemDesignData";
+import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
+import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 
 // Resolve full roadmap data from a stored roadmapId — mirrors NewOnboardingV3 + RoadmapTemplate logic.
 function resolveRoadmapData(roadmapId, role) {
   if (!roadmapId) return null;
-  if (roadmapId === 'git-github') return gitGithubRoadmapData;
-  if (roadmapId === 'cpp') return cppRoadmapData;
-  if (roadmapId.startsWith('prompt-engineering')) return getPromptEngineeringRoadmapByRole(role);
-  if (roadmapId.startsWith('dsa')) return getDsaRoadmapByRole(role);
+  if (roadmapId === "git-github") return gitGithubRoadmapData;
+  if (roadmapId === "cpp") return cppRoadmapData;
+  if (roadmapId.startsWith("prompt-engineering"))
+    return getPromptEngineeringRoadmapByRole(role);
+  if (roadmapId.startsWith("dsa")) return getDsaRoadmapByRole(role);
   return null;
 }
 
@@ -39,15 +49,30 @@ export default function Dashboard({ isPreview = false }) {
   }, [pathname]);
 
   const redirects = {
-    GitGithub: isPreview ? "/preview/roadmaps/git-github" : "/home/roadmaps/git-github",
+    GitGithub: isPreview
+      ? "/preview/roadmaps/git-github"
+      : "/home/roadmaps/git-github",
     CPP: isPreview ? "/preview/roadmaps/cpp" : "/home/roadmaps/cpp",
-    PromptEngineering: isPreview ? "/preview/roadmaps/prompt-engineering" : "/home/roadmaps/prompt-engineering",
+    PromptEngineering: isPreview
+      ? "/preview/roadmaps/prompt-engineering"
+      : "/home/roadmaps/prompt-engineering",
+    SystemDesign: isPreview
+      ? "/preview/roadmaps/system-design-fundamentals"
+      : "/home/roadmaps/system-design-fundamentals",
+    Python: isPreview
+      ? "/preview/roadmaps/python-beginner"
+      : "/home/roadmaps/python-beginner",
+    CLang: isPreview
+      ? "/preview/roadmaps/c-beginner"
+      : "/home/roadmaps/c-beginner",
   };
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
-  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(genericPromptEngineeringRoadmapData);
+  const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
+    genericPromptEngineeringRoadmapData,
+  );
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
@@ -61,8 +86,8 @@ export default function Dashboard({ isPreview = false }) {
           const token = await user.getIdToken();
           const res = await fetch("/api/v2/user", {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           });
           if (res.ok) {
             const data = await res.json();
@@ -80,7 +105,10 @@ export default function Dashboard({ isPreview = false }) {
           }
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
-            console.error("Failed to fetch user role:", error?.message || "unknown error");
+            console.error(
+              "Failed to fetch user role:",
+              error?.message || "unknown error",
+            );
           }
           role = "other";
         }
@@ -96,35 +124,47 @@ export default function Dashboard({ isPreview = false }) {
       // Only runs for authenticated users coming from the preview funnel.
       if (!isPreview && user) {
         try {
-          const raw = typeof window !== 'undefined' && localStorage.getItem('ignitio:preview_payload');
+          const raw =
+            typeof window !== "undefined" &&
+            localStorage.getItem("ignitio:preview_payload");
           if (raw) {
-            const { roadmapId, completedLevels: previewCompleted } = JSON.parse(raw);
+            const { roadmapId, completedLevels: previewCompleted } =
+              JSON.parse(raw);
             const roadmapData = resolveRoadmapData(roadmapId, role);
-            if (roadmapData && Array.isArray(previewCompleted) && previewCompleted.length > 0) {
-              const allLevels = roadmapData.days.flatMap(d => d.levels);
-              const validIds = new Set(allLevels.map(l => l.id));
-              const validCompleted = previewCompleted.filter(id => validIds.has(id));
+            if (
+              roadmapData &&
+              Array.isArray(previewCompleted) &&
+              previewCompleted.length > 0
+            ) {
+              const allLevels = roadmapData.days.flatMap((d) => d.levels);
+              const validIds = new Set(allLevels.map((l) => l.id));
+              const validCompleted = previewCompleted.filter((id) =>
+                validIds.has(id),
+              );
               if (validCompleted.length > 0) {
                 await migrateRoadmapProgress({
                   user,
                   roadmapSlug: roadmapData.id,
                   payload: {
-                    roadmapTitle: roadmapData.title || '',
+                    roadmapTitle: roadmapData.title || "",
                     role,
                     totalLevels: allLevels.length,
-                    allLevelIds: allLevels.map(l => l.id),
-                    days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
+                    allLevelIds: allLevels.map((l) => l.id),
+                    days: roadmapData.days.map((d) => ({
+                      id: d.id,
+                      levelIds: d.levels.map((l) => l.id),
+                    })),
                     completedLevels: validCompleted,
                     passedAssignments: [],
                   },
                 });
               }
             }
-            localStorage.removeItem('ignitio:preview_payload');
+            localStorage.removeItem("ignitio:preview_payload");
           }
         } catch (migrationErr) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('[preview migration] Failed:', migrationErr?.message);
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[preview migration] Failed:", migrationErr?.message);
           }
           // Non-fatal — RoadmapTemplate's lazy migration is the safety net
         }
@@ -161,9 +201,8 @@ export default function Dashboard({ isPreview = false }) {
         id: selectedPromptRoadmap.id,
         title: selectedPromptRoadmap.title,
         route: redirects.PromptEngineering,
-        totalLevels: selectedPromptRoadmap.days.flatMap(
-          (day) => day.levels,
-        ).length,
+        totalLevels: selectedPromptRoadmap.days.flatMap((day) => day.levels)
+          .length,
         legacySections: [],
       },
     ];
@@ -173,12 +212,38 @@ export default function Dashboard({ isPreview = false }) {
         id: selectedDsaRoadmap.id,
         title: selectedDsaRoadmap.title,
         route: isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa",
-        totalLevels: selectedDsaRoadmap.days.flatMap(
-          (day) => day.levels,
-        ).length,
+        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels)
+          .length,
         legacySections: [],
       });
     }
+
+    roadmapsData.push({
+      id: systemDesignRoadmapData.id,
+      title: systemDesignRoadmapData.title,
+      route: redirects.SystemDesign,
+      totalLevels: systemDesignRoadmapData.days.flatMap((day) => day.levels)
+        .length,
+      legacySections: [],
+    });
+
+    roadmapsData.push({
+      id: pythonBeginnerRoadmapData.id,
+      title: pythonBeginnerRoadmapData.title,
+      route: redirects.Python,
+      totalLevels: pythonBeginnerRoadmapData.days.flatMap((day) => day.levels)
+        .length,
+      legacySections: [],
+    });
+
+    roadmapsData.push({
+      id: clangBeginnerRoadmapData.id,
+      title: clangBeginnerRoadmapData.title,
+      route: redirects.CLang,
+      totalLevels: clangBeginnerRoadmapData.days.flatMap((day) => day.levels)
+        .length,
+      legacySections: [],
+    });
 
     const progressMap = {};
 
@@ -194,7 +259,7 @@ export default function Dashboard({ isPreview = false }) {
           if (Array.isArray(parsed)) {
             completedLevelsCount = parsed.length;
           }
-        } catch (e) { }
+        } catch (e) {}
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -205,7 +270,7 @@ export default function Dashboard({ isPreview = false }) {
               if (Array.isArray(parsed)) {
                 completedLevelsCount += parsed.length;
               }
-            } catch (e) { }
+            } catch (e) {}
           }
         }
       }
@@ -228,7 +293,9 @@ export default function Dashboard({ isPreview = false }) {
 
     let lastActiveRoadmapId = null;
     try {
-      const savedLastActive = localStorage.getItem("ignitio:last_active_roadmap");
+      const savedLastActive = localStorage.getItem(
+        "ignitio:last_active_roadmap",
+      );
       if (savedLastActive) {
         const parsed = JSON.parse(savedLastActive);
         if (parsed && parsed.id) {
@@ -240,7 +307,9 @@ export default function Dashboard({ isPreview = false }) {
     let activeRoadmapToSet = bestRoadmap;
 
     if (lastActiveRoadmapId) {
-      const foundLastActive = roadmapsData.find(r => r.id === lastActiveRoadmapId);
+      const foundLastActive = roadmapsData.find(
+        (r) => r.id === lastActiveRoadmapId,
+      );
       if (foundLastActive) {
         activeRoadmapToSet = foundLastActive;
       }
@@ -262,11 +331,19 @@ export default function Dashboard({ isPreview = false }) {
   const handleRedirectDsa = () => {
     router.push(isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa");
   };
+  const handleRedirectSystemDesign = () => {
+    router.push(redirects.SystemDesign);
+  };
+  const handleRedirectPython = () => {
+    router.push(redirects.Python);
+  };
+  const handleRedirectCLang = () => {
+    router.push(redirects.CLang);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-
         {/* Header Section */}
         {!isPreview && (
           <div className="mb-12 flex justify-end">
@@ -306,20 +383,28 @@ export default function Dashboard({ isPreview = false }) {
               if (isNavigating) return;
               const targetRoute = activeRoadmap ? activeRoadmap.route : "/home";
               if (pathname === targetRoute) return;
-              
+
               setIsNavigating(true);
               posthog?.capture("dashboard_navigation_clicked", {
                 target_route: targetRoute,
                 roadmap_id: activeRoadmap ? activeRoadmap.id : null,
               });
               router.push(targetRoute);
-              
+
               setTimeout(() => setIsNavigating(false), 3000);
             }}
-            disabled={isNavigating}
-            className={`px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${isNavigating ? "opacity-75 cursor-not-allowed" : ""}`}
+            disabled={isNavigating || !activeRoadmap}
+            className={`px-8 py-4 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95 shrink-0 ${
+              isNavigating || !activeRoadmap
+                ? "bg-[var(--color-secondary-100)] text-[var(--color-secondary-500)] cursor-not-allowed"
+                : "bg-[var(--color-secondary-900)] hover:bg-[var(--color-secondary-800)] hover:shadow-lg"
+            }`}
           >
-            {isNavigating ? "Loading..." : (activeRoadmap ? "Continue Learning" : "Explore Roadmaps")}
+            {isNavigating
+              ? "Loading..."
+              : activeRoadmap
+                ? "Continue Learning"
+                : "Explore Roadmaps"}
           </button>
         </div>
 
@@ -336,6 +421,45 @@ export default function Dashboard({ isPreview = false }) {
 
           <div className="flex flex-col items-center gap-10 w-full">
             <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <SystemDesignCourseCard
+                onClick={handleRedirectSystemDesign}
+                levelsFinished={
+                  roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
+                }
+                totalLevels={
+                  roadmapProgress[systemDesignRoadmapData.id]?.total ||
+                  systemDesignRoadmapData.days.flatMap((day) => day.levels)
+                    .length
+                }
+              />
+            </div>
+            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <PythonCourseCard
+                onClick={handleRedirectPython}
+                levelsFinished={
+                  roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
+                }
+                totalLevels={
+                  roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
+                  pythonBeginnerRoadmapData.days.flatMap((day) => day.levels)
+                    .length
+                }
+              />
+            </div>
+            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
+              <CCourseCard
+                onClick={handleRedirectCLang}
+                levelsFinished={
+                  roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
+                }
+                totalLevels={
+                  roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
+                  clangBeginnerRoadmapData.days.flatMap((day) => day.levels)
+                    .length
+                }
+              />
+            </div>
+            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
               <PromptEngineeringCourseCard
                 onClick={handleRedirectPromptEngineering}
                 levelsFinished={
@@ -343,8 +467,7 @@ export default function Dashboard({ isPreview = false }) {
                 }
                 totalLevels={
                   roadmapProgress[selectedPromptRoadmap.id]?.total ||
-                  selectedPromptRoadmap.days.flatMap((day) => day.levels)
-                    .length
+                  selectedPromptRoadmap.days.flatMap((day) => day.levels).length
                 }
                 roadmapData={selectedPromptRoadmap}
               />
@@ -353,7 +476,9 @@ export default function Dashboard({ isPreview = false }) {
               <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
                 <DsaCourseCard
                   onClick={handleRedirectDsa}
-                  levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+                  levelsFinished={
+                    roadmapProgress[selectedDsaRoadmap.id]?.completed || 0
+                  }
                   totalLevels={
                     roadmapProgress[selectedDsaRoadmap.id]?.total ||
                     selectedDsaRoadmap.days.flatMap((day) => day.levels).length
