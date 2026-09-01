@@ -5,6 +5,7 @@ import OnboardingProfession from "./OnboardingProfession";
 import { useAuth } from "@/features/context/AuthContext";
 import axios from "axios";
 import ErrorToast from "../onboarding-V2/components/ErrorToast";
+import Loader from "@/layout/Loader";
 
 const NewOnboardingV3 = () => {
   const router = useRouter();
@@ -13,6 +14,7 @@ const NewOnboardingV3 = () => {
   const { user } = useAuth();
   const [profession, setProfession] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [errorToast, setErrorToast] = useState({
     show: false,
     title: "",
@@ -68,6 +70,8 @@ const NewOnboardingV3 = () => {
       // ignitio:preview_payload is intentionally left here.
       // Dashboard.fetchUserRole reads it to migrate progress to MongoDB,
       // then removes it after a successful migration.
+      setIsLoading(false);
+      setIsRedirecting(true);
       router.replace("/home");
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
@@ -85,7 +89,6 @@ const NewOnboardingV3 = () => {
         title: "Setup issue",
         message: errorMessage,
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -104,7 +107,9 @@ const NewOnboardingV3 = () => {
         />
       )}
 
-      {isLoading && (
+      {isRedirecting && <Loader />}
+
+      {isLoading && !isRedirecting && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-[#fcf5ee]/80 backdrop-blur-sm">
           <div className="flex flex-col items-center p-8 bg-white rounded-2xl shadow-xl border-2 border-slate-200 animate-in fade-in zoom-in-95 duration-200">
             <div className="w-12 h-12 border-4 border-slate-200 border-t-[#00a9ff] rounded-full animate-spin mb-4"></div>
@@ -119,6 +124,7 @@ const NewOnboardingV3 = () => {
         selection={profession}
         setSelection={setProfession}
         onNext={handleNextFromProfession}
+        isLoading={isLoading || isRedirecting}
       />
     </div>
   );
