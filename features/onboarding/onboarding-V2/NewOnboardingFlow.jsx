@@ -82,8 +82,7 @@ const saveToDatabase = async (data) => {
     const response = await axios.post("/api/v1/user", payload, {
       headers: {
         "Content-Type": "application/json",
-      },
-      timeout: 10000,
+      }
     });
 
     if (process.env.NODE_ENV === "development") {

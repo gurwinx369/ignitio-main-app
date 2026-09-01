@@ -20,6 +20,7 @@ import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
+import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
@@ -46,6 +47,20 @@ export default function Dashboard({ isPreview = false }) {
   const { user } = useAuth();
 
   const [isNavigating, setIsNavigating] = useState(false);
+  const [pendingCertificate, setPendingCertificate] = useState(null);
+
+  // ponytail: handle pending certificate animations
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const pending = localStorage.getItem("ignitio:pending_certificate_animation");
+        if (pending) {
+          setPendingCertificate(JSON.parse(pending));
+          localStorage.removeItem("ignitio:pending_certificate_animation");
+        }
+      } catch (e) {}
+    }
+  }, []);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -349,7 +364,7 @@ export default function Dashboard({ isPreview = false }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
         {/* Header Section */}
         {!isPreview && (
-          <div className="mb-12 flex justify-end">
+          <div className="mb-12">
             <Profile />
           </div>
         )}
@@ -513,6 +528,12 @@ export default function Dashboard({ isPreview = false }) {
           </div>
         </div>
       </div>
+      {pendingCertificate && (
+        <CertificateUnlockedModal
+          certificate={pendingCertificate}
+          onClose={() => setPendingCertificate(null)}
+        />
+      )}
     </div>
   );
 }

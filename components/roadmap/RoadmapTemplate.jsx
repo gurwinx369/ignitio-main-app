@@ -497,20 +497,39 @@ export default function RoadmapTemplate({ roadmapData, isPreview = false }) {
         localStorage.setItem("has_completed_first_lesson", "true");
       }
       triggerCompletionToast();
-      // Build a minimal certificate object for the blurred preview
-      const previewCert = {
-        certificateKey: `preview-${roadmapData.id}`,
-        roadmapFamily: roadmapData.id,
-        milestoneTitle: roadmapData.title || "Lesson Complete",
-        learnerName: "You",
-        providedOn: new Date().toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }),
-        quizCompletedCount: 1,
-        durationMinutes: 0,
-      };
+
+      // ponytail: evaluate real cert if eligible, fallback to minimal
+      let previewCert = checkCertificateUnlock({
+        roadmapData,
+        completedLevels: updatedCompleted,
+        levelId,
+        triggerType: "level",
+      });
+
+      if (previewCert) {
+        const milestoneLevels = previewCert.milestoneLevels || [];
+        previewCert = {
+          ...previewCert,
+          quizCompletedCount: milestoneLevels.length,
+          durationMinutes: milestoneLevels.reduce((a, l) => a + Number(l.durationInMinutes || 0), 0),
+          providedOn: new Date(previewCert.unlockedAt).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" }),
+        };
+      } else {
+        previewCert = {
+          certificateKey: `preview-${roadmapData.id}`,
+          roadmapFamily: roadmapData.id,
+          milestoneTitle: roadmapData.title || "Lesson Complete",
+          learnerName: "You",
+          providedOn: new Date().toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }),
+          quizCompletedCount: 1,
+          durationMinutes: 0,
+        };
+      }
+
       setPreviewCardData({
         certificate: previewCert,
         completedLevelId: levelId,

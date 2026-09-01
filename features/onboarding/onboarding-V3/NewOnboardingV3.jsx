@@ -58,7 +58,6 @@ const NewOnboardingV3 = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        timeout: 10000,
       });
 
       if (process.env.NODE_ENV === "development") {
