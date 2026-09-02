@@ -5,16 +5,36 @@ import { usePathname } from 'next/navigation'
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react'
 
-// Page view tracking component
+// Init at module level — synchronous, no race condition with identify or pageview
+// The requestIdleCallback pattern was causing identify/pageview to fire before init
+if (
+  typeof window !== 'undefined' &&
+  process.env.NEXT_PUBLIC_POSTHOG_KEY &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    ui_host: 'https://us.posthog.com',
+    defaults: '2026-01-30',
+    capture_pageview: false, // Manual SPA tracking below
+    capture_pageleave: true,
+    session_recording: {
+      maskAllInputs: true,
+      maskTextSelector: '[data-ph-mask]',
+    },
+  })
+}
+
 function PostHogPageViewTracker() {
   const posthogClient = usePostHog()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     if (pathname && posthogClient) {
-      const url = window.location.origin + pathname + window.location.search
-      posthogClient.capture('$pageview', { $current_url: url })
+      posthogClient.capture('$pageview', {
+        $current_url: window.location.origin + pathname + window.location.search,
+      })
     }
   }, [pathname, posthogClient])
 
@@ -22,36 +42,6 @@ function PostHogPageViewTracker() {
 }
 
 export function PostHogProvider({ children }) {
-  useEffect(() => {
-    const initPostHog = () => {
-      // Filter out localhost and dev traffic
-      if (
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ) {
-        return;
-      }
-
-      if (!posthog.__loaded && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-        posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-          ui_host: 'https://us.posthog.com',
-          defaults: '2026-01-30',
-          capture_pageview: false, // We handle this manually
-          capture_pageleave: true,
-        })
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(initPostHog)
-      } else {
-        setTimeout(initPostHog, 1000)
-      }
-    }
-  }, [])
-
   return (
     <PHProvider client={posthog}>
       <PostHogPageViewTracker />

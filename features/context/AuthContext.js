@@ -92,13 +92,6 @@ export const AuthProvider = ({ children }) => {
 
                 setUser(user);
             } else {
-                // Clear PostHog session when unauthenticated
-                try {
-                    posthog.reset();
-                } catch (e) {
-                    console.error("Posthog reset error:", e);
-                }
-                
                 setUser(null);
             }
             setLoading(false);
@@ -255,6 +248,8 @@ export const AuthProvider = ({ children }) => {
                 console.log("Attempting logout");
             }
             await signOut(auth);
+            // Reset PostHog identity on explicit logout only — not on every anonymous page load
+            try { posthog.reset(); } catch (_) {}
             if (process.env.NODE_ENV === "development") {
                 console.log("Logout successful");
             }
