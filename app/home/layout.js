@@ -11,8 +11,8 @@ export default function ProtectedLayout({children}) {
             <NotificationProvider>
                 <NotificationModal/>
                 <AskKyleProvider>
-                    <KylePet />
                     {children}
+                    <KylePet />
                 </AskKyleProvider>
             </NotificationProvider>
         </ProtectedRoute>);

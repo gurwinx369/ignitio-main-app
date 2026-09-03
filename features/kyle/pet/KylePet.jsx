@@ -8,6 +8,8 @@ import { kylePetConfig } from './kylePetConfig';
 import KylePetBubble from './KylePetBubble';
 import { useAskKyle } from '@/features/kyle/ask/useAskKyle';
 
+const KYLE_BLOCKED_PATHS = ['/home/onboarding', '/auth/'];
+
 function getKyleRouteContext(pathname) {
   if (!pathname) return 'default';
   if (pathname.includes('/quiz')) return 'quiz';
@@ -218,6 +220,8 @@ export default function KylePet() {
   }, [resetSleepTimer]);
 
   if (!isReady) return null;
+
+  if (KYLE_BLOCKED_PATHS.some((p) => pathname?.startsWith(p))) return null;
 
   if (isHidden) {
     const btnConfig = kylePetConfig.restoreButton || {
