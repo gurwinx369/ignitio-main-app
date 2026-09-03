@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
@@ -45,6 +45,11 @@ const redirects = {
 export default function Dashboard() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams =
+    useSearchParams();
+
+  const requestedTab =
+    searchParams.get("tab");
   const posthog = usePostHog();
   const { user } = useAuth();
   const {
@@ -54,6 +59,19 @@ export default function Dashboard() {
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  useEffect(() => {
+    if (
+      requestedTab === "worlds" ||
+      requestedTab === "premium" ||
+      requestedTab === "home"
+    ) {
+      setActiveTab(
+        requestedTab,
+      );
+    }
+  }, [
+    requestedTab,
+  ]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   useEffect(() => {
@@ -414,10 +432,10 @@ export default function Dashboard() {
   const hasActiveRoadmap = Boolean(activeRoadmap);
 
   return (
-    <div className="min-h-screen bg-[#fffaf3] font-sans text-slate-900">
+    <div className="min-h-screen bg-[#FCF5EE] font-sans text-[#19183B]">
       {/* ── HOME TAB ── */}
       {activeTab === "home" && (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-40">
+        <div className="max-w-[780px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
 
           <HomeHeader
             displayName={displayName}
@@ -429,26 +447,42 @@ export default function Dashboard() {
           {/* Loading state — show skeleton while client resolves */}
           {!clientResolved && (
             <div className="flex flex-col gap-5">
-              <div className="animate-pulse bg-white rounded-3xl h-52 border border-slate-200 shadow-sm" />
-              <div className="animate-pulse bg-white rounded-3xl h-40 border border-slate-200 shadow-sm" />
+              <div className="animate-pulse bg-white/80 rounded-3xl h-52 border border-[#E6BA91] shadow-sm" />
+              <div className="animate-pulse bg-white/80 rounded-3xl h-40 border border-[#E6BA91] shadow-sm" />
             </div>
           )}
 
           {/* New-user empty state — only after resolution, only if no roadmap */}
           {clientResolved && !hasActiveRoadmap && (
             <div className="flex flex-col items-center justify-center text-center py-16 px-4">
-              <div className="w-16 h-16 rounded-2xl bg-[#06b6d4]/10 flex items-center justify-center mb-6">
-                <Globe2 className="w-8 h-8 text-[#0891b2]" />
+              <div className="w-16 h-16 rounded-2xl bg-[#00A9FF]/12 flex items-center justify-center mb-6">
+                <Globe2 className="w-8 h-8 text-[#00A9FF]" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-3">
+
+              <h2 className="text-2xl font-bold text-[#19183B] mb-3">
                 Choose your first roadmap
               </h2>
-              <p className="text-slate-500 text-sm max-w-xs mb-8 leading-relaxed">
+
+              <p className="text-[#19183B]/65 text-sm max-w-xs mb-8 leading-relaxed">
                 Start with a structured learning path and build your first learning streak.
               </p>
+
               <button
                 onClick={() => setActiveTab("worlds")}
-                className="px-8 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 active:scale-[0.98] transition-all duration-150 text-sm"
+                className="
+                  px-8 py-3.5
+                  bg-[#00A9FF]
+                  text-[#19183B]
+                  font-bold
+                  rounded-xl
+                  shadow-[0_4px_0_#0085C7]
+                  hover:-translate-y-px
+                  active:translate-y-[2px]
+                  active:shadow-[0_1px_0_#0085C7]
+                  active:scale-[0.99]
+                  transition-all duration-150
+                  text-sm
+                "
               >
                 Start Roadmap
               </button>
@@ -457,7 +491,7 @@ export default function Dashboard() {
 
           {/* Existing learner — streak + roadmap */}
           {clientResolved && hasActiveRoadmap && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               {/* Streak module */}
               <StreakStatusCard
                 streak={profileData?.streak}
@@ -467,11 +501,30 @@ export default function Dashboard() {
 
               {/* Current roadmap — actual course card */}
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">
-                  Your Roadmap
+                <p
+                  className="
+                    text-[11px]
+                    font-bold
+                    text-[#19183B]/55
+                    uppercase
+                    tracking-widest
+                    mb-2
+                    px-1
+                  "
+                >
+                  CONTINUE LEARNING
                 </p>
-                <div className="w-full max-w-[640px] mx-auto">
-                  {carouselRoadmaps.find((r) => r.id === activeRoadmap.id)?.component}
+
+                <div className="w-full max-w-[460px] mx-auto">
+                  {(() => {
+                    const comp = carouselRoadmaps.find(
+                      (r) => r.id === activeRoadmap.id
+                    )?.component;
+
+                    return comp
+                      ? React.cloneElement(comp, { variant: "home" })
+                      : null;
+                  })()}
                 </div>
               </div>
             </div>
@@ -481,7 +534,7 @@ export default function Dashboard() {
 
       {/* ── WORLDS TAB ── */}
       {activeTab === "worlds" && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
           {/* RoadmapWorldsCarousel renders its own "Roadmap Worlds" heading internally */}
           <RoadmapWorldsCarousel
             roadmaps={carouselRoadmaps}
@@ -492,7 +545,7 @@ export default function Dashboard() {
 
       {/* ── PREMIUM TAB ── */}
       {activeTab === "premium" && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Premium Worlds</h1>
             <p className="text-sm text-slate-500 mt-2">

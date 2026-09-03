@@ -8,12 +8,12 @@ import {
     SuccessIcon,
     StatusBadge,
     CardInfoShimmer,
-    LevelSquaresLoading,
 } from './CardLoader';
 import { promptEngineeringRoadmapData } from '@/data/promptEngineeringCourseData';
+import useRoadmapCanvasActivity from "./useRoadmapCanvasActivity";
 
 // ── Animation constants ──────────────────────────────────────────
-const CYAN = '#06b6d4';
+const CYAN = '#00A9FF';
 const AMBER = '#f59e0b';
 const PURPLE = '#8b5cf6';
 const DARK = '#1e1a18';
@@ -53,7 +53,16 @@ function ease(x) {
 function PromptEngineeringCanvas() {
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
+    const pauseTimerRef = useRef(null);
+    const lastFrameTimeRef = useRef(0);
     const tRef = useRef(0);
+
+    const animationActiveRef =
+        useRoadmapCanvasActivity(
+            canvasRef,
+        );
+
+    const FRAME_INTERVAL = 1000 / 30;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -61,7 +70,10 @@ function PromptEngineeringCanvas() {
         const ctx = canvas.getContext('2d');
 
         function resize() {
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = Math.min(
+                window.devicePixelRatio || 1,
+                1.75,
+            );
             canvas.width = canvas.offsetWidth * dpr;
             canvas.height = canvas.offsetHeight * dpr;
             ctx.scale(dpr, dpr);
@@ -150,9 +162,44 @@ function PromptEngineeringCanvas() {
             ctx.restore();
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, W(), H());
-            const f = tRef.current / CYCLE;
+        function draw(now = performance.now()) {
+            if (!animationActiveRef.current) {
+                pauseTimerRef.current =
+                    window.setTimeout(() => {
+                        rafRef.current =
+                            requestAnimationFrame(
+                                draw,
+                            );
+                    }, 120);
+
+                return;
+            }
+
+            if (
+                now -
+                lastFrameTimeRef.current <
+                FRAME_INTERVAL
+            ) {
+                rafRef.current =
+                    requestAnimationFrame(
+                        draw,
+                    );
+
+                return;
+            }
+
+            lastFrameTimeRef.current = now;
+
+            ctx.clearRect(
+                0,
+                0,
+                W(),
+                H(),
+            );
+
+            const f =
+                tRef.current /
+                CYCLE;
 
             // Background dots
             ctx.save();
@@ -239,7 +286,20 @@ function PromptEngineeringCanvas() {
         const ro = new ResizeObserver(resize);
         ro.observe(canvas);
         return () => {
-            cancelAnimationFrame(rafRef.current);
+            if (rafRef.current) {
+                cancelAnimationFrame(
+                    rafRef.current,
+                );
+            }
+
+            if (
+                pauseTimerRef.current
+            ) {
+                clearTimeout(
+                    pauseTimerRef.current,
+                );
+            }
+
             ro.disconnect();
         };
     }, []);
@@ -254,160 +314,264 @@ export default function PromptEngineeringCourseCard({
     levelsFinished = 0,
     totalLevels,
     roadmapData = promptEngineeringRoadmapData,
+    variant = 'world',
 }) {
     const [hovered, setHovered] = useState(false);
 
     const totalDays = roadmapData.days.length;
-    const calculatedTotalLevels = roadmapData.days.flatMap(day => day.levels).length;
-    const displayTotalLevels = totalLevels || calculatedTotalLevels;
 
-    // ── Loader integration ─────────────────────────────────────────
-    const { state, handleClick, isLocked, isLoading, isSuccess, isPressing } =
-        useCardLoader(onClick, 1400);
+    const calculatedTotalLevels = roadmapData.days
+        .flatMap((day) => day.levels)
+        .length;
 
-    // ── Derived visual states ──────────────────────────────────────
+    const displayTotalLevels =
+        totalLevels || calculatedTotalLevels;
+
+    const {
+        state,
+        handleClick,
+        isLocked,
+        isLoading,
+        isSuccess,
+        isPressing,
+    } = useCardLoader(onClick, 1400);
+
     const isActive = isLoading || isSuccess;
 
-    // Scale: press sinks the card, loading holds slightly raised
-    const scale = isPressing
-        ? 'scale(0.972)'
+    const transform = isPressing
+        ? "translateY(2px) scale(0.985)"
         : hovered && !isLocked
-            ? 'translateY(-4px)'
-            : 'translateY(0)';
+            ? "translateY(-2px)"
+            : "translateY(0)";
 
-    const shadow = isActive
-        ? '0 12px 40px rgba(0,0,0,0.10)'
+    const cardShadow = isActive
+        ? "drop-shadow(0 7px 12px rgba(25,24,59,0.09))"
         : hovered
-            ? '0 20px 56px rgba(0,0,0,0.14)'
-            : '0 6px 24px rgba(0,0,0,0.08)';
-
-    // Arrow button visuals
-    const arrowBg = isActive
-        ? (isSuccess ? 'rgba(46,204,138,0.18)' : 'rgba(30,26,24,0.11)')
-        : hovered
-            ? 'rgba(30,26,24,0.14)'
-            : 'rgba(30,26,24,0.07)';
-
-    const arrowShift = hovered && !isLocked ? 'translateX(3px)' : 'translateX(0)';
+            ? "drop-shadow(0 10px 15px rgba(25,24,59,0.12))"
+            : "drop-shadow(0 5px 10px rgba(25,24,59,0.07))";
 
     return (
         <div
             onClick={handleClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className="w-full sm:w-120 overflow-hidden select-none"
+            className="
+                group
+                relative
+                w-full
+                overflow-hidden
+                select-none
+                flex flex-col
+            "
             style={{
                 borderRadius: 24,
-                boxShadow: shadow,
-                transform: scale,
-                transition: 'transform 0.28s ease, box-shadow 0.28s ease',
-                // ── Rage-click prevention: block pointer while locked ────
-                cursor: isLocked ? 'not-allowed' : 'pointer',
-                pointerEvents: isLocked ? 'none' : 'auto',
+
+                minHeight:
+                    variant === "home"
+                        ? 620
+                        : 540,
+
+                transform,
+
+                filter: cardShadow,
+
+                transition:
+                    "transform 160ms ease, filter 160ms ease",
+
+                cursor: isLocked
+                    ? "not-allowed"
+                    : "pointer",
+
+                pointerEvents: isLocked
+                    ? "none"
+                    : "auto",
             }}
         >
-            {/* ── Animation section ─────────────────────────────────── */}
+            {/* HERO / ANIMATION AREA */}
             <div
-                className="relative overflow-hidden"
-                style={{ height: 260, background: '#fdfbf7' }}
+                className="
+                    relative
+                    overflow-hidden
+                    shrink-0
+                "
+                style={{
+                    height:
+                        variant === 'home'
+                            ? 305
+                            : 250,
+
+                    background: '#FFFDF9',
+                }}
             >
                 <PromptEngineeringCanvas />
 
-                {/* Loading overlay on canvas — subtle dark veil while navigating */}
                 {isActive && (
                     <div
                         aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none"
                         style={{
-                            position: 'absolute',
-                            inset: 0,
                             background: isSuccess
-                                ? 'rgba(6,182,212,0.06)'
-                                : 'rgba(0,0,0,0.06)',
-                            transition: 'background 0.28s ease',
-                            pointerEvents: 'none',
+                                ? 'rgba(0,169,255,0.06)'
+                                : 'rgba(25,24,59,0.045)',
                         }}
                     />
                 )}
 
-                {/* Status badge — morphs through states */}
-                <StatusBadge state={state} status={status} />
+                <StatusBadge
+                    state={state}
+                    status={status}
+                />
             </div>
 
-            {/* ── Info section ──────────────────────────────────────── */}
+            {/* INFO AREA */}
             <div
-                className="px-5 pt-4.5 pb-5"
-                style={{ background: '#f2e0d0', position: 'relative' }}
+                className="
+                    relative
+                    px-5
+                    pt-[18px]
+                    pb-5
+                    flex-grow
+                    flex flex-col
+                "
+                style={{
+                    background: "#F2E0D0",
+                }}
             >
-                {/* Shimmer + success overlay */}
                 <CardInfoShimmer state={state} />
 
-                {/* Duration row */}
-                <div className="flex items-center gap-1.5 mb-3.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="#3a3330" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ opacity: 0.55, flexShrink: 0 }}
+                {/* Duration */}
+                <div className="flex items-center gap-1.5 mb-3">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#19183B"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                            opacity: 0.55,
+                            flexShrink: 0,
+                        }}
                     >
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                     </svg>
+
                     <span
-                        className="text-[11px] font-bold tracking-widest uppercase"
-                        style={{ color: '#3a3330' }}
+                        className="
+                            text-[11px]
+                            font-bold
+                            tracking-widest
+                            uppercase
+                        "
+                        style={{
+                            color: '#19183B',
+                        }}
                     >
                         {totalDays} Days
                     </span>
                 </div>
 
-                {/* Description */}
-                <h3 className="text-[18px] font-bold text-gray-900 mb-1">
+                {/* Title */}
+                <h3
+                    className="
+                        text-[18px]
+                        font-extrabold
+                        text-[#19183B]
+                        mb-1
+                    "
+                >
                     {roadmapData.title}
                 </h3>
+
+                {/* Description */}
                 <p
-                    className="text-[15.5px] font-medium leading-[1.55] mb-4"
-                    style={{ color: '#1e1a18' }}
+                    className="
+                        text-[15px]
+                        font-medium
+                        leading-[1.5]
+                        mb-3
+                    "
+                    style={{
+                        color: '#19183B',
+                    }}
                 >
                     {roadmapData.description}
                 </p>
 
-                {/* Level squares — wave-animated during load */}
-                <div className="flex items-center gap-1 mb-4 flex-wrap">
-                    <LevelSquaresLoading
-                        state={state}
-                        levelsFinished={levelsFinished}
-                        totalLevels={displayTotalLevels}
-                    />
-                    <span
-                        className="text-[11px] font-semibold ml-1"
-                        style={{ color: 'rgba(30,26,24,0.45)' }}
-                    >
-                        {levelsFinished}/{displayTotalLevels} levels
-                    </span>
-                </div>
+                {/* TEXT ONLY — no boxes, no progress bar */}
+                <p
+                    className="
+                        text-[11px]
+                        font-semibold
+                        text-[#19183B]/55
+                    "
+                >
+                    {levelsFinished}/{displayTotalLevels} levels
+                </p>
 
-                {/* Arrow / Spinner / Checkmark button */}
-                <div className="flex justify-end">
+                {/* FIGMA CYAN CTA */}
+                <div className="flex justify-center mt-auto pt-4">
                     <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
-                        style={{
-                            background: arrowBg,
-                            transform: isLoading ? 'none' : arrowShift,
-                            transition: 'all 0.22s ease',
-                        }}
+                        className="
+                            flex
+                            h-12 w-12
+                            items-center
+                            justify-center
+                            rounded-full
+                            bg-[#00A9FF]
+                            text-[#19183B]
+
+                            shadow-[0_4px_0_#0085C7]
+
+                            transition-[transform,box-shadow]
+                            duration-150
+                            ease-out
+
+                            group-hover:-translate-y-px
+
+                            group-active:translate-y-[2px]
+                            group-active:scale-[0.98]
+                            group-active:shadow-[0_1px_0_#0085C7]
+                        "
                     >
-                        {/* ── Icon morphs based on state ───────────────────── */}
                         {isLoading && (
-                            <SpinnerIcon size={14} color="#1e1a18" />
+                            <SpinnerIcon
+                                size={16}
+                                color="#19183B"
+                            />
                         )}
+
                         {isSuccess && (
-                            <SuccessIcon size={14} color="#06b6d4" />
+                            <SuccessIcon
+                                size={16}
+                                color="#19183B"
+                            />
                         )}
+
                         {!isLoading && !isSuccess && (
                             <svg
-                                width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="#1e1a18" strokeWidth="2.5"
-                                strokeLinecap="round" strokeLinejoin="round"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#19183B"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                             >
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                                <polyline points="12 5 19 12 12 19" />
+                                <line
+                                    x1="5"
+                                    y1="12"
+                                    x2="19"
+                                    y2="12"
+                                />
+
+                                <polyline
+                                    points="12 5 19 12 12 19"
+                                />
                             </svg>
                         )}
                     </div>

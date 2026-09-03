@@ -171,16 +171,13 @@ export default function NotificationModal() {
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center p-3 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
-        isVisible ? "opacity-100" : "opacity-0"
-      }`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-3 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? "opacity-100" : "opacity-0"
+        }`}
       onClick={handleClose}
     >
       <div
-        className={`relative w-full max-w-[390px] h-auto min-h-[500px] max-h-[680px] flex flex-col bg-[#fffaf3] rounded-[28px] shadow-xl overflow-hidden transition-all duration-300 motion-reduce:transform-none ${
-          isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
-        }`}
-        style={{ height: "calc(100dvh - 24px)", maxHeight: "680px" }}
+        className={`relative w-full max-w-[380px] max-h-[calc(100dvh-32px)] flex flex-col bg-[#fffaf3] rounded-[24px] shadow-2xl overflow-hidden transition-all duration-300 motion-reduce:transform-none ${isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+          }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -191,7 +188,7 @@ export default function NotificationModal() {
           onClick={handleClose}
           disabled={loading}
           aria-label="Close notification prompt"
-          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 hover:bg-black/5 rounded-full transition-colors z-10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
+          className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-black/5 hover:text-slate-600 transition-colors z-10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
         >
           <svg
             width="22"
@@ -207,33 +204,33 @@ export default function NotificationModal() {
           </svg>
         </button>
 
-        <div className="flex-1 flex flex-col pt-16 px-6 pb-6">
+        <div className="flex flex-col px-5 pt-12 pb-4">
           <div className="text-center px-2">
-            <h2 id="notif-modal-title" className="text-[26px] md:text-[30px] font-bold text-slate-900 mb-3 leading-tight tracking-tight">
+            <h2 id="notif-modal-title" className="text-[22px] sm:text-[24px] font-extrabold text-[#19183B] mb-2 leading-tight tracking-tight">
               Don&apos;t lose your <span className="text-[#06b6d4]">streak</span> to silence.
             </h2>
             <p id="notif-modal-desc" className="text-[15px] text-slate-500 mb-8 leading-relaxed">
               Get a reminder before your streak is at risk.
             </p>
           </div>
-          
+
           {/* Illustration Area */}
-          <div className="flex-1 flex flex-row items-end justify-between w-full mb-10 mt-auto px-2 relative">
+          <div className="flex items-center justify-between w-full px-2 mt-4 mb-5">
             <div className="flex flex-col gap-2.5 pb-4 z-10">
-              <div className="flex gap-2.5">
+              <div className="flex gap-2">
                 <Image
                   src="/streak/streak_done.png"
                   alt=""
                   width={44}
                   height={44}
-                  className="w-9 h-9 sm:w-11 sm:h-11 object-contain drop-shadow-sm"
+                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
                 />
                 <Image
                   src="/streak/streak_done.png"
                   alt=""
                   width={44}
                   height={44}
-                  className="w-9 h-9 sm:w-11 sm:h-11 object-contain drop-shadow-sm"
+                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
                 />
               </div>
               <div className="flex gap-2.5">
@@ -253,23 +250,23 @@ export default function NotificationModal() {
                 />
               </div>
             </div>
-            
+
             <Image
               src="/notifications/noti_kyle.svg"
               alt=""
-              width={195}
-              height={195}
-              className="w-[165px] md:w-[195px] h-auto object-contain drop-shadow-md z-10 translate-y-2"
+              width={150}
+              height={150}
+              className="w-[125px] sm:w-[145px] h-auto object-contain drop-shadow-md z-10"
               priority
             />
           </div>
-          
+
           <div className="w-full flex flex-col gap-3 mt-auto">
             <button
               onClick={handleAccept}
               disabled={loading}
               autoFocus
-              className="w-full py-4 px-4 bg-[#06b6d4] hover:bg-[#0891b2] active:scale-[0.98] text-white font-bold rounded-2xl transition-all disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf3]"
+              className="w-full min-h-[46px] px-4 bg-[#00A9FF] hover:bg-[#0098E5] active:scale-[0.98] text-white font-bold rounded-[14px] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf3]"
             >
               {loading ? (
                 <>
@@ -286,7 +283,7 @@ export default function NotificationModal() {
             <button
               onClick={handleClose}
               disabled={loading}
-              className="w-full py-3 px-4 bg-transparent hover:bg-black/5 active:scale-[0.98] text-slate-600 font-bold rounded-xl transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
+              className="w-full min-h-[40px] px-4 text-[12px] font-bold text-slate-500 hover:text-slate-700 transition-colors text-slate-600 font-bold rounded-xl transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
             >
               Maybe later
             </button>

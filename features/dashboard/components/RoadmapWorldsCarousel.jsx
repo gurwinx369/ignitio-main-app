@@ -1,125 +1,612 @@
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, {
+  useEffect,
+  useRef,
+} from "react";
 
-export default function RoadmapWorldsCarousel({ roadmaps, initialActiveId }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+import {
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+const WORLD_SCROLL_EVENT =
+  "ignitio:roadmap-world-scroll";
+
+export default function RoadmapWorldsCarousel({
+  roadmaps,
+  initialActiveId,
+}) {
+  const scrollRef =
+    useRef(null);
+
+  const scrollEndTimerRef =
+    useRef(null);
+
+  const isScrollingRef =
+    useRef(false);
+
+  /* =====================================================
+     CARD HELPERS
+  ===================================================== */
+
+  const getCards = () => {
+    const container =
+      scrollRef.current;
+
+    if (!container) {
+      return [];
+    }
+
+    return Array.from(
+      container.querySelectorAll(
+        "[data-roadmap-rail-item]",
+      ),
+    );
+  };
+
+  const getClosestCardIndex =
+    () => {
+      const container =
+        scrollRef.current;
+
+      if (!container) {
+        return 0;
+      }
+
+      const cards =
+        getCards();
+
+      if (!cards.length) {
+        return 0;
+      }
+
+      const containerRect =
+        container.getBoundingClientRect();
+
+      let closestIndex = 0;
+      let closestDistance =
+        Infinity;
+
+      cards.forEach(
+        (
+          card,
+          index,
+        ) => {
+          const cardRect =
+            card.getBoundingClientRect();
+
+          const distance =
+            Math.abs(
+              cardRect.left -
+              containerRect.left,
+            );
+
+          if (
+            distance <
+            closestDistance
+          ) {
+            closestDistance =
+              distance;
+
+            closestIndex =
+              index;
+          }
+        },
+      );
+
+      return closestIndex;
+    };
+
+  const scrollToCard = (
+    index,
+    behavior = "smooth",
+  ) => {
+    const container =
+      scrollRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const cards =
+      getCards();
+
+    if (!cards.length) {
+      return;
+    }
+
+    const safeIndex =
+      Math.max(
+        0,
+        Math.min(
+          index,
+          cards.length - 1,
+        ),
+      );
+
+    const target =
+      cards[safeIndex];
+
+    const containerRect =
+      container.getBoundingClientRect();
+
+    const targetRect =
+      target.getBoundingClientRect();
+
+    const targetLeft =
+      container.scrollLeft +
+      targetRect.left -
+      containerRect.left;
+
+    container.scrollTo({
+      left: targetLeft,
+      behavior,
+    });
+  };
+
+  const scrollByCard =
+    (direction) => {
+      const currentIndex =
+        getClosestCardIndex();
+
+      scrollToCard(
+        currentIndex +
+        direction,
+
+        "smooth",
+      );
+    };
+
+  /* =====================================================
+     INITIAL POSITION
+  ===================================================== */
 
   useEffect(() => {
-    if (initialActiveId && roadmaps.length > 0) {
-      const idx = roadmaps.findIndex(r => r.id === initialActiveId);
-      if (idx !== -1) {
-        setCurrentIndex(idx);
-      }
+    if (
+      !initialActiveId ||
+      !roadmaps?.length ||
+      !scrollRef.current
+    ) {
+      return;
     }
-  }, [initialActiveId, roadmaps]);
 
-  if (!roadmaps || roadmaps.length === 0) return null;
+    const index =
+      roadmaps.findIndex(
+        (roadmap) =>
+          roadmap.id ===
+          initialActiveId,
+      );
 
-  const next = () => {
-    setCurrentIndex((prev) => (prev + 1) % roadmaps.length);
-  };
+    if (index < 0) {
+      return;
+    }
 
-  const prev = () => {
-    setCurrentIndex((prev) => (prev - 1 + roadmaps.length) % roadmaps.length);
-  };
+    const frame =
+      requestAnimationFrame(
+        () => {
+          const container =
+            scrollRef.current;
+
+          if (!container) {
+            return;
+          }
+
+          const cards =
+            Array.from(
+              container.querySelectorAll(
+                "[data-roadmap-rail-item]",
+              ),
+            );
+
+          const target =
+            cards[index];
+
+          if (!target) {
+            return;
+          }
+
+          const containerRect =
+            container.getBoundingClientRect();
+
+          const targetRect =
+            target.getBoundingClientRect();
+
+          const targetLeft =
+            container.scrollLeft +
+            targetRect.left -
+            containerRect.left;
+
+          container.scrollTo({
+            left: targetLeft,
+            behavior: "auto",
+          });
+        },
+      );
+
+    return () => {
+      cancelAnimationFrame(
+        frame,
+      );
+    };
+  }, [
+    initialActiveId,
+    roadmaps,
+  ]);
+
+  /* =====================================================
+     PERFORMANCE:
+     FREEZE CANVAS ANIMATIONS WHILE SCROLLING
+  ===================================================== */
+
+  useEffect(() => {
+    const container =
+      scrollRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const broadcastScrollState =
+      (scrolling) => {
+        window.dispatchEvent(
+          new CustomEvent(
+            WORLD_SCROLL_EVENT,
+            {
+              detail: {
+                scrolling,
+              },
+            },
+          ),
+        );
+      };
+
+    const handleScroll =
+      () => {
+        /*
+         * Important:
+         *
+         * Do NOT set React state here.
+         *
+         * Trackpad scrolling can generate
+         * dozens of events per second.
+         *
+         * A ref avoids re-rendering the
+         * whole roadmap rail.
+         */
+        if (
+          !isScrollingRef.current
+        ) {
+          isScrollingRef.current =
+            true;
+
+          container.dataset.scrolling =
+            "true";
+
+          broadcastScrollState(
+            true,
+          );
+        }
+
+        if (
+          scrollEndTimerRef.current
+        ) {
+          clearTimeout(
+            scrollEndTimerRef.current,
+          );
+        }
+
+        scrollEndTimerRef.current =
+          window.setTimeout(
+            () => {
+              isScrollingRef.current =
+                false;
+
+              delete container.dataset
+                .scrolling;
+
+              broadcastScrollState(
+                false,
+              );
+            },
+            140,
+          );
+      };
+
+    container.addEventListener(
+      "scroll",
+      handleScroll,
+      {
+        passive: true,
+      },
+    );
+
+    return () => {
+      container.removeEventListener(
+        "scroll",
+        handleScroll,
+      );
+
+      if (
+        scrollEndTimerRef.current
+      ) {
+        clearTimeout(
+          scrollEndTimerRef.current,
+        );
+      }
+
+      /*
+       * Ensure animations resume
+       * if the carousel unmounts
+       * during a scroll.
+       */
+      broadcastScrollState(
+        false,
+      );
+    };
+  }, []);
+
+  if (!roadmaps?.length) {
+    return null;
+  }
+
+  /* =====================================================
+     UI
+  ===================================================== */
 
   return (
-    <section className="mb-12 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Roadmap Worlds</h2>
-          <p className="text-sm text-slate-500 mt-1">Explore structured learning paths built like game worlds.</p>
+    <section className="mb-10 w-full">
+      {/* HEADER */}
+
+      <div
+        className="
+          mb-5
+          flex
+          items-start
+          justify-between
+          gap-4
+        "
+      >
+        <div className="min-w-0">
+          <h2
+            className="
+              text-xl
+              font-extrabold
+              text-[#19183B]
+
+              sm:text-2xl
+            "
+          >
+            Roadmap Worlds
+          </h2>
+
+          <p
+            className="
+              mt-1
+              text-xs
+              text-[#19183B]/55
+
+              sm:text-sm
+            "
+          >
+            Explore structured learning
+            paths built like game worlds.
+          </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2">
-          <button 
-            onClick={prev}
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
+
+        {/* CONTROLS */}
+
+        <div
+          className="
+            flex
+            shrink-0
+            items-center
+            gap-2
+          "
+        >
+          <button
+            type="button"
+            onClick={() =>
+              scrollByCard(-1)
+            }
+            aria-label="Previous roadmap"
+            className="
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+
+              rounded-full
+
+              border
+              border-[#DFC8B5]
+
+              bg-[#FFFDF9]
+
+              text-[#19183B]
+
+              shadow-[0_3px_0_#D9C4B0]
+
+              transition-[transform,box-shadow]
+              duration-150
+
+              hover:-translate-y-px
+
+              active:translate-y-[2px]
+              active:scale-[0.98]
+              active:shadow-[0_1px_0_#D9C4B0]
+
+              sm:h-10
+              sm:w-10
+            "
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft
+              className="h-5 w-5"
+              strokeWidth={2.2}
+            />
           </button>
-          <button 
-            onClick={next}
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
+
+          <button
+            type="button"
+            onClick={() =>
+              scrollByCard(1)
+            }
+            aria-label="Next roadmap"
+            className="
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+
+              rounded-full
+
+              border
+              border-[#DFC8B5]
+
+              bg-[#FFFDF9]
+
+              text-[#19183B]
+
+              shadow-[0_3px_0_#D9C4B0]
+
+              transition-[transform,box-shadow]
+              duration-150
+
+              hover:-translate-y-px
+
+              active:translate-y-[2px]
+              active:scale-[0.98]
+              active:shadow-[0_1px_0_#D9C4B0]
+
+              sm:h-10
+              sm:w-10
+            "
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight
+              className="h-5 w-5"
+              strokeWidth={2.2}
+            />
           </button>
         </div>
       </div>
 
-      {/* Mobile: one active card stacked normally */}
-      <div className="sm:hidden flex flex-col items-center">
-        <div className="w-full max-w-[760px] mx-auto">
-          {roadmaps[currentIndex].component}
-        </div>
-        <div className="flex items-center gap-4 mt-6">
-          <button onClick={prev} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-100">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-sm font-bold text-slate-500">{currentIndex + 1} / {roadmaps.length}</span>
-          <button onClick={next} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-100">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      {/* =================================================
+          NATIVE SCROLL RAIL
 
-      {/* Desktop: Carousel */}
-      <div className="hidden sm:flex justify-center relative w-full overflow-x-clip">
-        <div className="flex items-center justify-center w-full max-w-[1200px] relative py-8">
-          {/* Invisible active card to define height naturally without clipping */}
-          <div className="w-full max-w-[760px] invisible pointer-events-none">
-            {roadmaps[currentIndex].component}
-          </div>
+          No mandatory snapping.
+          No React scroll-state.
+          Native compositor owns movement.
+      ================================================= */}
 
-          {roadmaps.map((item, idx) => {
-            let relativeIndex = idx - currentIndex;
-            // Handle wrapping for infinite loop effect
-            if (relativeIndex < -1 * Math.floor(roadmaps.length / 2)) {
-              relativeIndex += roadmaps.length;
-            } else if (relativeIndex > Math.floor(roadmaps.length / 2)) {
-              relativeIndex -= roadmaps.length;
-            }
+      <div
+        ref={scrollRef}
+        className="
+          roadmap-world-rail
 
-            if (relativeIndex < -1 || relativeIndex > 1) {
-              return (
-                <div key={idx} className="absolute inset-x-0 top-8 opacity-0 pointer-events-none transition-all duration-500 flex justify-center">
-                  <div className="scale-75 w-full max-w-[760px]">
-                    {item.component}
-                  </div>
-                </div>
-              );
-            }
+          relative
 
-            const isCenter = relativeIndex === 0;
-            const translateX = relativeIndex * 55; // 55% offset for wider side previews
-            const scale = isCenter ? 1 : 0.85; // 0.85 instead of 0.75 for better readability
-            const opacity = isCenter ? 1 : 0.4;
-            const zIndex = isCenter ? 10 : 0;
+          -mx-4
 
-            return (
-              <div 
-                key={idx} 
-                className="absolute inset-x-0 top-8 transition-all duration-500 ease-out flex justify-center pointer-events-none"
-                style={{
-                  transform: `translateX(${translateX}%) scale(${scale})`,
-                  opacity,
-                  zIndex
-                }}
+          flex
+          items-stretch
+          gap-4
+
+          overflow-x-auto
+          overflow-y-visible
+
+          px-4
+          pb-10
+          pt-4
+
+          overscroll-x-contain
+
+          [scrollbar-width:none]
+
+          [&::-webkit-scrollbar]:hidden
+        "
+        style={{
+          WebkitOverflowScrolling:
+            "touch",
+
+          scrollBehavior:
+            "auto",
+
+          overscrollBehaviorX:
+            "contain",
+        }}
+      >
+        {roadmaps.map(
+          (
+            item,
+            index,
+          ) => (
+            <div
+              key={
+                item.id ||
+                index
+              }
+              data-roadmap-rail-item
+              className="
+                shrink-0
+                min-w-0
+
+                flex
+
+                w-[88%]
+
+                sm:w-[320px]
+
+                lg:w-[340px]
+              "
+            >
+              <div
+                className="
+                  h-[590px]
+                  w-full
+
+                  [&>*]:h-full
+                "
               >
-                <div 
-                  className={`w-full max-w-[760px] pointer-events-auto transition-all duration-500 ${!isCenter ? 'cursor-pointer hover:opacity-100 hover:scale-105' : ''}`}
-                  onClick={() => {
-                    if (!isCenter) setCurrentIndex(idx);
-                  }}
-                >
-                  <div className={!isCenter ? "pointer-events-none" : ""}>
-                    {item.component}
-                  </div>
-                </div>
+                {React.cloneElement(
+                  item.component,
+                  {
+                    variant:
+                      "world",
+                  },
+                )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ),
+        )}
       </div>
+
+      {/* =================================================
+          PERFORMANCE CSS
+
+          Expensive effects disappear while
+          the compositor is moving the rail.
+      ================================================= */}
+
+      <style>{`
+        .roadmap-world-rail[data-scrolling="true"]
+          [data-roadmap-rail-item] > div > * {
+          filter: none !important;
+          transition: none !important;
+          transform: translateZ(0) !important;
+        }
+
+        .roadmap-world-rail[data-scrolling="true"]
+          [data-roadmap-rail-item] {
+          pointer-events: none;
+        }
+
+        .roadmap-world-rail[data-scrolling="true"]
+          [data-roadmap-animated-visual],
+        .roadmap-world-rail[data-scrolling="true"]
+          [data-roadmap-animated-visual] * {
+          animation-play-state: paused !important;
+        }
+      `}</style>
     </section>
   );
 }

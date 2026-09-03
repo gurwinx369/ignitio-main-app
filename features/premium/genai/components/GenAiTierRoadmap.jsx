@@ -61,6 +61,36 @@ function VerificationError({
     );
 }
 
+function GenAiRouteLoader() {
+    return (
+        <div
+            className={[
+                /*
+                 * This overlay belongs to the GenAI route only.
+                 *
+                 * KylePet is mounted globally by /home/layout,
+                 * so simply returning <Loader /> cannot unmount
+                 * or hide Kyle.
+                 *
+                 * z-[5000] intentionally sits above normal
+                 * dashboard/Kyle UI while still leaving room
+                 * for critical global modal layers.
+                 */
+                "fixed inset-0 z-[5000]",
+                "flex min-h-screen",
+                "items-center justify-center",
+                "overflow-hidden",
+                "bg-[#FFF8EF]",
+            ].join(" ")}
+            role="status"
+            aria-live="polite"
+            aria-label="Preparing GenAI roadmap"
+        >
+            <Loader />
+        </div>
+    );
+}
+
 export default function GenAiTierRoadmap({
     tierKey,
     minWeek,
@@ -365,7 +395,7 @@ export default function GenAiTierRoadmap({
         status === "loading" ||
         status === "foundation"
     ) {
-        return <Loader />;
+        return <GenAiRouteLoader />;
     }
 
     if (
@@ -393,7 +423,7 @@ export default function GenAiTierRoadmap({
             calibration.status ===
             "required"
         ) {
-            return <Loader />;
+            return <GenAiRouteLoader />;
         }
 
         if (
@@ -418,14 +448,14 @@ export default function GenAiTierRoadmap({
                 scheduleState.status === "loading" ||
                 scheduleState.status === "required"
             ) {
-                return <Loader />;
+                return <GenAiRouteLoader />;
             }
 
             if (
                 upgrade.status === "idle" ||
                 upgrade.status === "loading"
             ) {
-                return <Loader />;
+                return <GenAiRouteLoader />;
             }
 
             if (
@@ -440,7 +470,7 @@ export default function GenAiTierRoadmap({
                     upgrade.upgradeStatus ===
                     "calibration_required"
                 ) {
-                    return <Loader />;
+                    return <GenAiRouteLoader />;
                 }
 
                 const retryUpgrade =
@@ -518,7 +548,7 @@ export default function GenAiTierRoadmap({
                 }
 
                 if (!runtimeData) {
-                    return <Loader />;
+                    return <GenAiRouteLoader />;
                 }
 
                 return <RoadmapTemplate roadmapData={runtimeData} backHref="/home/premium/genai" />;
@@ -526,5 +556,5 @@ export default function GenAiTierRoadmap({
         }
     }
 
-    return <Loader />;
+    return <GenAiRouteLoader />;
 }

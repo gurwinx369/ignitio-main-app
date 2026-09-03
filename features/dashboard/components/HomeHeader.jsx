@@ -3,7 +3,7 @@ import { MessageSquare, Menu, X, LogOut, UserCircle, Gamepad2, CreditCard } from
 import Link from "next/link";
 import { useAuth } from "@/features/context/AuthContext";
 
-function ProfileMenu() {
+function HeaderMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const { logout } = useAuth();
@@ -49,16 +49,6 @@ function ProfileMenu() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <Link
-            href="/home/profile"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1"
-          >
-            <div className="p-1.5 bg-[#06b6d4]/10 text-[#0891b2] rounded-lg">
-              <UserCircle className="w-4 h-4" />
-            </div>
-            Profile
-          </Link>
-          <Link
             href="/home/subscription"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1"
@@ -98,21 +88,21 @@ function ProfileMenu() {
 
 export default function HomeHeader({ displayName, onOpenFeedback }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
           Welcome back, {displayName}
         </h1>
       </div>
       <div className="flex gap-2 shrink-0">
         <button
           onClick={onOpenFeedback}
-          className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex"
+          className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex transition-all duration-150 hover:-translate-y-[1px] active:translate-y-[2px] active:scale-[0.98] active:shadow-none"
         >
           <MessageSquare className="w-4 h-4 shrink-0" />
           <span className="truncate">Feedback</span>
         </button>
-        <ProfileMenu />
+        <HeaderMenu />
       </div>
     </div>
   );

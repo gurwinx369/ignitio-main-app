@@ -1,121 +1,288 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Home, Globe2, Crown, User } from "lucide-react";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
+
+import {
+  Home,
+  Globe2,
+  Crown,
+  User,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   {
     id: "home",
     label: "Home",
     icon: Home,
-    type: "tab",
   },
+
   {
     id: "worlds",
     label: "Worlds",
     icon: Globe2,
-    type: "tab",
   },
+
   {
     id: "premium",
     label: "Premium",
     icon: Crown,
-    type: "tab",
   },
+
   {
     id: "profile",
     label: "Profile",
     icon: User,
-    type: "route",
-    href: "/home/profile",
   },
 ];
 
-export default function DashboardBottomNav({ activeTab, setActiveTab }) {
-  const router = useRouter();
+export default function DashboardBottomNav({
+  activeTab,
+  setActiveTab,
+}) {
+  const router =
+    useRouter();
 
-  const handleClick = (item) => {
-    if (item.type === "route") {
-      router.push(item.href);
-    } else {
-      setActiveTab(item.id);
-    }
-  };
+  const pathname =
+    usePathname();
 
-  const isActive = (item) => {
-    if (item.type === "route") return false;
-    return activeTab === item.id;
-  };
+  const isDashboard =
+    pathname === "/home";
+
+  const handleClick =
+    (item) => {
+      /*
+       * Profile is always a real route.
+       */
+      if (
+        item.id === "profile"
+      ) {
+        router.push(
+          "/home/profile",
+        );
+
+        return;
+      }
+
+      /*
+       * Already on Dashboard:
+       * preserve the existing in-page tab system.
+       */
+      if (
+        isDashboard &&
+        typeof setActiveTab ===
+        "function"
+      ) {
+        setActiveTab(
+          item.id,
+        );
+
+        if (
+          item.id === "home"
+        ) {
+          router.replace(
+            "/home",
+            {
+              scroll: false,
+            },
+          );
+        } else {
+          router.replace(
+            `/home?tab=${item.id}`,
+            {
+              scroll: false,
+            },
+          );
+        }
+
+        return;
+      }
+
+      /*
+       * From Profile or another child route,
+       * return to the requested dashboard surface.
+       */
+      if (
+        item.id === "home"
+      ) {
+        router.push(
+          "/home",
+        );
+
+        return;
+      }
+
+      router.push(
+        `/home?tab=${item.id}`,
+      );
+    };
+
+  const isActive =
+    (item) => {
+      if (
+        item.id === "profile"
+      ) {
+        return (
+          pathname ===
+          "/home/profile"
+        );
+      }
+
+      if (!isDashboard) {
+        return false;
+      }
+
+      return (
+        activeTab ===
+        item.id
+      );
+    };
 
   return (
     <nav
       aria-label="Dashboard navigation"
-      className={[
-        // Fixed positioning
-        "fixed bottom-0 left-0 right-0 z-50",
-        // Safe area for iOS notched devices
-        "pb-[env(safe-area-inset-bottom)]",
-        // Pointer events passthrough outside the pill
-        "pointer-events-none",
-        "flex items-end justify-center",
-        // Small gap from true bottom edge on devices without notch
-        "mb-4",
-      ].join(" ")}
-    >
-      {/* Pill container */}
-      <div
-        className={[
-          "pointer-events-auto",
-          // Desktop: compact centered pill
-          "mx-auto",
-          "w-[calc(100%-2rem)] max-w-xs sm:max-w-sm",
-          // Card styling
-          "bg-white/95 backdrop-blur-md",
-          "border border-slate-200",
-          "rounded-2xl",
-          "shadow-lg shadow-slate-900/10",
-          // Layout
-          "grid grid-cols-4",
-          "p-1",
-          "gap-0.5",
-        ].join(" ")}
-        role="tablist"
-      >
-        {NAV_ITEMS.map((item) => {
-          const active = isActive(item);
-          const Icon = item.icon;
+      className="
+        fixed
+        inset-x-0
+        bottom-0
+        z-50
 
-          return (
-            <button
-              key={item.id}
-              role={item.type === "tab" ? "tab" : "button"}
-              aria-label={item.label}
-              aria-current={active ? "page" : undefined}
-              onClick={() => handleClick(item)}
-              className={[
-                // Base
-                "flex flex-col items-center justify-center gap-0.5",
-                // Min touch target (44px)
-                "min-h-[44px]",
-                "px-1 py-2",
-                "rounded-xl",
-                "text-xs font-semibold",
-                "transition-all duration-200",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-1",
-                // Active vs inactive
-                active
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              <Icon
-                className="w-[18px] h-[18px] shrink-0"
-                aria-hidden="true"
-              />
-              <span className="truncate leading-none">{item.label}</span>
-            </button>
-          );
-        })}
+        flex
+        justify-center
+
+        px-3
+
+        pb-[calc(12px+env(safe-area-inset-bottom))]
+
+        pointer-events-none
+      "
+    >
+      <div
+        className="
+          pointer-events-auto
+
+          flex
+          items-center
+          justify-center
+          gap-1
+
+          rounded-[18px]
+
+          border
+          border-[#DFC8B5]
+
+          bg-[#F2E0D0]
+
+          p-1.5
+
+          shadow-[0_10px_28px_rgba(25,24,59,0.16)]
+        "
+      >
+        {NAV_ITEMS.map(
+          (item) => {
+            const active =
+              isActive(
+                item,
+              );
+
+            const Icon =
+              item.icon;
+
+            return (
+              <button
+                key={
+                  item.id
+                }
+                type="button"
+                aria-label={
+                  item.label
+                }
+                aria-current={
+                  active
+                    ? "page"
+                    : undefined
+                }
+                onClick={() =>
+                  handleClick(
+                    item,
+                  )
+                }
+                className={[
+                  "group",
+
+                  "flex min-h-[44px] items-center justify-center gap-1.5",
+
+                  "rounded-[13px]",
+
+                  "px-2.5 sm:px-3",
+
+                  "text-[11px] sm:text-xs",
+
+                  "font-extrabold",
+
+                  "text-[#19183B]",
+
+                  "transition-[transform,background-color,box-shadow,padding]",
+
+                  "duration-150 ease-out",
+
+                  "focus-visible:outline-none",
+
+                  "focus-visible:ring-2",
+
+                  "focus-visible:ring-[#00A9FF]",
+
+                  "focus-visible:ring-offset-2",
+
+                  "focus-visible:ring-offset-[#F0CAA8]",
+
+                  "active:translate-y-[2px]",
+
+                  "active:scale-[0.98]",
+
+                  active
+                    ? [
+                      "bg-[#00A9FF]",
+                      "px-3.5 sm:px-4",
+                      "shadow-[0_3px_0_#0085C7]",
+                      "active:shadow-[0_1px_0_#0085C7]",
+                    ].join(
+                      " ",
+                    )
+                    : "bg-transparent hover:bg-white/25",
+                ].join(
+                  " ",
+                )}
+              >
+                <Icon
+                  className={[
+                    "h-[18px] w-[18px] shrink-0",
+
+                    "transition-transform duration-150",
+
+                    active
+                      ? "scale-105"
+                      : "group-hover:-translate-y-px",
+                  ].join(
+                    " ",
+                  )}
+                  strokeWidth={
+                    2.1
+                  }
+                  aria-hidden="true"
+                />
+
+                <span className="whitespace-nowrap leading-none">
+                  {
+                    item.label
+                  }
+                </span>
+              </button>
+            );
+          },
+        )}
       </div>
     </nav>
   );
