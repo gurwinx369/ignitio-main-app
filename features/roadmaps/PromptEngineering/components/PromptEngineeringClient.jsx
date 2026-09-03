@@ -41,7 +41,7 @@ export default function PromptEngineeringClient({ isPreview = false }) {
             setIsLoading(false);
         };
 
-        if (user !== undefined) {
+        if (isPreview || user !== undefined) {
             fetchUserRole();
         }
     }, [user]);
