@@ -64,9 +64,9 @@ export const QUESTIONS = [
   },
   {
     id: "q2",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "Prompt Reliability",
-    description: "Write at least one full sentence explaining your reasoning. Why does prompt B behave more reliably in production?",
+    description: "Why does Prompt B behave more reliably in production?",
     code: `// Prompt A
 Extract the user's name and age from the text.
 
@@ -77,21 +77,56 @@ Output MUST be valid JSON matching this schema:
   "name": "string",
   "age": "number"
 }`,
+    options: [
+      {
+        value: "a",
+        label: "It gives the model more tokens to work with.",
+      },
+      {
+        value: "b",
+        label: "It explicitly constrains the output to a defined JSON structure.",
+      },
+      {
+        value: "c",
+        label: "It removes the need to validate the model's output.",
+      },
+      {
+        value: "d",
+        label: "Making a prompt longer always makes it more reliable.",
+      },
+    ],
     skippable: true,
   },
   {
     id: "q2b",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "Context Engineering",
-    description:
-      "You put your most important instruction in paragraph 5 of a 10-paragraph prompt. What's the fix, in 5 words or less?",
+    description: "Where should an important instruction generally be placed in a long prompt?",
+    options: [
+      {
+        value: "a",
+        label: "Near the beginning, with reinforcement near the end when needed.",
+      },
+      {
+        value: "b",
+        label: "Only in the middle of the prompt.",
+      },
+      {
+        value: "c",
+        label: "Only at the very end of the prompt.",
+      },
+      {
+        value: "d",
+        label: "Its position does not matter.",
+      },
+    ],
     skippable: true,
   },
   {
     id: "q3",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "Python Output",
-    description: "What does this print? Enter the exact output.",
+    description: "What does this code print?",
     code: `def process(items):
       result = []
       for item in items:
@@ -105,6 +140,24 @@ Output MUST be valid JSON matching this schema:
   ]
 
   print(process(data))`,
+    options: [
+      {
+        value: "a",
+        label: "['A']",
+      },
+      {
+        value: "b",
+        label: "['B']",
+      },
+      {
+        value: "c",
+        label: "['A', 'B']",
+      },
+      {
+        value: "d",
+        label: "[]",
+      },
+    ],
     skippable: true,
   },
   {
@@ -132,12 +185,29 @@ Output MUST be valid JSON matching this schema:
   },
   {
     id: "q4",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "LangChain / LCEL",
-    description:
-      "What goes in the blank to get a clean string back instead of a raw model object?",
+    description: "What should replace the blank to return a clean string from the model?",
     code: `chain = prompt | model | ______
   result = chain.invoke({"topic": "space"})`,
+    options: [
+      {
+        value: "a",
+        label: "StrOutputParser()",
+      },
+      {
+        value: "b",
+        label: "JsonOutputParser()",
+      },
+      {
+        value: "c",
+        label: "RunnablePassthrough()",
+      },
+      {
+        value: "d",
+        label: "ChatPromptTemplate()",
+      },
+    ],
     skippable: true,
   },
   {
@@ -176,30 +246,81 @@ Output MUST be valid JSON matching this schema:
   },
   {
     id: "q7",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "FastAPI Concurrency",
-    description:
-      "What's missing that would make this fail as soon as a second person calls it while the first request is still processing?",
+    description: "If run_rag() is a blocking operation and this route is async, what should you do to avoid blocking FastAPI's event loop?",
     code: `@app.post("/query")
-  def query(question: str):
+  async def query(question: str):
       answer = run_rag(question)
       return answer`,
-   skippable: true,
+    options: [
+      {
+        value: "a",
+        label: "Run the blocking operation in a thread pool or worker.",
+      },
+      {
+        value: "b",
+        label: "Add more parameters to the endpoint.",
+      },
+      {
+        value: "c",
+        label: "Return a Pydantic model instead.",
+      },
+      {
+        value: "d",
+        label: "Make the prompt longer so the request takes more time.",
+      },
+    ],
+    skippable: true,
   },
   {
     id: "q7b",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "Pydantic Reason",
-    description:
-      "What's the one-line reason to return a Pydantic model instead of a raw dict from your endpoint?",
+    description: "Why return a Pydantic model instead of a raw dict from an API endpoint?",
+    options: [
+      {
+        value: "a",
+        label: "It provides validation and a clear response schema.",
+      },
+      {
+        value: "b",
+        label: "It makes every API request run asynchronously.",
+      },
+      {
+        value: "c",
+        label: "It removes the need for error handling.",
+      },
+      {
+        value: "d",
+        label: "It automatically makes the API faster.",
+      },
+    ],
     skippable: true,
   },
   {
     id: "q8",
-    type: "SHORT_TEXT",
+    type: "SINGLE_CHOICE",
     title: "Chain vs Agent",
-    description:
-      'In one sentence, what is the actual difference between a "chain" and an "agent"?',
+    description: "What is the key difference between a chain and an agent?",
+    options: [
+      {
+        value: "a",
+        label: "A chain follows a predefined sequence, while an agent can dynamically choose actions or tools.",
+      },
+      {
+        value: "b",
+        label: "A chain can only use Python, while an agent can only use JavaScript.",
+      },
+      {
+        value: "c",
+        label: "A chain always uses an API, while an agent never uses one.",
+      },
+      {
+        value: "d",
+        label: "There is no meaningful difference between them.",
+      },
+    ],
     skippable: true,
   },
   {
