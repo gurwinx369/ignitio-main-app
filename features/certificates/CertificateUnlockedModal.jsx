@@ -66,11 +66,7 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
   /* ─── Reveal timer ───────────────────────────────────────── */
   useEffect(() => {
     if (!prefersReducedMotion) return;
-
-    const id = window.setTimeout(() => {
-      setRevealComplete(true);
-    }, 0);
-
+    const id = window.setTimeout(() => setRevealComplete(true), 0);
     return () => window.clearTimeout(id);
   }, [prefersReducedMotion]);
 
@@ -78,41 +74,28 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
   const updateScale = useCallback(() => {
     if (!panelRef.current || !previewAreaRef.current) return;
 
-    // Use actual dimensions instead of guessing.
-    // If some elements aren't rendered yet, provide safe fallbacks.
     const panelHeight = panelRef.current.getBoundingClientRect().height;
-    
-    // We assume panelHeight is physically constrained by the browser via max-h.
-    // The amount of height available for the image is the panel minus the text & footer.
     const headerHeight = headerRef.current ? headerRef.current.getBoundingClientRect().height : 70;
     const helperHeight = helperRef.current ? helperRef.current.getBoundingClientRect().height : 30;
     const footerHeight = footerRef.current ? footerRef.current.getBoundingClientRect().height : 80;
 
-    // Vertical padding inside the content area (pt-12 pb-3 = 15*4 = 60px padding)
     const verticalPadding = 60;
-    
-    // Math.max to prevent negative or tiny scales
     const availableHeight = Math.max(150, panelHeight - headerHeight - helperHeight - footerHeight - verticalPadding);
-    
     const previewAreaWidth = previewAreaRef.current.getBoundingClientRect().width;
-    const availableWidth = Math.max(150, previewAreaWidth - 24); // subtract small side margin
+    const availableWidth = Math.max(150, previewAreaWidth - 24);
 
     const scale = Math.min(
       1,
       availableWidth / CERTIFICATE_WIDTH,
       availableHeight / CERTIFICATE_HEIGHT
     );
-    
+
     setPreviewScale(Math.max(0.38, scale));
   }, []);
 
   useEffect(() => {
     if (!revealComplete) return;
-    
-    // Calculate right after reveal is complete.
-    // Use requestAnimationFrame to ensure DOM elements (refs) are fully rendered.
     requestAnimationFrame(() => updateScale());
-    
     window.addEventListener("resize", updateScale);
     return () => window.removeEventListener("resize", updateScale);
   }, [revealComplete, updateScale]);
@@ -162,79 +145,148 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
   /* ─── Render ─────────────────────────────────────────────── */
   return (
     <div
-      className="fixed inset-0 z-[140] flex items-center justify-center bg-[#19183b]/70 backdrop-blur-sm p-3 sm:p-6"
+      className="fixed inset-0 z-[140] flex items-center justify-center bg-[#19183b]/80 backdrop-blur-sm p-3 sm:p-6"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
     >
       <style>{`
-        /* certificate card entrance */
-        .cuml-card-enter{
-          animation:cuml-cardIn .45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        /* Card spring entrance — Duolingo-style pop */
+        @keyframes cuml-cardSpring {
+          0%   { opacity: 0; transform: scale(0.82) translateY(28px); }
+          55%  { opacity: 1; transform: scale(1.04) translateY(-4px); }
+          75%  { transform: scale(0.98) translateY(2px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes cuml-cardIn{
-          0%{opacity:0;transform:scale(0.94) translateY(8px)}
-          100%{opacity:1;transform:scale(1) translateY(0)}
+        .cuml-card-spring {
+          animation: cuml-cardSpring 0.58s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-        @media(prefers-reduced-motion:reduce){
-          .cuml-card-enter{animation:none !important;}
+        @media (prefers-reduced-motion: reduce) {
+          .cuml-card-spring { animation: none !important; }
+        }
+
+        /* Golden shimmer sweep across the card */
+        @keyframes cuml-shimmer {
+          0%   { transform: translateX(-100%) skewX(-12deg); }
+          100% { transform: translateX(250%) skewX(-12deg); }
+        }
+        .cuml-shimmer-track {
+          animation: cuml-shimmer 0.9s ease-out 0.35s forwards;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cuml-shimmer-track { animation: none !important; }
+        }
+
+        /* Star burst particles */
+        @keyframes cuml-starOut {
+          0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
+        }
+        .cuml-star {
+          animation: cuml-starOut 0.65s ease-out var(--sd) forwards;
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cuml-star { display: none; }
+        }
+
+        /* Header / footer fade-up */
+        @keyframes cuml-fadeUp {
+          0%   { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .cuml-header { animation: cuml-fadeUp 0.4s ease-out 0.5s both; }
+        .cuml-footer { animation: cuml-fadeUp 0.4s ease-out 0.65s both; }
+        @media (prefers-reduced-motion: reduce) {
+          .cuml-header, .cuml-footer { animation: none !important; }
         }
       `}</style>
 
-      {/* ── Modal panel ────────────────────────────────────── */}
-      <div 
+      {/* ── Modal panel — transparent, no background ────────── */}
+      <div
         ref={panelRef}
-        className={`relative flex max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[460px] flex-col overflow-hidden ${!revealComplete ? 'bg-transparent shadow-none border-none' : 'rounded-[2rem] bg-[#fffaf3] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-[#f1e4d2]'}`}
+        className="relative flex max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[460px] flex-col overflow-hidden"
       >
-        {/* ── Close button (only shown after reveal) ──────── */}
+        {/* ── Close button (after reveal) ───────────────────── */}
         {revealComplete && (
           <button
             type="button"
             onClick={onClose}
             aria-label="Close certificate modal"
-            className="absolute top-4 left-4 z-10 p-2 rounded-full transition-colors bg-white/70 text-[#19183b] hover:bg-white"
+            className="absolute top-0 right-0 z-20 p-2 rounded-full bg-white/15 border border-white/25 text-white/60 hover:text-white hover:bg-white/25 transition-[color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <X className="w-5 h-5" />
           </button>
         )}
 
-        {/* ── Content Area ─────────────────────────────────── */}
-        <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden ${!revealComplete ? 'p-0' : 'px-4 sm:px-5 pt-12 pb-3'}`}>
+        {/* ── Content Area ───────────────────────────────────── */}
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden p-0">
           {!revealComplete ? (
-            /* ─── Achievement unlock reveal animation ────── */
+            /* ── Achievement unlock reveal animation ────── */
             <div className="flex flex-col items-center justify-center w-full h-[300px] sm:h-[380px] lg:h-[460px]">
               <StrandsReveal durationMs={2800} onComplete={() => setRevealComplete(true)} />
             </div>
           ) : (
-            /* ─── Revealed content ───────────────────────── */
-            <div className="flex flex-col items-center justify-center h-full w-full cuml-card-enter">
-              
-              {/* heading/subheading */}
-              <div ref={headerRef} className="shrink-0 text-center mb-3">
-                <h2 className="text-lg sm:text-xl font-bold text-[#19183b] mb-1">
-                  Share your achievement!
+            /* ── Revealed: card floating on dark backdrop, no modal box ── */
+            <div className="flex flex-col items-center justify-center h-full w-full">
+
+              {/* Heading / subheading */}
+              <div ref={headerRef} className="shrink-0 text-center mb-4 cuml-header">
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-1">
+                  You earned it. Share it.
                 </h2>
-                <p className="text-slate-500 text-sm">
+                <p className="text-white/55 text-sm">
                   You unlocked{" "}
-                  <span className="text-[#00a9ff] font-medium">
+                  <span className="text-[#00a9ff] font-semibold">
                     {certificate.milestoneTitle}
                   </span>
                   .
                 </p>
               </div>
 
-              {/* certificate preview area */}
+              {/* Certificate — bare, no wrapper box */}
               <div ref={previewAreaRef} className="flex-1 min-h-0 w-full flex items-center justify-center">
-                <div className="flex justify-center items-center bg-white border border-[#f1e4d2] shadow-sm rounded-xl p-2 sm:p-3">
+                <div className="relative flex justify-center items-center">
+
+                  {/* Star burst particles */}
+                  {[...Array(12)].map((_, i) => {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const dist = 80 + (i % 3) * 30;
+                    const sx = Math.round(Math.cos(angle) * dist);
+                    const sy = Math.round(Math.sin(angle) * dist);
+                    const colors = ["#00a9ff", "#f59e0b", "#ffffff", "#00a9ff"];
+                    const size = 5 + (i % 3) * 3;
+                    return (
+                      <div
+                        key={i}
+                        className="cuml-star"
+                        style={{
+                          "--sx": `${sx}px`,
+                          "--sy": `${sy}px`,
+                          "--sd": `${i * 0.035}s`,
+                          width: size,
+                          height: size,
+                          background: colors[i % colors.length],
+                          top: "50%",
+                          left: "50%",
+                          marginTop: -size / 2,
+                          marginLeft: -size / 2,
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* Card — spring entrance + shimmer */}
                   <div
-                    className="relative shrink-0 flex items-center justify-center"
+                    className="relative rounded-2xl overflow-hidden shadow-[0_20px_60px_-10px_rgba(0,0,0,0.7)] cuml-card-spring"
                     style={{
                       width: `${scaledWidth}px`,
                       height: `${scaledHeight}px`,
                       minWidth: `${scaledWidth}px`,
                       minHeight: `${scaledHeight}px`,
                       maxWidth: "100%",
-                      overflow: "hidden",
                     }}
                   >
                     <div
@@ -251,47 +303,80 @@ export default function CertificateUnlockedModal({ certificate, onClose }) {
                         canvasId={canvasId}
                       />
                     </div>
+
+                    {/* Golden shimmer sweep — one-shot on reveal */}
+                    <div
+                      className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none"
+                      aria-hidden="true"
+                    >
+                      <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent cuml-shimmer-track" />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* status / helper text */}
-              <div ref={helperRef} className="shrink-0 mt-3 text-center text-xs text-slate-500 min-h-[1.25rem]">
+              {/* Status / helper text */}
+              <div ref={helperRef} className="shrink-0 mt-3 text-center text-xs text-white/40 min-h-[1.25rem]">
                 {shareMessage ? (
-                  <span className="inline-block bg-[#00a9ff]/10 text-[#007bcc] border border-[#00a9ff]/20 px-2 py-0.5 rounded-full">{shareMessage}</span>
+                  <span className="inline-block bg-[#00a9ff]/15 text-[#00a9ff] border border-[#00a9ff]/25 px-3 py-1 rounded-full font-medium">
+                    {shareMessage}
+                  </span>
                 ) : (
-                  "Caption is copied automatically when you share."
+                  "Caption copied automatically when you share."
                 )}
+              </div>
+
+              {/* ── Icon-only action buttons — below the card ──────── */}
+              <div
+                ref={footerRef}
+                className="shrink-0 mt-5 mb-1 flex items-center justify-center gap-5 cuml-footer"
+              >
+                {/* Download — white pill */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    aria-label="Download card"
+                    className="w-14 h-14 rounded-full flex items-center justify-center bg-white text-[#19183b] shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 transition-[transform,box-shadow] duration-150 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {downloading ? (
+                      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeOpacity="0.25" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <Download className="w-5 h-5" />
+                    )}
+                  </button>
+                  <span className="text-[11px] font-semibold text-white/45 tracking-wide uppercase">Save</span>
+                </div>
+
+                {/* Share — cyan pill */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    disabled={sharing}
+                    aria-label="Share card"
+                    className="w-14 h-14 rounded-full flex items-center justify-center bg-[#00a9ff] text-white shadow-[0_4px_16px_rgba(0,169,255,0.45)] hover:shadow-[0_8px_28px_rgba(0,169,255,0.55)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 transition-[transform,box-shadow] duration-150 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00a9ff]/50"
+                  >
+                    {sharing ? (
+                      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeOpacity="0.25" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <Share2 className="w-5 h-5" />
+                    )}
+                  </button>
+                  <span className="text-[11px] font-semibold text-white/45 tracking-wide uppercase">Share</span>
+                </div>
               </div>
 
             </div>
           )}
         </div>
-
-        {/* ── Bottom action bar (inside panel, not fixed) ── */}
-        {revealComplete && (
-          <div ref={footerRef} className="shrink-0 border-t border-[#f1e4d2] bg-[#fffaf3] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#19183b] text-white hover:bg-[#272762] h-12 rounded-xl font-semibold transition-colors disabled:opacity-50 text-sm"
-            >
-              <Download className="w-4 h-4" />
-              {downloading ? "Downloading..." : "Download"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={sharing}
-              className="flex-1 flex items-center justify-center gap-2 bg-white text-[#19183b] border border-[#f1e4d2] hover:bg-[#fcf5ee] h-12 rounded-xl font-semibold transition-colors disabled:opacity-50 text-sm"
-            >
-              <Share2 className="w-4 h-4" />
-              {sharing ? "Sharing..." : "Share"}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

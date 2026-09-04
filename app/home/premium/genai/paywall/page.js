@@ -679,10 +679,7 @@ export default function GenAiPaywallPage() {
         };
 
     const handlePremium = async () => {
-        if (
-            isPremiumLoading ||
-            !user
-        ) {
+        if (isPremiumLoading || !user) {
             return;
         }
 
@@ -740,9 +737,7 @@ export default function GenAiPaywallPage() {
                         "A subscription payment is already pending. Complete the existing payment or try again after its status updates.",
                     );
 
-                    setIsPremiumLoading(
-                        false,
-                    );
+                    setIsPremiumLoading(false);
 
                     return;
                 }
@@ -883,17 +878,13 @@ export default function GenAiPaywallPage() {
                         return;
                     }
 
-                    setStatusVariant(
-                        "dismissed",
-                    );
+                    setStatusVariant("dismissed");
 
                     setStatusMessage(
                         "Checkout closed. No changes were made to your account.",
                     );
 
-                    setIsPremiumLoading(
-                        false,
-                    );
+                    setIsPremiumLoading(false);
                 },
             });
         } catch (error) {
@@ -1543,8 +1534,7 @@ export default function GenAiPaywallPage() {
 
                                     hover:text-[#19183B]
 
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-40
+                                    disabled:cursor-not-allowed disabled:opacity-60
                                 "
                             >
                                 <ArrowLeft

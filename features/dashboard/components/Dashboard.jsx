@@ -24,6 +24,7 @@ import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
+import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
@@ -33,17 +34,30 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 
-const redirects = {
-  GitGithub: "/home/roadmaps/git-github",
-  CPP: "/home/roadmaps/cpp",
-  PromptEngineering: "/home/roadmaps/prompt-engineering",
-  SystemDesign: "/home/roadmaps/system-design-fundamentals",
-  Python: "/home/roadmaps/python-beginner",
-  CLang: "/home/roadmaps/c-beginner",
-};
+const getRedirects = (isPreview) => ({
+  GitGithub: isPreview
+    ? "/preview/roadmaps/git-github"
+    : "/home/roadmaps/git-github",
+  CPP: isPreview
+    ? "/preview/roadmaps/cpp"
+    : "/home/roadmaps/cpp",
+  PromptEngineering: isPreview
+    ? "/preview/roadmaps/prompt-engineering"
+    : "/home/roadmaps/prompt-engineering",
+  SystemDesign: isPreview
+    ? "/preview/roadmaps/system-design-fundamentals"
+    : "/home/roadmaps/system-design-fundamentals",
+  Python: isPreview
+    ? "/preview/roadmaps/python-beginner"
+    : "/home/roadmaps/python-beginner",
+  CLang: isPreview
+    ? "/preview/roadmaps/c-beginner"
+    : "/home/roadmaps/c-beginner",
+});
 
-export default function Dashboard() {
+export default function Dashboard({ isPreview = false }) {
   const router = useRouter();
+  const redirects = getRedirects(isPreview);
   const pathname = usePathname();
   const searchParams =
     useSearchParams();
@@ -96,7 +110,22 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchUserRole = async () => {
       let role = "other";
-      if (user) {
+
+      if (isPreview) {
+        try {
+          role =
+            typeof window !== "undefined"
+              ? localStorage.getItem("profession") || "other"
+              : "other";
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "Failed to read preview profession:",
+              error?.message || "unknown error",
+            );
+          }
+        }
+      } else if (user) {
         try {
           const token = await user.getIdToken();
           const res = await fetch("/api/v2/user", {
@@ -104,12 +133,15 @@ export default function Dashboard() {
               Authorization: `Bearer ${token}`,
             },
           });
+
           if (res.ok) {
             const data = await res.json();
+
             if (data.user?.requiresOnboarding) {
               router.replace("/home/onboarding");
               return;
             }
+
             role = data.user?.role || "other";
           } else {
             if (res.status === 404) {
@@ -124,12 +156,47 @@ export default function Dashboard() {
               error?.message || "unknown error",
             );
           }
+
           role = "other";
         }
       }
+
       setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
       setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
+
+      if (!isPreview && user && typeof window !== "undefined") {
+        const previewPayload = localStorage.getItem(
+          "ignitio:preview_payload",
+        );
+
+        if (previewPayload) {
+          try {
+            const parsedPayload = JSON.parse(previewPayload);
+
+            if (
+              parsedPayload &&
+              typeof parsedPayload === "object" &&
+              parsedPayload.roadmapId
+            ) {
+              await migrateRoadmapProgress({
+                user,
+                roadmapSlug: parsedPayload.roadmapId,
+                payload: parsedPayload,
+              });
+
+              localStorage.removeItem("ignitio:preview_payload");
+            }
+          } catch (error) {
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "Failed to migrate preview roadmap progress:",
+                error?.message || "unknown error",
+              );
+            }
+          }
+        }
+      }
     };
 
     const fetchProfile = async () => {
@@ -157,7 +224,7 @@ export default function Dashboard() {
       fetchUserRole();
       fetchProfile();
     }
-  }, [user, router]);
+  }, [user, router, isPreview]);
 
   useEffect(() => {
     setIsClient(true);

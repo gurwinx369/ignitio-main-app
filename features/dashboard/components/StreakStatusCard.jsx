@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -97,6 +98,44 @@ export default function StreakStatusCard({
   isLoadingProfile,
   user,
 }) {
+  const isCompleted =
+    streak?.status === "completed_today" ||
+    streak?.status === "completed" ||
+    streak?.status === "today_done";
+
+  const [
+    shouldPulse,
+    setShouldPulse,
+  ] = useState(false);
+
+  useEffect(() => {
+    const pulseStartTimer = setTimeout(
+      () => {
+        setShouldPulse(isCompleted);
+      },
+      0,
+    );
+
+    const pulseStopTimer = isCompleted
+      ? setTimeout(
+          () => {
+            setShouldPulse(false);
+          },
+          2000,
+        )
+      : null;
+
+    return () => {
+      clearTimeout(pulseStartTimer);
+
+      if (pulseStopTimer) {
+        clearTimeout(pulseStopTimer);
+      }
+    };
+  }, [
+    isCompleted,
+  ]);
+
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   /*
@@ -374,13 +413,16 @@ export default function StreakStatusCard({
                 "
                 >
                   <span
-                    className="
-                    text-2xl
-                    sm:text-[28px]
-                    font-black
-                    leading-none
-                    text-[#19183B]
-                  "
+                    className={[
+                      "text-2xl",
+                      "sm:text-[28px]",
+                      "font-black",
+                      "leading-none",
+                      "text-[#19183B]",
+                      shouldPulse
+                        ? "animate-pulse"
+                        : "",
+                    ].join(" ")}
                   >
                     {currentCount}
                   </span>

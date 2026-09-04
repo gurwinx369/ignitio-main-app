@@ -91,7 +91,15 @@ export default function SignupForm() {
           const profile = await ensureUserProfile(result.user);
 
           if (result.authMode === "new_signup") {
-            router.replace("/home/onboarding");
+            const hasPreview =
+              typeof window !== "undefined" &&
+              !!localStorage.getItem("ignitio:preview_payload");
+
+            router.replace(
+              hasPreview
+                ? "/home/onboarding?from=preview"
+                : "/home/onboarding"
+            );
           } else {
             router.replace(getOnboardingRoute(profile));
           }
@@ -125,7 +133,15 @@ export default function SignupForm() {
           const profile = await ensureUserProfile(result.user);
 
           if (result.authMode === "new_signup") {
-            router.replace("/home/onboarding");
+            const hasPreview =
+              typeof window !== "undefined" &&
+              !!localStorage.getItem("ignitio:preview_payload");
+
+            router.replace(
+              hasPreview
+                ? "/home/onboarding?from=preview"
+                : "/home/onboarding"
+            );
           } else {
             router.replace(getOnboardingRoute(profile));
           }

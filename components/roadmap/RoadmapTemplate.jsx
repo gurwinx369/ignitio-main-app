@@ -22,13 +22,14 @@ import { checkCertificateUnlock, getEligibleCertificates } from '@/features/cert
 import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/certificates/certificateStorage';
 import { useBehaviorQuiz } from '@/features/kyle/behavior-quiz/useBehaviorQuiz';
 import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
+import PreviewCardLockedModal from "@/features/onboarding/PreviewCardLockedModal";
 
-export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
+export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPreview = false }) {
     const router = useRouter();
     const { user } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
 
-    // Behavior quiz — fires after every 3rd concept completion across all roadmaps
+    // Behavior quiz ΓÇö fires after every 3rd concept completion across all roadmaps
     const behaviorQuiz = useBehaviorQuiz({ user, roadmapId: roadmapData.id });
     const { isPreparingQuiz, interceptLevelStart } = behaviorQuiz;
 
@@ -64,6 +65,8 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
     const [isRoadmapReady, setIsRoadmapReady] = useState(false);
     const [completionPopup, setCompletionPopup] = useState(null);
     const [unlockedCertificate, setUnlockedCertificate] = useState(null);
+    // Preview-only: holds the certificate + level data for the locked card modal
+    const [previewCardData, setPreviewCardData] = useState(null);
 
     // Assignment gate state
     const [assignmentPassedDays, setAssignmentPassedDays] = useState({});
@@ -115,11 +118,11 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
             setIsMounted(true);
 
             if (!user) {
-                // Premium GenAI progress is server-owned.
-                // Never substitute localStorage for trusted Mongo progress.
+                // Premium GenAI progress is server-owned in the authenticated app.
+                // Preview mode intentionally uses local progress for the demo flow.
                 if (
-                    roadmapData.id ===
-                    "gen-ai-internship"
+                    roadmapData.id === "gen-ai-internship" &&
+                    !isPreview
                 ) {
                     return;
                 }
@@ -246,7 +249,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title, progressRetryKey]);
+    }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title, progressRetryKey, isPreview]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -534,6 +537,67 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
     const handleVideoComplete = async (levelId) => {
         // Duplicate protection: do not show a duplicate completion popup if already completed
         if (completedLevels.includes(levelId)) return;
+
+        // Preview flow: show locked card modal instead of regular completion popup.
+        if (isPreview) {
+            const updatedCompleted = [...completedLevels, levelId];
+
+            setCompletedLevels(updatedCompleted);
+            writeLocalRoadmapProgress({
+                roadmapId: roadmapData.id,
+                completedLevels: updatedCompleted,
+            });
+
+            if (typeof window !== "undefined") {
+                localStorage.setItem("has_completed_first_lesson", "true");
+            }
+
+            triggerCompletionToast();
+
+            let previewCert = checkCertificateUnlock({
+                roadmapData,
+                completedLevels: updatedCompleted,
+                levelId,
+                triggerType: "level",
+            });
+
+            if (previewCert) {
+                const milestoneLevels = previewCert.milestoneLevels || [];
+                previewCert = {
+                    ...previewCert,
+                    quizCompletedCount: milestoneLevels.length,
+                    durationMinutes: milestoneLevels.reduce(
+                        (acc, lvl) => acc + Number(lvl.durationInMinutes || 0),
+                        0
+                    ),
+                    providedOn: new Date(previewCert.unlockedAt).toLocaleDateString(
+                        "en-US",
+                        { day: "numeric", month: "long", year: "numeric" }
+                    ),
+                };
+            } else {
+                previewCert = {
+                    certificateKey: `preview-${roadmapData.id}`,
+                    roadmapFamily: roadmapData.id,
+                    milestoneTitle: roadmapData.title || "Lesson Complete",
+                    learnerName: "You",
+                    providedOn: new Date().toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                    }),
+                    quizCompletedCount: 1,
+                    durationMinutes: 0,
+                };
+            }
+
+            setPreviewCardData({
+                certificate: previewCert,
+                completedLevelId: levelId,
+                completedLevels: updatedCompleted,
+            });
+            return;
+        }
 
         const isGenAiRoadmap = roadmapData.id === "gen-ai-internship";
 
@@ -863,6 +927,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                     roadmapType={roadmapData.id}
                     dayNumber={dayNumber}
                     showAssignmentModal={showAssignmentModal}
+                    isPreview={isPreview}
                 />
             );
         }
@@ -872,16 +937,16 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                 <div className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[var(--color-primary)]/80 backdrop-blur-md border-b border-gray-200/50">
                     <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                         <button
-                            onClick={() => router.push(backHref)}
+                            onClick={() => router.push(isPreview ? "/preview/home" : backHref)}
                             className="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white/90 hover:bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
                         >
-                            <ArrowLeft className="w-4 h-4" /> 
+                            <ArrowLeft className="w-4 h-4" />
                             <span className="hidden sm:inline">
-                                {backHref !== '/home' ? 'Back to Hub' : 'Back to Home'}
+                                {isPreview ? 'Choose Roadmap' : (backHref !== '/home' ? 'Back to Hub' : 'Back to Home')}
                             </span>
                             <span className="sm:hidden">Back</span>
                         </button>
-                        <Profile compact />
+                        {!isPreview && <Profile compact />}
                     </div>
                 </div>
 
@@ -1030,7 +1095,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
         <>
             {renderContent()}
 
-            {/* ── Behavior Quiz preparation loading overlay ────────────────────────────── */}
+            {/* ΓöÇΓöÇ Behavior Quiz preparation loading overlay ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
             {isWaitingForBehaviorQuiz &&
                 isPreparingQuiz &&
                 !behaviorQuiz.isOpen && (
@@ -1048,7 +1113,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-gray-900">Knowledge Check Incoming</h3>
-                                    <p className="text-sm text-gray-500">Kyle is preparing your questions…</p>
+                                    <p className="text-sm text-gray-500">Kyle is preparing your questionsΓÇª</p>
                                 </div>
                             </div>
                             <div className="p-6 flex flex-col items-center gap-4">
@@ -1063,7 +1128,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                     </div>
                 )}
 
-            {/* Behavior quiz modal — intercepts the next level start after every 3rd completion */}
+            {/* Behavior quiz modal ΓÇö intercepts the next level start after every 3rd completion */}
             <BehaviorQuizModal
                 isOpen={behaviorQuiz.isOpen}
                 currentItem={behaviorQuiz.currentItem}
@@ -1108,7 +1173,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                                     }}
                                     className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-sm transition-all active:scale-95"
                                 >
-                                    {isWaitingForBehaviorQuiz ? "Preparing…" : "Start Next Level"}
+                                    {isWaitingForBehaviorQuiz ? "PreparingΓÇª" : "Start Next Level"}
                                 </button>
                             )}
                             <button
@@ -1410,6 +1475,16 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home" }) {
                     onClose={() => setUnlockedCertificate(null)}
                 />
             )}
+            {previewCardData && (
+                <PreviewCardLockedModal
+                    certificate={previewCardData.certificate}
+                    roadmapId={roadmapData.id}
+                    completedLevelId={previewCardData.completedLevelId}
+                    completedLevels={previewCardData.completedLevels}
+                    onClose={() => setPreviewCardData(null)}
+                />
+            )}
+
         </>
     );
 }

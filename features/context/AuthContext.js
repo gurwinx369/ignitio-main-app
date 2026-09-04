@@ -12,6 +12,7 @@ import {
     getAdditionalUserInfo,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../lib/firebase/firebase";
+import posthog from "posthog-js";
 
 const AuthContext = createContext({});
 
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }) => {
                 "video_timer_", "segment_watch_", "segment_intervals_", "ignitio:last_active_roadmap",
                 "ignitio:certificates"
             ];
-            
+
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }) => {
                 }
             }
             keysToRemove.forEach(k => localStorage.removeItem(k));
-            
+
             const sessionKeysToRemove = [];
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);
@@ -78,6 +79,16 @@ export const AuthProvider = ({ children }) => {
                 } else if (!storedUid) {
                     localStorage.setItem("ignitio:active_uid", user.uid);
                 }
+                // Identify user in PostHog
+                try {
+                    posthog.identify(user.uid, {
+                        email: user.email,
+                        name: user.displayName
+                    });
+                } catch (e) {
+                    console.error("Posthog identify error:", e);
+                }
+
                 setUser(user);
             } else {
                 setUser(null);
@@ -99,10 +110,9 @@ export const AuthProvider = ({ children }) => {
             if (process.env.NODE_ENV === "development") {
                 console.log("Signup successful");
             }
-            
-            clearTargetedStorage();
+
             localStorage.setItem("ignitio:active_uid", result.user.uid);
-            
+
             return { success: true, user: result.user, authMode: "new_signup" };
         } catch (error) {
             if (error.code === "auth/email-already-in-use") {
@@ -115,7 +125,6 @@ export const AuthProvider = ({ children }) => {
                         console.log("Fallback login successful");
                     }
 
-                    clearTargetedStorage();
                     localStorage.setItem("ignitio:active_uid", loginResult.user.uid);
 
                     return { success: true, user: loginResult.user, authMode: "existing_login" };
@@ -191,12 +200,11 @@ export const AuthProvider = ({ children }) => {
             if (process.env.NODE_ENV === "development") {
                 console.log("Google login successful");
             }
-            
+
             const additionalUserInfo = getAdditionalUserInfo(result);
             const authMode = additionalUserInfo?.isNewUser ? "new_signup" : "existing_login";
 
             if (authMode === "new_signup") {
-                clearTargetedStorage();
                 localStorage.setItem("ignitio:active_uid", result.user.uid);
             }
 
@@ -236,6 +244,8 @@ export const AuthProvider = ({ children }) => {
                 console.log("Attempting logout");
             }
             await signOut(auth);
+            // Reset PostHog identity on explicit logout only — not on every anonymous page load
+            try { posthog.reset(); } catch (_) { }
             if (process.env.NODE_ENV === "development") {
                 console.log("Logout successful");
             }

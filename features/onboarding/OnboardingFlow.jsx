@@ -36,8 +36,7 @@ const saveToDatabase = async (data) => {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`
-            },
-            timeout: 10000, // 10 second timeout
+            }
         });
 
         if (process.env.NODE_ENV === "development") {
