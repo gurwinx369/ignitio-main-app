@@ -7,7 +7,7 @@ import RoadmapSkeleton from '@/components/roadmap/RoadmapSkeleton';
 import { useAuth } from '@/features/context/AuthContext';
 import { getDsaRoadmapByRole, isDsaAllowedRole } from '@/data/dsa';
 
-export default function DSAClient() {
+export default function DSAClient({ isPreview = false }) {
     const { user } = useAuth();
     const router = useRouter();
     const [selectedRoadmap, setSelectedRoadmap] = useState(null);
@@ -41,7 +41,8 @@ export default function DSAClient() {
                 role = localStorage.getItem("profession") || "other";
             }
             
-            if (!isDsaAllowedRole(role)) {
+            // In preview, skip the role gate — everyone can try any roadmap
+            if (!isPreview && !isDsaAllowedRole(role)) {
                 setNotAllowed(true);
                 setIsLoading(false);
                 return;
@@ -51,7 +52,8 @@ export default function DSAClient() {
             setIsLoading(false);
         };
 
-        if (user !== undefined) {
+        // In preview, user is always null — no need to wait for auth resolution
+        if (isPreview || user !== undefined) {
             fetchUserRole();
         }
     }, [user]);
@@ -90,5 +92,5 @@ export default function DSAClient() {
         return null; 
     }
 
-    return <RoadmapTemplate roadmapData={selectedRoadmap} />;
+    return <RoadmapTemplate roadmapData={selectedRoadmap} isPreview={isPreview} />;
 }

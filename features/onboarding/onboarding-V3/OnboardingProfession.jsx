@@ -2,7 +2,7 @@
 import React from 'react';
 import { GraduationCap, PenTool, Palette, Code, Briefcase } from 'lucide-react';
 
-const OnboardingProfession = ({ onNext, selection, setSelection }) => {
+const OnboardingProfession = ({ onNext, selection, setSelection, isLoading }) => {
   const options = [
     {
       id: 'student',
@@ -68,8 +68,10 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
           return (
             <div
               key={opt.id}
-              onClick={() => setSelection(opt.id)}
-              className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer active:scale-[0.98] ${isSelected ? opt.cardActive + ' shadow-[0_4px_20px_rgba(0,169,255,0.15)]' : opt.cardInactive
+              onClick={() => {
+                if (!isLoading) setSelection(opt.id);
+              }}
+              className={`flex items-center p-4 rounded-2xl border-2 transition-all ${!isLoading ? 'cursor-pointer active:scale-[0.98]' : 'cursor-not-allowed opacity-80'} ${isSelected ? opt.cardActive + ' shadow-[0_4px_20px_rgba(0,169,255,0.15)]' : opt.cardInactive
                 }`}
             >
               <div className={`w-12 h-12 rounded-xl ${opt.bg} flex items-center justify-center shrink-0`}>
@@ -91,12 +93,12 @@ const OnboardingProfession = ({ onNext, selection, setSelection }) => {
 
       <div className="sticky bottom-0 left-0 w-full px-6 py-6 bg-gradient-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
         <button
-          onClick={() => selection && onNext()}
-          disabled={!selection}
-          className={`w-full h-15 py-4 text-white font-extrabold text-[17px] transition-all flex items-center justify-center gap-2 rounded-full ${selection ? 'bg-[#00a9ff] shadow-[0_5px_0px_#0085cc] active:translate-y-[3px] active:shadow-[0_2px_0px_#0085cc]' : 'bg-gray-300'
+          onClick={() => selection && !isLoading && onNext()}
+          disabled={!selection || isLoading}
+          className={`w-full h-15 py-4 text-white font-extrabold text-[17px] transition-all flex items-center justify-center gap-2 rounded-full ${selection && !isLoading ? 'bg-[#00a9ff] shadow-[0_5px_0px_#0085cc] active:translate-y-[3px] active:shadow-[0_2px_0px_#0085cc]' : 'bg-gray-300'
             }`}
         >
-          Continue →
+          {isLoading ? "Please wait..." : "Continue →"}
         </button>
       </div>
     </div>

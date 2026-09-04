@@ -48,7 +48,8 @@ export default function SignupForm() {
         if (result.authMode === "existing_login") {
           router.replace("/home");
         } else {
-          router.replace("/home/onboarding");
+          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
+          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
         }
       } else {
         isHandlingAuthActionRef.current = false;
@@ -72,7 +73,8 @@ export default function SignupForm() {
 
       if (result.success) {
         if (result.authMode === "new_signup") {
-          router.replace("/home/onboarding");
+          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
+          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
         } else {
           router.replace("/home");
         }

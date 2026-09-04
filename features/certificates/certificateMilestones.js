@@ -2,6 +2,10 @@ export function getRoadmapFamily(roadmapId) {
   if (roadmapId?.startsWith("dsa")) return "dsa";
   if (roadmapId?.startsWith("prompt-engineering")) return "prompt-engineering";
   if (roadmapId?.startsWith("c-language")) return "c-language";
+  if (roadmapId?.startsWith("python")) return "python";
+  if (roadmapId?.startsWith("git")) return "git-github";
+  if (roadmapId?.startsWith("cpp")) return "cpp";
+  if (roadmapId?.startsWith("system-design")) return "system-design";
   return roadmapId;
 }
 
@@ -72,27 +76,82 @@ const CERTIFICATE_RULES = [
   {
     certificateKey: "dsa-level-1",
     roadmapFamily: "dsa",
-    milestoneTitle: "Completed DSA Level 1",
-    template: "dsa-milestone.png",
+    milestoneTitle: "Completed DSA First Level Course",
+    template: "dsa-course-milestone.png",
     condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
       if (!roadmapData.id.startsWith("dsa")) return false;
       if (triggerType !== "level") return false;
       const firstLevel = roadmapData.days?.[0]?.levels?.[0];
       return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
-    },
-    getStats: (roadmapData) => {
-      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
-      return { dayNumber: 1, milestoneLevels: firstLevel ? [firstLevel] : [] };
     }
   },
   {
     certificateKey: "c-level-1",
     roadmapFamily: "c-language",
-    milestoneTitle: "Completed C Language First Level",
-    template: "c-course-milestone.jpg",
+    milestoneTitle: "Completed C Lang First Level Course",
+    template: "c-course-milestone.png",
     condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
-      // ponytail: simplest logic for first level completion, reusing the pattern
       if (!roadmapData.id.startsWith("c-language")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
+    certificateKey: "python-level-1",
+    roadmapFamily: "python",
+    milestoneTitle: "Completed Python First Level Course",
+    template: "python-course-milestone.png",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      if (!roadmapData.id.startsWith("python")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
+    certificateKey: "git-level-1",
+    roadmapFamily: "git-github",
+    milestoneTitle: "Completed Git & GitHub First Level",
+    template: "git-github-course-milestone.png",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      if (!roadmapData.id.startsWith("git")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
+    certificateKey: "pe-level-1",
+    roadmapFamily: "prompt-engineering",
+    milestoneTitle: "Completed Prompt Engineering First Level",
+    template: "pe-course-milestone.png",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      if (!roadmapData.id.startsWith("prompt-engineering")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
+    certificateKey: "cpp-level-1",
+    roadmapFamily: "cpp",
+    milestoneTitle: "Completed C++ First Level",
+    template: "cpp-course-milestone.png",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      if (!roadmapData.id.startsWith("cpp")) return false;
+      if (triggerType !== "level") return false;
+      const firstLevel = roadmapData.days?.[0]?.levels?.[0];
+      return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
+    }
+  },
+  {
+    certificateKey: "sd-level-1",
+    roadmapFamily: "system-design",
+    milestoneTitle: "Completed System Design First Level",
+    template: "sd-course-milestone.png",
+    condition: ({ roadmapData, completedLevels, triggerType, levelId }) => {
+      if (!roadmapData.id.startsWith("system-design")) return false;
       if (triggerType !== "level") return false;
       const firstLevel = roadmapData.days?.[0]?.levels?.[0];
       return !!firstLevel && completedLevels.includes(firstLevel.id) && levelId === firstLevel.id;
@@ -179,13 +238,13 @@ export function getEligibleCertificates({ roadmapData, completedLevels, assignme
   const eligible = [];
 
   for (const rule of CERTIFICATE_RULES) {
-    const isLevelBased = rule.certificateKey === "dsa-level-1" || rule.certificateKey === "c-level-1";
+    const isLevelBased = rule.certificateKey.endsWith("-level-1");
 
     let triggerType = isLevelBased ? "level" : "day";
     let dayId = null;
     let levelId = null;
 
-    if (rule.certificateKey === "dsa-level-1" || rule.certificateKey === "c-level-1") {
+    if (isLevelBased) {
       const firstLevel = roadmapData.days?.[0]?.levels?.[0];
       levelId = firstLevel?.id;
       if (!levelId || !completedLevels.includes(levelId)) continue;
