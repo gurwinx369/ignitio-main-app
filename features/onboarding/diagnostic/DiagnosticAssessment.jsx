@@ -421,7 +421,7 @@ export default function DiagnosticAssessment({
   const hasAsset = !!QUESTION_ASSET_MAP[currentQuestion?.id];
 
   const assessmentContent = (
-    <div className="flex flex-col w-full max-w-[1100px] mx-auto min-h-[calc(100dvh-4rem)] lg:relative lg:left-1/2 lg:w-[calc(100vw-64px)] lg:max-w-[1100px] lg:-translate-x-1/2 lg:py-10">
+    <div className="flex flex-col w-full max-w-[1100px] mx-auto lg:relative lg:left-1/2 lg:w-[calc(100vw-64px)] lg:max-w-[1100px] lg:-translate-x-1/2 lg:py-6">
       {/* One-time entrance animation for SVG illustrations */}
       <style>{`
         @keyframes diag-svg-enter {
@@ -436,7 +436,7 @@ export default function DiagnosticAssessment({
         }
       `}</style>
       {/* Top Header: Back Button + Progress Bar */}
-      <div className="flex items-center w-full mb-8 relative h-10 col-span-full">
+      <div className="flex items-center w-full mb-5 relative h-10 col-span-full">
         <div className="absolute left-0 z-10">
           {visitedQuestionIds.length > 1 && (
             <button
@@ -458,7 +458,7 @@ export default function DiagnosticAssessment({
         </div>
       </div>
 
-      <div className={hasAsset ? "lg:grid lg:grid-cols-2 lg:gap-0" : "max-w-[580px] mx-auto w-full"}>
+      <div className={hasAsset ? "lg:grid lg:grid-cols-2 lg:gap-0" : "max-w-[640px] mx-auto w-full"}>
         {/* Left Column: Image */}
         {hasAsset && (
           <div className="flex justify-center lg:justify-end mb-8 lg:mb-0 lg:pt-8 px-2 lg:pr-16">
@@ -476,7 +476,7 @@ export default function DiagnosticAssessment({
 
         {/* Right Column: Interaction */}
         <div className="flex flex-col lg:w-full lg:max-w-[500px] lg:justify-self-start">
-          <div className={`mb-8 ${!hasAsset && [QUESTION_IDS.CASUAL_API_USAGE].includes(currentQuestion?.id)
+          <div className={`mb-5 ${!hasAsset && [QUESTION_IDS.CASUAL_API_USAGE].includes(currentQuestion?.id)
             ? "max-w-md mx-auto text-center"
             : ""
             }`}>
@@ -486,7 +486,7 @@ export default function DiagnosticAssessment({
             </h2>
 
             {currentQuestion?.description && (
-              <p className="mb-6 text-[#4A5568] text-base px-2 lg:pl-0">
+              <p className="mb-4 text-[#4A5568] text-base px-2 lg:pl-0">
                 {currentQuestion.description}
               </p>
             )}
@@ -494,7 +494,7 @@ export default function DiagnosticAssessment({
             <CodeBlock code={currentQuestion?.code} />
 
             {currentQuestion?.id === QUESTION_IDS.Q5 && (
-              <div className="rounded-[14px] overflow-hidden mb-6 border border-slate-200 shadow-sm mx-2">
+              <div className="rounded-[14px] overflow-hidden mb-4 border border-slate-200 shadow-sm mx-2">
                 <div className="bg-[#F1F5F9] px-4 h-10 flex items-center justify-between border-b border-slate-200">
                   <div className="flex gap-2 w-16">
                     <div className="w-[11px] h-[11px] rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
@@ -506,7 +506,7 @@ export default function DiagnosticAssessment({
                   </div>
                   <div className="w-16"></div>
                 </div>
-                <div className="bg-white p-5 flex flex-col gap-4">
+                <div className="bg-white p-4 flex flex-col gap-4">
                   <div className="p-4 rounded-xl border border-slate-200 bg-[#FCFCFC] flex flex-col items-center">
                     <span className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Pair A</span>
                     <span className="font-medium text-[#334155] text-center">&quot;I want to return this product&quot; <br /><span className="text-slate-400 text-sm">vs</span><br /> &quot;How do I get a refund?&quot;</span>
@@ -530,7 +530,7 @@ export default function DiagnosticAssessment({
             </div>
           )}
 
-          <div className="px-2 pb-6">
+          <div className="px-2 pb-3">
             <DiagnosticNav
               canContinue={!isContinueDisabled()}
               onContinue={handleContinue}

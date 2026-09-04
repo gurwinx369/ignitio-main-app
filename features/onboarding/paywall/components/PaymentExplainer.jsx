@@ -102,14 +102,14 @@ export default function PaymentExplainer() {
           }
         }
       `}</style>
-      
+
       <div className="flex justify-center items-center gap-4 sm:gap-6 mb-6 h-12">
         {ICONS.map((icon, index) => (
           <div key={icon.id} className={`py-icon-${index + 1} flex items-center justify-center`}>
             {/* Using img for raw SVGs to avoid fill container issues, sizing with Tailwind */}
-            <img 
-              src={icon.src} 
-              alt={icon.alt} 
+            <img
+              src={icon.src}
+              alt={icon.alt}
               className="w-[34px] h-auto sm:w-[48px] object-contain"
             />
           </div>
@@ -124,7 +124,7 @@ export default function PaymentExplainer() {
       </p>
 
       <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-10 border border-slate-200 shadow-sm bg-white">
-        <Image 
+        <Image
           src="/onboarding/payment/payment-explainer.gif"
           alt="Payment Explainer"
           fill

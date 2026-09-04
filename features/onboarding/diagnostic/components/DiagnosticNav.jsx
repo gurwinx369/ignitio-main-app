@@ -1,14 +1,14 @@
 import { SKIP_MARKER } from "../constants/skipMarker";
 
-export default function DiagnosticNav({ 
-  onContinue, 
-  canContinue, 
-  skippable, 
+export default function DiagnosticNav({
+  onContinue,
+  canContinue,
+  skippable,
   onSkip,
-  isSubmitting 
+  isSubmitting
 }) {
   return (
-    <div className="flex items-center justify-between mt-8 pt-6">
+    <div className="flex items-center justify-end mt-4 pt-2">
       <div />
       <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-end flex-col-reverse sm:flex-row">
         {skippable && (

@@ -23,16 +23,16 @@ export default function OrderingQuestion({ question, value, onChange }) {
   };
 
   return (
-    <div className="flex flex-col items-center py-4">
+    <div className="flex flex-col items-center w-full">
       {items.map((itemId, index) => {
         const itemDef = question.items.find(i => i.id === itemId);
         if (!itemDef) return null;
 
         return (
-          <div key={itemId} className="flex flex-col items-center w-full max-w-[320px]">
+          <div key={itemId} className="flex flex-col items-center w-full max-w-[520px]">
             {/* The Node */}
             <div
-              className="w-full flex items-center justify-between px-6 py-4 bg-[#E5F6FF] rounded-2xl border-2 border-[#00A9FF] shadow-sm relative group"
+              className="w-full flex items-center justify-between px-5 py-3.5 bg-[#E5F6FF] rounded-2xl border-2 border-[#00A9FF] shadow-sm relative group"
             >
               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border-2 border-[#00A9FF] flex items-center justify-center">
                 <span className="text-[#00A9FF] text-xs font-bold">{index + 1}</span>
@@ -45,7 +45,7 @@ export default function OrderingQuestion({ question, value, onChange }) {
                   onClick={() => handleMoveUp(index)}
                   disabled={index === 0}
                   aria-label={`Move ${itemDef.label} up`}
-                  className="p-1 rounded bg-white border border-[#00A9FF] text-[#00A9FF] hover:bg-[#00A9FF] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-2 rounded bg-white border border-[#00A9FF] text-[#00A9FF] hover:bg-[#00A9FF] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -56,7 +56,7 @@ export default function OrderingQuestion({ question, value, onChange }) {
                   onClick={() => handleMoveDown(index)}
                   disabled={index === items.length - 1}
                   aria-label={`Move ${itemDef.label} down`}
-                  className="p-1 rounded bg-white border border-[#00A9FF] text-[#00A9FF] hover:bg-[#00A9FF] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-2 rounded bg-white border border-[#00A9FF] text-[#00A9FF] hover:bg-[#00A9FF] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -67,7 +67,7 @@ export default function OrderingQuestion({ question, value, onChange }) {
 
             {/* Arrow to next node */}
             {index < items.length - 1 && (
-              <div className="flex flex-col items-center my-2 text-[#00A9FF]">
+              <div className="flex flex-col items-center my-1 text-[#00A9FF]">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
