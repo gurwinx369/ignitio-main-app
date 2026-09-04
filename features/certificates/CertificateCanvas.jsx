@@ -60,7 +60,7 @@ export default function CertificateCanvas({ certificate, canvasId }) {
             style={{ objectFit: 'fill' }}
             onError={() => setImgError(true)}
           />
-          {certificate.certificateKey !== "c-level-1" && (
+          {!certificate.certificateKey?.endsWith("-level-1") && (
             <>
               <div className="absolute z-10" style={{ ...TEMPLATE_TEXT_POSITIONS.providedOn, fontSize: '21px', fontWeight: 800, color: '#111111', textAlign: 'left', lineHeight: 1 }}>
                 {providedOn}
