@@ -507,10 +507,10 @@ export const genAiRoadmapData = {
       ],
     },
 
-    // ─── Week 2 — Context Engineering ─────────────────────────────────────
+    // ─── Week 2 — Python for AI ─────────────────────────────────────
     {
       id: "genai-w2",
-      title: "Week 2 — Context Engineering: Designing Information Flow",
+      title: "Week 2 — Python Vocabulary for AI Work",
       color: "#8b5cf6",
       levels: [
         {
@@ -525,6 +525,8 @@ export const genAiRoadmapData = {
           startSec: 3675,
           endSec: 3973,
           durationInMinutes: 5,
+          dailyBuild: "Create variables for your twin's identity: bot_name, your_vibe, and greeting_emoji.",
+          expectedOutput: "print(bot_name) shows your bot's name in the console — the first thing that feels like 'yours'.",
         },
         {
           id: "GENAI_W2_L2",
@@ -538,6 +540,8 @@ export const genAiRoadmapData = {
           startSec: 4422,
           endSec: 4835,
           durationInMinutes: 7,
+          dailyBuild: "Combine bot_name and greeting_emoji into one greeting string using +, then check its length with len().",
+          expectedOutput: "Console prints something like \"Hey, it's TwinBot 👋\" followed by its character count.",
         },
         {
           id: "GENAI_W2_L3",
@@ -551,6 +555,8 @@ export const genAiRoadmapData = {
           startSec: 4835,
           endSec: 4931,
           durationInMinutes: 2,
+          dailyBuild: "Add is_online = True to represent whether your twin is currently 'available' to reply.",
+          expectedOutput: "print(is_online) shows True in the console.",
         },
         {
           id: "GENAI_W2_L4",
@@ -564,6 +570,8 @@ export const genAiRoadmapData = {
           startSec: 9064,
           endSec: 9240,
           durationInMinutes: 3,
+          dailyBuild: "Create last_reply = None as a placeholder for before your bot has ever replied.",
+          expectedOutput: "print(last_reply) shows None, confirming there's no reply yet.",
         },
         {
           id: "GENAI_W2_L5",
@@ -577,6 +585,8 @@ export const genAiRoadmapData = {
           startSec: 5315,
           endSec: 5536,
           durationInMinutes: 4,
+          dailyBuild: "Rewrite your greeting as an f-string, then use += to tack a catchphrase onto the end.",
+          expectedOutput: "Console prints a single dynamic greeting line with your catchphrase appended, built from an f-string instead of manual concatenation.",
         },
         {
           id: "GENAI_W2_L6",
@@ -590,6 +600,8 @@ export const genAiRoadmapData = {
           startSec: 5536,
           endSec: 5802,
           durationInMinutes: 4,
+          dailyBuild: "Take a messy sample message (extra spaces, wrong case) and clean it with .strip(), .lower(), and .replace().",
+          expectedOutput: "Console prints the same message, now lowercase, trimmed, and with your chosen replacement applied.",
         },
         {
           id: "GENAI_W2_L7",
@@ -603,6 +615,8 @@ export const genAiRoadmapData = {
           startSec: 6468,
           endSec: 6619,
           durationInMinutes: 3,
+          dailyBuild: "Decide, in a short comment, whether your persona traits belong in a list or a dict, and why.",
+          expectedOutput: "No runnable output — a one-line design note in your notebook naming your choice (dict) and your reason.",
         },
         {
           id: 'GENAI_W2_L8',
@@ -616,6 +630,8 @@ export const genAiRoadmapData = {
           startSec: 6619,
           endSec: 6776,
           durationInMinutes: 3,
+          dailyBuild: "Create a list of 5 catchphrases you actually use, then print the first and the last one by index.",
+          expectedOutput: "Console prints your 1st catchphrase and your 5th, each pulled out using [0] and [4] (or [-1]).",
         },
         {
           id: 'GENAI_W2_L9',
@@ -629,6 +645,8 @@ export const genAiRoadmapData = {
           startSec: 6776,
           endSec: 6913,
           durationInMinutes: 2,
+          dailyBuild: "Append a new catchphrase, remove one you never actually say, and insert() a new one at position 0.",
+          expectedOutput: "print(catchphrases) shows an updated list — one new entry at the start, one added at the end, and one gone.",
         },
         {
           id: 'GENAI_W2_L10',
@@ -642,6 +660,8 @@ export const genAiRoadmapData = {
           startSec: 6913,
           endSec: 7003,
           durationInMinutes: 2,
+          dailyBuild: "Sort your catchphrases list alphabetically, then print how many you have with len().",
+          expectedOutput: "Console shows the alphabetically sorted list, followed by a count like 5.",
         },
         {
           id: "GENAI_W2_L11",
@@ -655,6 +675,8 @@ export const genAiRoadmapData = {
           startSec: 7003,
           endSec: 7165,
           durationInMinutes: 3,
+          dailyBuild: "Build a persona dict with name, mood, and style keys, then update the mood value.",
+          expectedOutput: "print(persona) shows a dictionary with your updated mood, e.g. {'name': 'TwinBot', 'mood': 'chill', 'style': 'casual'}.",
         },
         {
           id: "GENAI_W2_L12",
@@ -668,6 +690,8 @@ export const genAiRoadmapData = {
           startSec: 7165,
           endSec: 7287,
           durationInMinutes: 2,
+          dailyBuild: "Convert your 6-10 sample texts into a chat_history list of {'role': ..., 'content': ...} dicts.",
+          expectedOutput: "print(chat_history) shows a list of message dicts in the exact shape real chat APIs expect — your first 'training data.'",
         },
         {
           id: "GENAI_W2_L13",
@@ -681,6 +705,8 @@ export const genAiRoadmapData = {
           startSec: 7464,
           endSec: 7688,
           durationInMinutes: 4,
+          dailyBuild: "Find a block of code you've written more than once so far and mark it with a comment as a function candidate.",
+          expectedOutput: "No new console output — just a `# TODO: turn into a function` comment sitting above the repeated block.",
         },
         {
           id: "GENAI_W2_L14",
@@ -694,6 +720,8 @@ export const genAiRoadmapData = {
           startSec: 7688,
           endSec: 7948,
           durationInMinutes: 4,
+          dailyBuild: "Write get_catchphrase() that returns a random item from your catchphrases list, and call it twice.",
+          expectedOutput: "Console prints two catchphrase lines from two separate calls — not necessarily the same one each time.",
         },
         {
           id: "GENAI_W2_L15",
@@ -707,6 +735,8 @@ export const genAiRoadmapData = {
           startSec: 7948,
           endSec: 8283,
           durationInMinutes: 6,
+          dailyBuild: "Turn your greeting into greet(name) that builds a personalized f-string reply, then call it with two different names.",
+          expectedOutput: "greet('Priya') and greet('Sam') each print a distinct, personalized greeting line.",
         },
         {
           id: "GENAI_W2_L16",
@@ -720,6 +750,8 @@ export const genAiRoadmapData = {
           startSec: 8283,
           endSec: 8625,
           durationInMinutes: 6,
+          dailyBuild: "Add mood='chill' as a default parameter to greet(), then call it once plainly and once overriding mood by keyword.",
+          expectedOutput: "Two greetings print — one in the default chill mood, one in whatever mood you passed as a keyword argument.",
         },
         {
           id: "GENAI_W2_L17",
@@ -733,6 +765,8 @@ export const genAiRoadmapData = {
           startSec: 8625,
           endSec: 8899,
           durationInMinutes: 5,
+          dailyBuild: "Stop reading persona directly as a global inside your functions — pass it in as an explicit parameter instead.",
+          expectedOutput: "Your greeting/reply functions still print the same correct output, now driven by a parameter you pass in rather than a global lookup.",
         },
         {
           id: "GENAI_W2_L18",
@@ -746,6 +780,8 @@ export const genAiRoadmapData = {
           startSec: 8899,
           endSec: 9240,
           durationInMinutes: 6,
+          dailyBuild: "Rewrite format_reply() to return its result instead of printing it, store the return value in a variable, then print that variable.",
+          expectedOutput: "Printing the stored variable shows the actual reply text — not None — proving the function now hands data back instead of just displaying it.",
         },
         {
           id: "GENAI_W2_L19",
@@ -759,6 +795,8 @@ export const genAiRoadmapData = {
           startSec: 4898,
           endSec: 5069,
           durationInMinutes: 3,
+          dailyBuild: "Write a check like len(user_message) > 20 to test whether an incoming message counts as 'long.'",
+          expectedOutput: "Console prints True or False depending on the length of whatever test message you pass in.",
         },
         {
           id: "GENAI_W2_L20",
@@ -772,6 +810,8 @@ export const genAiRoadmapData = {
           startSec: 5069,
           endSec: 5344,
           durationInMinutes: 5,
+          dailyBuild: "Combine is_online and not is_busy into a single should_reply check using and/not.",
+          expectedOutput: "Console prints one True/False value for should_reply, correctly reflecting both conditions at once.",
         },
         {
           id: "GENAI_W2_L21",
@@ -785,6 +825,8 @@ export const genAiRoadmapData = {
           startSec: 5775,
           endSec: 5930,
           durationInMinutes: 3,
+          dailyBuild: "Add an if block that prints a 'busy, reply later' message whenever is_online is False.",
+          expectedOutput: "Setting is_online = False and rerunning shows the busy auto-reply printed; setting it True shows nothing (or a normal reply) instead.",
         },
         {
           id: "GENAI_W2_L22",
@@ -798,6 +840,8 @@ export const genAiRoadmapData = {
           startSec: 5930,
           endSec: 6265,
           durationInMinutes: 6,
+          dailyBuild: "Build get_mood_reply(mood) with elif branches for 'hype', 'chill', and a default else case.",
+          expectedOutput: "Calling the function with 'hype', 'chill', and an unrecognized mood string prints three clearly different replies.",
         },
         {
           id: "GENAI_W2_L23",
@@ -811,6 +855,8 @@ export const genAiRoadmapData = {
           startSec: 6265,
           endSec: 6380,
           durationInMinutes: 2,
+          dailyBuild: "Loop over your chat_history list of dicts and print each message's role and content on its own line.",
+          expectedOutput: "Console prints one line per stored message, e.g. \"user: hey what's up\" / \"assistant: not much, you?\".",
         },
         {
           id: "GENAI_W2_L24",
@@ -824,6 +870,8 @@ export const genAiRoadmapData = {
           startSec: 6380,
           endSec: 6499,
           durationInMinutes: 2,
+          dailyBuild: "Loop over only the last 5 messages in chat_history using a custom range or slice, instead of the whole list.",
+          expectedOutput: "Console prints exactly 5 messages — the most recent ones — instead of your full chat history.",
         },
         {
           id: "GENAI_W2_L25",
@@ -837,6 +885,8 @@ export const genAiRoadmapData = {
           startSec: 1830,
           endSec: 2003,
           durationInMinutes: 3,
+          dailyBuild: "Create a virtual environment for your twin-bot project inside your code editor.",
+          expectedOutput: "Your editor shows a new environment folder, and the active Python interpreter switches to point at it.",
         },
         {
           id: "GENAI_W2_L26",
@@ -850,6 +900,8 @@ export const genAiRoadmapData = {
           startSec: 2003,
           endSec: 2328,
           durationInMinutes: 5,
+          dailyBuild: "Activate your environment via the command palette or a terminal command, and confirm it's active.",
+          expectedOutput: "Your terminal prompt shows the environment's name in parentheses, confirming it's the active one.",
         },
         {
           id: "GENAI_W2_L27",
@@ -863,6 +915,8 @@ export const genAiRoadmapData = {
           startSec: 2328,
           endSec: 2609,
           durationInMinutes: 5,
+          dailyBuild: "pip install requests and google-generativeai into your active environment, then import both at the top of your notebook.",
+          expectedOutput: "Terminal shows successful install messages for both packages, and the import lines run with no errors.",
         },
         {
           id: "GENAI_W2_L28",
@@ -876,6 +930,8 @@ export const genAiRoadmapData = {
           startSec: 10245,
           endSec: 10482,
           durationInMinutes: 4,
+          dailyBuild: "Freeze your installed packages into a requirements.txt file in your project folder.",
+          expectedOutput: "A requirements.txt file appears listing your installed packages and their exact versions.",
         },
         {
           id: "GENAI_W2_L29",
@@ -889,6 +945,8 @@ export const genAiRoadmapData = {
           startSec: 10644,
           endSec: 10831,
           durationInMinutes: 3,
+          dailyBuild: "Make a real request to the Gemini API and check that response.status_code == 200.",
+          expectedOutput: "Console prints 200, followed by a Python dict version of the full API response.",
         },
         {
           id: "GENAI_W2_L30",
@@ -902,6 +960,8 @@ export const genAiRoadmapData = {
           startSec: 10831,
           endSec: 11011,
           durationInMinutes: 3,
+          dailyBuild: "Dig into your Gemini response dict to pull out just the reply text, e.g. response['candidates'][0]['content'].",
+          expectedOutput: "Console prints only the extracted reply string — not the whole nested response dict.",
         },
         {
           id: "GENAI_W2_L31",
@@ -915,14 +975,16 @@ export const genAiRoadmapData = {
           startSec: 11011,
           endSec: 11206,
           durationInMinutes: 3,
+          dailyBuild: "Wrap everything into ask_twin(user_message): builds the persona + context, calls Gemini, returns the reply text.",
+          expectedOutput: "Calling ask_twin(\"hey, what are you up to?\") prints a real, personality-flavored reply generated by your own bot — the project's first genuinely tangible payoff.",
         },
       ],
     },
 
-    // ─── Week 3 — Python for AI ────────────────────────────────────────────
+    // ─── Week 3 — Python & GitHub ────────────────────────────────────────────
     {
       id: "genai-w3",
-      title: "Week 3 — Python Vocabulary for AI Work",
+      title: "Week 3 — Files, JSON, .env, Error Handling & GitHub",
       color: "#f59e0b",
       levels: [
         {
@@ -937,6 +999,8 @@ export const genAiRoadmapData = {
           startSec: 12570,
           endSec: 12858,
           durationInMinutes: 5,
+          dailyBuild: "Print your chat_history using json.dumps(chat_history) and compare it side-by-side with printing chat_history directly.",
+          expectedOutput: "Both print outputs look almost identical — proving your Python list of dicts already is JSON, just wearing a different outfit.",
         },
         {
           id: "GENAI_W3_L2",
@@ -950,6 +1014,8 @@ export const genAiRoadmapData = {
           startSec: 10644,
           endSec: 11011,
           durationInMinutes: 6,
+          dailyBuild: "Write chat_history out to memory.json with json.dump(), then read it back in with json.load() into a fresh variable.",
+          expectedOutput: "Printing the reloaded variable shows your exact chat history — now loaded from a real file instead of typed into code. Persistence, working for the first time.",
         },
         {
           id: "GENAI_W3_L3",
@@ -963,6 +1029,8 @@ export const genAiRoadmapData = {
           startSec: 17046,
           endSec: 17256,
           durationInMinutes: 4,
+          dailyBuild: "Find your Gemini API key sitting hardcoded in twin.ipynb and mark the exact line with a comment flagging it as a leak risk.",
+          expectedOutput: "No new console output — a `# SECURITY RISK: hardcoded key` comment sitting directly above the exposed line.",
         },
         {
           id: "GENAI_W3_L4",
@@ -976,6 +1044,8 @@ export const genAiRoadmapData = {
           startSec: 17225,
           endSec: 17390,
           durationInMinutes: 3,
+          dailyBuild: "Replace the hardcoded key with os.environ.get('GEMINI_API_KEY') and print what comes back.",
+          expectedOutput: "Console prints None right now, since nothing has exported the key yet — showing exactly why this step alone isn't enough.",
         },
         {
           id: "GENAI_W3_L5",
@@ -989,6 +1059,8 @@ export const genAiRoadmapData = {
           startSec: 17390,
           endSec: 17550,
           durationInMinutes: 3,
+          dailyBuild: "Create a .env file with GEMINI_API_KEY=..., a .env.example placeholder, and pip install python-dotenv.",
+          expectedOutput: "Your project folder shows both new files, and the install command confirms python-dotenv is ready to use.",
         },
         {
           id: "GENAI_W3_L6",
@@ -1002,6 +1074,8 @@ export const genAiRoadmapData = {
           startSec: 17550,
           endSec: 17702,
           durationInMinutes: 3,
+          dailyBuild: "Call load_dotenv() at the top of your notebook, then re-run os.environ.get('GEMINI_API_KEY').",
+          expectedOutput: "Console now prints your real key value (or a masked confirmation) instead of None — the .env file is loading correctly.",
         },
         {
           id: "GENAI_W3_L7",
@@ -1015,6 +1089,8 @@ export const genAiRoadmapData = {
           startSec: 0,
           endSec: 0,
           durationInMinutes: 15,
+          dailyBuild: "Fully refactor ask_twin() so every secret comes from os.environ.get() via load_dotenv() — zero hardcoded keys left anywhere.",
+          expectedOutput: "Running ask_twin() still returns a real Gemini reply, but scanning your notebook shows no visible API key text anywhere.",
         },
         {
           id: "GENAI_W3_L8",
@@ -1028,6 +1104,8 @@ export const genAiRoadmapData = {
           startSec: 13155,
           endSec: 13301,
           durationInMinutes: 2,
+          dailyBuild: "List two errors you could realistically cause in ask_twin() (a typo, a wrong key name) versus two the world could cause (Gemini is down, empty user input).",
+          expectedOutput: "No runnable output — a short two-column note in your notebook sorting each error into 'my fault' or 'the world's fault.'",
         },
         {
           id: "GENAI_W3_L9",
@@ -1041,6 +1119,8 @@ export const genAiRoadmapData = {
           startSec: 13272,
           endSec: 13429,
           durationInMinutes: 3,
+          dailyBuild: "Deliberately break ask_twin() (call it with a missing argument) and read the traceback Python gives you.",
+          expectedOutput: "Console shows a real Python error (e.g., TypeError: missing 1 required positional argument), which you can now name and explain instead of just seeing red text.",
         },
         {
           id: "GENAI_W3_L10",
@@ -1054,6 +1134,8 @@ export const genAiRoadmapData = {
           startSec: 13397,
           endSec: 13545,
           durationInMinutes: 2,
+          dailyBuild: "Wrap your Gemini API call in try/except so a failed request prints a friendly fallback message instead of crashing.",
+          expectedOutput: "Temporarily breaking your API key and rerunning ask_twin() prints a graceful fallback reply instead of a crash and red traceback.",
         },
         {
           id: "GENAI_W3_L12",
@@ -1067,6 +1149,8 @@ export const genAiRoadmapData = {
           startSec: 0,
           endSec: 99,
           durationInMinutes: 2,
+          dailyBuild: "Sort your twin-bot files in a comment: which are 'real code' worth snapshotting (twin.ipynb, personality.json) vs. which shouldn't be (memory.json, .env).",
+          expectedOutput: "No runnable output — a short two-column note in your notebook separating trackable files from files to exclude later.",
         },
         {
           id: "GENAI_W3_L14",
@@ -1080,6 +1164,8 @@ export const genAiRoadmapData = {
           startSec: 196,
           endSec: 400,
           durationInMinutes: 3,
+          dailyBuild: "Set your Git identity with git config --global user.name and user.email, using a GitHub no-reply address.",
+          expectedOutput: "Running git config --global user.name / user.email prints back the identity that will now attach to every future commit.",
         },
         {
           id: "GENAI_W3_L15",
@@ -1093,6 +1179,8 @@ export const genAiRoadmapData = {
           startSec: 478,
           endSec: 700,
           durationInMinutes: 4,
+          dailyBuild: "Run git init inside your twin-bot project folder for the first time.",
+          expectedOutput: "A hidden .git folder appears in the directory listing, and your project is now a real Git repository.",
         },
         {
           id: "GENAI_W3_L16",
@@ -1106,6 +1194,8 @@ export const genAiRoadmapData = {
           startSec: 700,
           endSec: 942,
           durationInMinutes: 4,
+          dailyBuild: "Run git status inside your twin-bot folder and see every file — twin.ipynb, personality.json, memory.json — listed as untracked.",
+          expectedOutput: "Terminal output lists all your project files under 'Untracked files,' confirming Git sees them but isn't monitoring them yet.",
         },
         {
           id: "GENAI_W3_L17",
@@ -1119,6 +1209,8 @@ export const genAiRoadmapData = {
           startSec: 942,
           endSec: 1158,
           durationInMinutes: 4,
+          dailyBuild: "Stage your project with git add . and make your first commit: git commit -m 'Initial twin bot'.",
+          expectedOutput: "Terminal confirms the commit with a hash and a summary like '3 files changed, 120 insertions(+)'.",
         },
         {
           id: "GENAI_W3_L18",
@@ -1132,6 +1224,8 @@ export const genAiRoadmapData = {
           startSec: 1158,
           endSec: 1318,
           durationInMinutes: 3,
+          dailyBuild: "Change your bot's mood in personality.json, then run git diff before staging it.",
+          expectedOutput: "Terminal shows a red/green diff — one line removed, one line added — for exactly the mood value you changed.",
         },
         {
           id: "GENAI_W3_L19",
@@ -1145,6 +1239,8 @@ export const genAiRoadmapData = {
           startSec: 1768,
           endSec: 1950,
           durationInMinutes: 3,
+          dailyBuild: "Create a .gitignore listing .env and memory.json, then confirm both vanish from git status.",
+          expectedOutput: "Running git status no longer lists .env or memory.json at all, even though both files still exist on disk.",
         },
         {
           id: "GENAI_W3_L21",
@@ -1158,6 +1254,8 @@ export const genAiRoadmapData = {
           startSec: 2089,
           endSec: 2323,
           durationInMinutes: 4,
+          dailyBuild: "Run git log --oneline to see every commit you've made on the twin-bot project so far.",
+          expectedOutput: "Terminal prints a condensed, one-line-per-commit list with the newest commit at the top, right where HEAD is pointing.",
         },
         {
           id: "GENAI_W3_L22",
@@ -1171,6 +1269,8 @@ export const genAiRoadmapData = {
           startSec: 1913,
           endSec: 2405,
           durationInMinutes: 8,
+          dailyBuild: "Make a throwaway edit to twin.ipynb, then use git restore to undo it before committing anything.",
+          expectedOutput: "Running git status afterward shows no changes — the file is back to exactly its last committed state.",
         },
         {
           id: "GENAI_W3_L23",
@@ -1184,6 +1284,8 @@ export const genAiRoadmapData = {
           startSec: 2367,
           endSec: 2680,
           durationInMinutes: 5,
+          dailyBuild: "Create a new branch, add-error-handling, with git switch -c, and commit your try/except work there instead of on main.",
+          expectedOutput: "git branch shows two branches, with add-error-handling starred as the one currently checked out.",
         },
         {
           id: "GENAI_W3_L24",
@@ -1197,6 +1299,8 @@ export const genAiRoadmapData = {
           startSec: 2647,
           endSec: 2849,
           durationInMinutes: 3,
+          dailyBuild: "Switch back to main, merge add-error-handling into it, then delete the now-finished branch.",
+          expectedOutput: "git log --oneline on main now includes your error-handling commits, and git branch no longer lists add-error-handling.",
         },
         {
           id: "GENAI_W3_L25",
@@ -1210,6 +1314,8 @@ export const genAiRoadmapData = {
           startSec: 2820,
           endSec: 3160,
           durationInMinutes: 6,
+          dailyBuild: "Create an empty GitHub repo for twin-bot, connect it with git remote add origin, and push with git push -u origin main.",
+          expectedOutput: "Terminal shows upload progress and confirms your local main branch is now tracking origin/main.",
         },
         {
           id: "GENAI_W3_L26",
@@ -1223,16 +1329,19 @@ export const genAiRoadmapData = {
           startSec: 3123,
           endSec: 3379,
           durationInMinutes: 4,
+          dailyBuild: "Open twin-bot on GitHub.com and check the file list for memory.json and .env.",
+          expectedOutput: "The GitHub file browser shows twin.ipynb and personality.json, but no .env or memory.json — proof your .gitignore held up in the real world.",
         },
       ],
     },
 
-    // ─── Week 4 — Files, JSON, .env, Error Handling ────────────────────────
+    // ─── Week 4 — LangChain & context ────────────────────────
     {
       id: "genai-w4",
-      title: "Week 4 — Files, JSON, .env, Error Handling",
+      title: "Week 4 — Context Engineering & LangChain",
       color: "#ef4444",
       levels: [
+        // ─── VIBECHECK DAY 1: Tokens, context window, empirical "lost in middle" test ───
         {
           id: "GENAI_W4_L1",
           name: "The Context Window as Working Memory",
@@ -1246,6 +1355,8 @@ export const genAiRoadmapData = {
           startSec: 0,
           endSec: 87,
           durationInMinutes: 1,
+          dailyBuild: "Open vibecheck.ipynb and define 3 real texts you'd actually want to vibe-check — a caption you're about to post, a DM you're nervous about, and a group chat you're decoding.",
+          expectedOutput: "Three variables (text_1, text_2, text_3) printed in the notebook — your first real inputs, named for what they are rather than what they contain.",
         },
         {
           id: "GENAI_W4_L2",
@@ -1260,6 +1371,8 @@ export const genAiRoadmapData = {
           startSec: 183,
           endSec: 274,
           durationInMinutes: 2,
+          dailyBuild: "Token-count all 3 of your texts using tiktoken and print a comparison table: text name, word count, and token count side by side.",
+          expectedOutput: "A printed table revealing that your 'short' DM and 'long' email differ by more tokens than expected — proof that word count is a bad proxy for context cost.",
         },
         {
           id: "GENAI_W4_L3",
@@ -1274,11 +1387,13 @@ export const genAiRoadmapData = {
           startSec: 474,
           endSec: 596,
           durationInMinutes: 2,
+          dailyBuild: "Add a cost-estimate cell: multiply each text's token count by Gemini's per-token rate and print the projected cost for 1,000 VibeCheck calls on each text.",
+          expectedOutput: "A cost comparison showing that blindly sending your longest text 1,000 times is meaningfully more expensive than the shortest — context decisions have real dollar consequences.",
         },
         {
           id: "GENAI_W4_L4",
-          name: "Lost in the Middle - Why Bigger Isn't Better",
-          title: "Lost in the Middle - Why Bigger Isn't Better",
+          name: "Lost in the Middle — Why Bigger Isn't Better",
+          title: "Lost in the Middle — Why Bigger Isn't Better",
           description:
             "See why critical information buried in a long input often gets missed even when it technically fits.",
           concept: "Lost-in-the-Middle Degradation",
@@ -1288,6 +1403,8 @@ export const genAiRoadmapData = {
           startSec: 600,
           endSec: 678,
           durationInMinutes: 1,
+          dailyBuild: "Plant a specific fact at the start, middle, and end of a long padded text and ask Gemini to find it — run all three and log the result in a table.",
+          expectedOutput: "A printed table: fact position (start/middle/end) vs. whether Gemini found it — your first empirical proof that position in context changes accuracy, built before a single line of LangChain.",
         },
         {
           id: "GENAI_W4_L5",
@@ -1302,7 +1419,10 @@ export const genAiRoadmapData = {
           startSec: 0,
           endSec: 88,
           durationInMinutes: 1,
+          dailyBuild: "Run the same needle test but this time hide a fact that requires reasoning to find (e.g., 'what was the sender's implied mood?') — not just keyword matching.",
+          expectedOutput: "Gemini's score drops compared to yesterday's lexical fact test — proving that benchmark 'near-perfect' numbers and real-world vibe-reading are different problems entirely.",
         },
+        // ─── VIBECHECK DAY 2: Context rot fix, four engineering moves applied ───
         {
           id: "GENAI_W4_L6",
           name: "Long-Conversation Reasoning Failures",
@@ -1316,6 +1436,8 @@ export const genAiRoadmapData = {
           startSec: 88,
           endSec: 166,
           durationInMinutes: 1,
+          dailyBuild: "Replay a fake 10-message chat history as raw context and ask Gemini to summarize the mood — then replay only the last 3 messages and compare outputs.",
+          expectedOutput: "Two mood summaries printed side by side — the condensed version is usually more accurate, and you've just seen the core memory problem VibeCheck will solve by Day 7.",
         },
         {
           id: "GENAI_W4_L7",
@@ -1330,6 +1452,8 @@ export const genAiRoadmapData = {
           startSec: 169,
           endSec: 327,
           durationInMinutes: 3,
+          dailyBuild: "Vibe-check one clear text and one deliberately ambiguous text (same approximate length), then add topically related filler sentences and retest both.",
+          expectedOutput: "Accuracy holds on the clear text, degrades on the ambiguous one as filler grows — now you know why VibeCheck's classifier needs a confidence score, not just a label.",
         },
         {
           id: "GENAI_W4_L8",
@@ -1344,13 +1468,15 @@ export const genAiRoadmapData = {
           startSec: 327,
           endSec: 386,
           durationInMinutes: 1,
+          dailyBuild: "Write a one-sentence design comment in your notebook declaring which context engineering move (write / select / compress / isolate) VibeCheck's memory will use and why — before writing any memory code.",
+          expectedOutput: "A `# DESIGN DECISION:` comment sitting in your notebook — the first deliberate architectural choice of the project, written before a single memory cell exists.",
         },
         {
           id: "GENAI_W4_L9",
           name: "The Four Context Engineering Moves",
           title: "The Four Context Engineering Moves",
           description:
-            "Learn write, select, compress, and isolate - the four deliberate strategies for managing context windows.",
+            "Learn write, select, compress, and isolate — the four deliberate strategies for managing context windows.",
           concept: "Context Engineering Strategy",
           transcript:
             "To achieve reliable performance, developers must adopt context engineering to optimize the ratio of relevant information to noise. Strategies such as summarization for agents or using retrieval systems with vector databases are effective ways to manage context windows. There is no one-size-fits-all solution, making experimentation essential for different applications.",
@@ -1358,7 +1484,10 @@ export const genAiRoadmapData = {
           startSec: 388,
           endSec: 501,
           durationInMinutes: 2,
+          dailyBuild: "Manually fix yesterday's full-history failure: compress the 10-message history into a 3-line summary before sending, then rerun the mood check.",
+          expectedOutput: "A before/after accuracy cell — the compressed version matches or beats full-history replay, and you've manually implemented what VibeCheck's Day 7 memory will automate.",
         },
+        // ─── VIBECHECK DAY 3: Install LangChain, first LCEL chain on real text ───
         {
           id: "GENAI_W4_L10",
           name: "LangChain as a Modular Framework",
@@ -1372,6 +1501,8 @@ export const genAiRoadmapData = {
           startSec: 0,
           endSec: 79,
           durationInMinutes: 1,
+          dailyBuild: "Add four section headers to vibecheck.ipynb: # Classify, # Summarize, # Rewrite, # Memory — no code yet, just structure.",
+          expectedOutput: "A clearly sectioned notebook whose four sections map exactly to the four modular chain jobs LangChain is designed to keep separate.",
         },
         {
           id: "GENAI_W4_L11",
@@ -1386,11 +1517,13 @@ export const genAiRoadmapData = {
           startSec: 2109,
           endSec: 2326,
           durationInMinutes: 4,
+          dailyBuild: "pip install langchain langchain-google-genai python-dotenv, create your .env with GEMINI_API_KEY, and add import + load_dotenv() at the top of your notebook.",
+          expectedOutput: "All import lines run with no errors and os.environ.get('GEMINI_API_KEY') returns your real key — LangChain is installed, the key is safe, and the notebook is ready.",
         },
         {
           id: "GENAI_W4_L12",
-          name: "Dev Environment Setup - Python, Git, uv",
-          title: "Dev Environment Setup - Python, Git, uv",
+          name: "Dev Environment Setup — Python, Git, uv",
+          title: "Dev Environment Setup — Python, Git, uv",
           description:
             "Set up Python, Git, and the uv package manager to create a clean project structure.",
           concept: "Environment Setup for LangChain Projects",
@@ -1400,11 +1533,13 @@ export const genAiRoadmapData = {
           startSec: 2505,
           endSec: 3041,
           durationInMinutes: 9,
+          dailyBuild: "Run uv init inside your vibecheck folder and add langchain-google-genai as a tracked dependency via uv add.",
+          expectedOutput: "A pyproject.toml appears in the folder with langchain-google-genai listed — your project now has lockfile-managed, reproducible dependencies instead of a hand-typed requirements.txt.",
         },
         {
           id: "GENAI_W4_L13",
-          name: "One Interface, Many Models - Why LangChain Over Raw SDKs",
-          title: "One Interface, Many Models - Why LangChain Over Raw SDKs",
+          name: "One Interface, Many Models — Why LangChain Over Raw SDKs",
+          title: "One Interface, Many Models — Why LangChain Over Raw SDKs",
           description:
             "Understand the specific pain LangChain removes: juggling a different SDK syntax per model provider.",
           concept: "LangChain as a Unified Model Interface",
@@ -1414,6 +1549,8 @@ export const genAiRoadmapData = {
           startSec: 4185,
           endSec: 4546,
           durationInMinutes: 6,
+          dailyBuild: "Initialize a ChatGoogleGenerativeAI model object with your loaded key and print its config.",
+          expectedOutput: "The model object's config prints to the console — you're connected to Gemini through LangChain's unified interface, not the raw SDK, and the same .invoke() call will work on any other provider too.",
         },
         {
           id: "GENAI_W4_L14",
@@ -1428,7 +1565,10 @@ export const genAiRoadmapData = {
           startSec: 104,
           endSec: 152,
           durationInMinutes: 1,
+          dailyBuild: "Build your first LCEL chain — prompt | model | StrOutputParser() — and invoke it on text_1 (your caption from Day 1).",
+          expectedOutput: "VibeCheck's first real reply prints — a one-line vibe read on actual text from an actual chain, not a raw requests call. The 'oh, that's all a chain is' moment.",
         },
+        // ─── VIBECHECK DAY 4: Three ChatPromptTemplates wired for all three chain jobs ───
         {
           id: "GENAI_W4_L15",
           name: "System, Human, and AI Messages",
@@ -1442,11 +1582,13 @@ export const genAiRoadmapData = {
           startSec: 4634,
           endSec: 5134,
           durationInMinutes: 8,
+          dailyBuild: "Write three system message strings — one for classify_vibe, one for summarize, one for rewrite — each setting a distinct tone and job scope.",
+          expectedOutput: "Three string variables printed to the notebook, each reading like a distinct job description — the behavioral contracts that will control your three chains' personalities.",
         },
         {
           id: "GENAI_W4_L16",
-          name: "PromptTemplate - Dynamic Variables",
-          title: "PromptTemplate - Dynamic Variables",
+          name: "PromptTemplate — Dynamic Variables",
+          title: "PromptTemplate — Dynamic Variables",
           description:
             "Build prompts that accept runtime input instead of hardcoded strings.",
           concept: "PromptTemplate Basics",
@@ -1456,11 +1598,13 @@ export const genAiRoadmapData = {
           startSec: 6124,
           endSec: 6394,
           durationInMinutes: 5,
+          dailyBuild: "Build classify_vibe_prompt as a PromptTemplate with a {text} variable and test it on text_1 and text_2.",
+          expectedOutput: "Two different classify outputs for two different inputs — the same template, two different calls, proving dynamic injection works before you upgrade to ChatPromptTemplate.",
         },
         {
           id: "GENAI_W4_L17",
-          name: "ChatPromptTemplate - Structuring Roles",
-          title: "ChatPromptTemplate - Structuring Roles",
+          name: "ChatPromptTemplate — Structuring Roles",
+          title: "ChatPromptTemplate — Structuring Roles",
           description:
             "Use ChatPromptTemplate to define system and user roles together for better response control.",
           concept: "ChatPromptTemplate for Role-Based Prompts",
@@ -1470,6 +1614,8 @@ export const genAiRoadmapData = {
           startSec: 6482,
           endSec: 6750,
           durationInMinutes: 4,
+          dailyBuild: "Upgrade all three prompts from PromptTemplate to ChatPromptTemplate with explicit system + human message pairs.",
+          expectedOutput: "All three chains return noticeably more controlled, on-tone replies — you can feel the difference between having a system role vs. not having one.",
         },
         {
           id: "GENAI_W4_L18",
@@ -1484,7 +1630,10 @@ export const genAiRoadmapData = {
           startSec: 6713,
           endSec: 6914,
           durationInMinutes: 3,
+          dailyBuild: "Upgrade rewrite_prompt to accept two variables: {text} and {target_tone}, then call it with target_tone='professional' and again with target_tone='casual'.",
+          expectedOutput: "Two genuinely different rewrites of the same DM — same chain, different tone variable — showing multi-variable templates doing real work on real input.",
         },
+        // ─── VIBECHECK DAY 5: Pydantic-bound structured output ───
         {
           id: "GENAI_W4_L19",
           name: "Why LLM Output Needs Enforced Schemas",
@@ -1498,6 +1647,8 @@ export const genAiRoadmapData = {
           startSec: 6881,
           endSec: 7188,
           durationInMinutes: 5,
+          dailyBuild: "Run classify_vibe_prompt on the same ambiguous text 3 times and print all 3 raw string outputs.",
+          expectedOutput: "Three different label strings for identical input — 'tense', 'uncertain', 'mixed signals' — the exact problem that shows why asking the model to 'return JSON please' isn't a schema.",
         },
         {
           id: "GENAI_W4_L20",
@@ -1512,11 +1663,13 @@ export const genAiRoadmapData = {
           startSec: 7482,
           endSec: 7801,
           durationInMinutes: 5,
+          dailyBuild: "Define a VibeResult Pydantic model with vibe_label: Literal['positive', 'negative', 'neutral', 'chaotic'] and confidence: float.",
+          expectedOutput: "VibeResult(vibe_label='positive', confidence=0.87) instantiates and prints cleanly — your schema exists, enforces the Literal type, and rejects anything outside the four labels.",
         },
         {
           id: "GENAI_W4_L21",
-          name: "with_structured_output - Skipping Manual Parsing",
-          title: "with_structured_output - Skipping Manual Parsing",
+          name: "with_structured_output — Skipping Manual Parsing",
+          title: "with_structured_output — Skipping Manual Parsing",
           description:
             "Bind a Pydantic schema directly to the model so its output is a typed object, not a raw string.",
           concept: "Structured Output Binding",
@@ -1526,11 +1679,13 @@ export const genAiRoadmapData = {
           startSec: 7762,
           endSec: 8042,
           durationInMinutes: 5,
+          dailyBuild: "Bind VibeResult to your classify chain using model.with_structured_output(VibeResult) and invoke it on text_1.",
+          expectedOutput: "result.vibe_label and result.confidence print as real Python attributes on a typed object — not a raw string you parsed yourself.",
         },
         {
           id: "GENAI_W4_L22",
-          name: "Pydantic vs TypedDict - Strict vs Lenient",
-          title: "Pydantic vs TypedDict - Strict vs Lenient",
+          name: "Pydantic vs TypedDict — Strict vs Lenient",
+          title: "Pydantic vs TypedDict — Strict vs Lenient",
           description:
             "Understand when to enforce a strict schema versus when lighter type hinting is enough.",
           concept: "Pydantic vs TypedDict Trade-offs",
@@ -1540,76 +1695,107 @@ export const genAiRoadmapData = {
           startSec: 8095,
           endSec: 8598,
           durationInMinutes: 8,
+          dailyBuild: "Run the bound classifier on your clearly-worded text_1 and your ambiguous text_2, logging the confidence score on both.",
+          expectedOutput: "Two VibeResult objects: text_1 returns confidence ~0.9, text_2 returns ~0.5 — the schema is surfacing the model's genuine uncertainty instead of hiding it behind a forced label.",
         },
+        // ─── VIBECHECK DAY 6: LCEL composition — RunnableParallel, classifier + summarizer side by side ───
         {
           id: "GENAI_W4_L23",
-          name: "Chains Are Pipelines - Build Small & Modular",
-          title: "Chains Are Pipelines - Build Small & Modular",
+          name: "Chains Are Pipelines — Build Small & Modular",
+          title: "Chains Are Pipelines — Build Small & Modular",
           description:
             "Learn why small, modular chains are easier to debug than one long complex sequence.",
           concept: "Chains as Data Pipelines",
           transcript:
-            "In LangChain, pipelines are referred to as chains - a sequence of tasks. It is recommended as a best practice to build small, modular chains rather than one long, complex process, since breaking workflows into smaller components makes the system easier to debug and manage. Individual nodes can then be connected to form a complete, parent-level workflow.",
+            "In LangChain, pipelines are referred to as chains — a sequence of tasks. It is recommended as a best practice to build small, modular chains rather than one long, complex process, since breaking workflows into smaller components makes the system easier to debug and manage. Individual nodes can then be connected to form a complete, parent-level workflow.",
           videoId: "AOQyRiwydyo",
-          startSec: 8586,
-          endSec: 8864,
-          durationInMinutes: 5,
+          startSec: 8598,
+          endSec: 8780,
+          durationInMinutes: 3,
+          dailyBuild: "Explicitly name and isolate your three chains as separate variables: classify_chain, summarize_chain, rewrite_chain — each tested independently with a single assert cell.",
+          expectedOutput: "Three passing assert cells — each chain invoked alone, returning the expected type (VibeResult, str, str) — before any of them are composed together.",
         },
+        // ─── WEEK 5 CONTENT COMPRESSED INTO WEEK 4 ───
         {
           id: "GENAI_W4_L24",
-          name: "The LCEL Pipe Operator",
-          title: "The LCEL Pipe Operator",
+          name: "RunnableParallel — Two Chains, One Input",
+          title: "RunnableParallel — Two Chains, One Input",
           description:
-            "Build a prompt-model-parser chain and execute it with invoke.",
-          concept: "LangChain Expression Language (LCEL)",
+            "Run multiple independent chains simultaneously on the same input and get all their results back in one call.",
+          concept: "RunnableParallel for Composed Chain Jobs",
           transcript:
-            "LangChain Expression Language (LCEL) uses the pipe operator to sequence a prompt template, an LLM, and an output parser into a unified chain that executes automatically. Invoking the chain processes an input query and generates an answer without manual intervention at each stage - the pipeline automatically handles the flow of data through each component.",
+            "RunnableParallel is a LangChain primitive that takes the same input, fans it out to multiple chains running concurrently, and returns all their results as a single dictionary. This is the canonical pattern for running genuinely different jobs — classify vs. summarize, for example — on the same piece of text without writing sequential calls or managing their outputs manually. Each chain remains independently testable; RunnableParallel is only the fan-out layer on top.",
           videoId: "AOQyRiwydyo",
-          startSec: 9351,
-          endSec: 9632,
-          durationInMinutes: 5,
+          startSec: 8780,
+          endSec: 8980,
+          durationInMinutes: 3,
+          dailyBuild: "Compose classify_chain and summarize_chain into a single RunnableParallel and invoke it on text_1.",
+          expectedOutput: "One call returns {'vibe': VibeResult(vibe_label=..., confidence=...), 'summary': '...'} — two genuinely different chain jobs, run in parallel, on the same DM.",
         },
         {
           id: "GENAI_W4_L25",
-          name: "RunnableLambda - Bridging Shape Mismatches",
-          title: "RunnableLambda - Bridging Shape Mismatches",
+          name: "RunnableLambda — Custom Python Steps in a Chain",
+          title: "RunnableLambda — Custom Python Steps in a Chain",
           description:
-            "Insert a custom Python function between chain steps when output and input shapes don't match.",
-          concept: "Custom Nodes with RunnableLambda",
+            "Wrap any Python function as a chain step so you can transform, filter, or route between LCEL nodes.",
+          concept: "RunnableLambda for Custom Transforms",
           transcript:
-            "A limitation in simple chains is the inability to pass raw string outputs directly to templates that expect input in a dictionary format. A custom node is required to transform the output into the key-value structure subsequent template nodes need. The runnable_lambda function converts any standard Python function into a runnable task, allowing it to act as a bridge between chain steps.",
+            "RunnableLambda wraps an arbitrary Python function and makes it composable inside an LCEL pipeline — so a post-processing step, a routing decision, or a data transformation can sit between two chain nodes exactly like any other Runnable. This is how you add logic that isn't an LLM call without breaking out of the chain abstraction: the lambda receives the output of the previous step and passes its return value to the next one.",
           videoId: "AOQyRiwydyo",
-          startSec: 10194,
-          endSec: 10605,
-          durationInMinutes: 7,
+          startSec: 8980,
+          endSec: 9200,
+          durationInMinutes: 3,
+          dailyBuild: "Add a RunnableLambda that formats the RunnableParallel output into a single printable string: '[VIBE] positive (0.87) — TL;DR: ...'",
+          expectedOutput: "One formatted string prints from one chain call — classify, summarize, and format all composed into a single pipeline, no manual stitching.",
         },
+        // ─── VIBECHECK DAY 7: Structured memory + full CLI capstone ───
         {
           id: "GENAI_W4_L26",
-          name: "Parallel Chains - One Input, Multiple Outputs",
-          title: "Parallel Chains - One Input, Multiple Outputs",
+          name: "Memory — Why 'Just Append Everything' Fails",
+          title: "Memory — Why 'Just Append Everything' Fails",
           description:
-            "Branch a single input into multiple simultaneous chains, such as generating posts for two platforms at once.",
-          concept: "Parallel Chain Architecture",
+            "Understand why naive conversation memory causes the exact context rot you measured in Days 1–2, and what structured records fix.",
+          concept: "Naive Memory vs. Structured Memory",
           transcript:
-            "Parallel chains are essential for complex workflows that require simultaneous tasks - for example, a single input leading to two separate outputs like a LinkedIn post and an Instagram post. Runnable parallel handles concurrent tasks, allowing the system to branch out into multiple workflows simultaneously from a shared initial task.",
+            "The naive approach to memory in an LLM application is to append every turn to a running list and pass the whole thing as context on the next call. This creates a direct collision with the lost-in-the-middle and context rot findings from the first two days of the week: the signal-to-noise ratio degrades as history grows, earlier entries get suppressed, and the model starts reasoning about the shape of the conversation rather than its content. The professional fix is not to store raw messages at all — it is to store structured, compressed records that preserve only the durable signal from each interaction.",
           videoId: "AOQyRiwydyo",
-          startSec: 10939,
-          endSec: 11353,
-          durationInMinutes: 7,
+          startSec: 9200,
+          endSec: 9420,
+          durationInMinutes: 3,
+          dailyBuild: "Simulate naive memory: build a list that appends full text + full reply for 5 calls, then print the total token count of what would be sent on call 6.",
+          expectedOutput: "A token count showing that 5 full-text appends already approaches a significant chunk of context budget — the same context rot from Day 1, now measured inside your own project.",
         },
         {
           id: "GENAI_W4_L27",
-          name: "Conditional Chains with RunnableBranch",
-          title: "Conditional Chains with RunnableBranch",
+          name: "Structured Memory Records — Store the Signal, Not the Noise",
+          title: "Structured Memory Records — Store the Signal, Not the Noise",
           description:
-            "Route input to different chains based on a classification result, like sentiment-based routing.",
-          concept: "Conditional Logic in Chains",
+            "Build the right memory: a capped log of compressed structured records instead of raw message history.",
+          concept: "Compressed Structured Memory",
           transcript:
-            "RunnableBranch orchestrates conditional logic in a LangChain workflow - categorizing input text as positive or negative and routing it to the appropriate chain for content generation. Lambda functions evaluate conditions and define the corresponding execution paths, effectively reusing existing chains to automate responses based on classification.",
+            "Instead of appending raw turn content to memory, a structured memory record stores only the durable signal from each interaction: a vibe label, a confidence score, a short snippet (not the full text), and a timestamp. This design caps memory at a fixed token budget regardless of how many turns have passed, gives the model consistent signal density on every call, and directly implements the 'compress' move from the four context engineering strategies discussed earlier in the week.",
           videoId: "AOQyRiwydyo",
-          startSec: 12790,
-          endSec: 13914,
-          durationInMinutes: 19,
+          startSec: 9420,
+          endSec: 9650,
+          durationInMinutes: 3,
+          dailyBuild: "Replace naive memory with a vibe_log list of structured dicts: {label, confidence, snippet (max 20 words), timestamp} — capped at the last 5 entries.",
+          expectedOutput: "print(vibe_log) shows a clean 5-record list where the longest entry is ~30 words — a fixed context budget no matter how many vibes have been checked.",
+        },
+        {
+          id: "GENAI_W4_L28",
+          name: "Capstone — Full VibeCheck CLI",
+          title: "Capstone — Full VibeCheck CLI",
+          description:
+            "Compose every chain and every concept from the week into a single working CLI that classifies, summarizes, optionally rewrites, and answers 'what's my vibe been like lately?'",
+          concept: "Capstone: Full Composed VibeCheck Application",
+          transcript:
+            "The capstone lesson assembles every component built this week into a coherent, working application: a CLI loop that takes pasted text as input, runs the RunnableParallel classify + summarize chain, appends a structured record to the capped vibe_log, and answers a pattern question ('what has my vibe been like lately?') by passing the compressed log to a small summarize chain. Every architectural decision — the four-move strategy for memory, the Pydantic schema for classifier output, the RunnableParallel composition of distinct chain jobs — can be traced directly back to an empirical finding from Days 1 and 2. The student can now defend this design in an interview, not just describe it.",
+          videoId: "AOQyRiwydyo",
+          startSec: 9650,
+          endSec: 9900,
+          durationInMinutes: 4,
+          dailyBuild: "Wire the full CLI loop: paste text → RunnableParallel (classify + summarize) → append structured record to vibe_log → optionally call rewrite_chain → answer 'what's my vibe been lately?' from the compressed log.",
+          expectedOutput: "A running CLI in your notebook: paste a text, get a vibe label with confidence and a TL;DR, optionally get a rewrite, and get a one-sentence pattern summary — the full VibeCheck product, every concept from the week composing into one thing that works.",
         },
       ],
     },
