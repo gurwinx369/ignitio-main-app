@@ -9,7 +9,7 @@ import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
 
-async function ensureUserProfile(firebaseUser) {
+async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
 
   const response = await fetch("/api/v2/user", {
@@ -20,6 +20,7 @@ async function ensureUserProfile(firebaseUser) {
     },
     body: JSON.stringify({
       email: firebaseUser.email,
+      initializeLegalConsent,
     }),
   });
 
@@ -88,7 +89,7 @@ export default function SignupForm() {
 
       if (result.success) {
         try {
-          const profile = await ensureUserProfile(result.user);
+          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
 
           if (result.authMode === "new_signup") {
             const hasPreview =
@@ -130,7 +131,7 @@ export default function SignupForm() {
 
       if (result.success) {
         try {
-          const profile = await ensureUserProfile(result.user);
+          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
 
           if (result.authMode === "new_signup") {
             const hasPreview =

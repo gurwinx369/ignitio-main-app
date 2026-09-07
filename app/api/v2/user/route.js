@@ -5,6 +5,10 @@ import { UserProfile, ONBOARDING_VERSIONS } from "@/models/v2/user.profile.model
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
+import { UserLegalConsent } from "@/models/v2/user.legal-consent.model";
+
+const CURRENT_TERMS_VERSION = "2026-07-07";
+const CURRENT_PRIVACY_VERSION = "2026-07-07";
 
 // SECTION 1: ZOD VALIDATORS
 // Mirrors the schema exactly.
@@ -16,6 +20,7 @@ import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
 const CreateUserValidator = z.object({
   email: z.string().email("Invalid email format").toLowerCase().trim(),
   role: z.enum(["student", "writer", "designer", "developer", "other"]).optional().nullable(),
+  initializeLegalConsent: z.boolean().optional().default(false),
 });
 
 async function ensureCanonicalOnboardingState(profile) {
@@ -63,6 +68,47 @@ async function ensureCanonicalOnboardingState(profile) {
   }
 
   return updatedProfile;
+}
+
+async function ensureInitialLegalConsent(firebaseUID) {
+  try {
+    await UserLegalConsent.findOneAndUpdate(
+      {
+        firebaseUID,
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+      },
+      {
+        $setOnInsert: {
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+          acceptedAtUTC: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+  } catch (error) {
+    if (error.code === 11000) {
+      const existingConsent = await UserLegalConsent.findOne({
+        firebaseUID,
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+      }).lean();
+
+      if (!existingConsent) {
+        throw new Error("Failed to resolve legal consent race");
+      }
+
+      return;
+    }
+
+    throw error;
+  }
 }
 
 // SECTION 2: TOKEN VERIFICATION HELPER
@@ -125,7 +171,7 @@ export async function POST(request) {
     );
   }
 
-  const { email } = validation.data;
+  const { email, initializeLegalConsent } = validation.data;
 
   // Step 3: Verify the email in the body matches the token.
   // Prevents a logged-in user from creating a profile under
@@ -160,6 +206,10 @@ export async function POST(request) {
 
       await normalizeUserProfileRetentionFields(existingProfile._id);
 
+      if (initializeLegalConsent) {
+        await ensureInitialLegalConsent(decodedToken.uid);
+      }
+
       return NextResponse.json(
         {
           message: "User profile found",
@@ -190,6 +240,10 @@ export async function POST(request) {
         step: "diagnostic",
       },
     });
+
+    if (initializeLegalConsent) {
+      await ensureInitialLegalConsent(decodedToken.uid);
+    }
 
     return NextResponse.json(
       {
@@ -227,6 +281,10 @@ export async function POST(request) {
           await ensureCanonicalOnboardingState(duplicateProfile);
 
         await normalizeUserProfileRetentionFields(duplicateProfile._id);
+
+        if (initializeLegalConsent) {
+          await ensureInitialLegalConsent(decodedToken.uid);
+        }
         return NextResponse.json(
           {
             message: "User profile found",
