@@ -153,3 +153,4 @@ test_subscription_webhook_atomic_payment.js
 test_subscription_verify_atomic_payment.js
 test_subscription_create_client.js
 docs
+test_coupon_contract.js

@@ -30,6 +30,7 @@ import PaywallSkeleton from "./components/PaywallSkeleton";
 import { ONBOARDING_ROUTES } from "./constants/routes";
 import { getPaywallStatus } from "./services/paywallStatus";
 import { createSubscription } from "./services/createSubscription";
+import { validateCoupon } from "./services/validateCoupon";
 import { verifyPayment } from "./services/verifyPayment";
 import { skipPremium } from "./services/skipPremium";
 import { loadRazorpay, openRazorpayCheckout } from "./hooks/useRazorpayCheckout";
@@ -58,7 +59,7 @@ export default function Paywall() {
   // Page-level state
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
-  
+
   // UI Flow state
   const [paywallStep, setPaywallStep] = useState("explainer"); // "explainer" | "plans"
 
@@ -73,6 +74,12 @@ export default function Paywall() {
   ] = useState(
     DEFAULT_SUBSCRIPTION_PLAN,
   );
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState(null);
 
   // Guard against unmounted state updates
   const isMounted = useRef(true);
@@ -139,6 +146,68 @@ export default function Paywall() {
     reconcile();
   }, [user, router]);
 
+
+  // ── Coupon validation ────────────────────────────────────────────────────────
+  const handleApplyCoupon = async () => {
+    if (
+      couponLoading ||
+      isPremiumLoading ||
+      isSkipping ||
+      !user
+    ) {
+      return;
+    }
+
+    const normalizedCode = couponCode.trim();
+
+    if (!normalizedCode) {
+      setCouponError("Enter a coupon code.");
+      setAppliedCoupon(null);
+      return;
+    }
+
+    setCouponLoading(true);
+    setCouponError(null);
+    setAppliedCoupon(null);
+
+    try {
+      const idToken = await user.getIdToken();
+
+      const result = await validateCoupon({
+        idToken,
+        couponCode: normalizedCode,
+        plan: selectedPlan,
+      });
+
+      if (!isMounted.current) return;
+
+      if (!result.valid) {
+        setCouponError(
+          result.message ?? "This coupon is not valid.",
+        );
+        return;
+      }
+
+      setCouponCode(normalizedCode.toUpperCase());
+      setAppliedCoupon(result.coupon);
+    } catch (err) {
+      console.error(
+        "[Paywall] Coupon validation error:",
+        err,
+      );
+
+      if (isMounted.current) {
+        setCouponError(
+          "Could not validate the coupon. Please try again.",
+        );
+      }
+    } finally {
+      if (isMounted.current) {
+        setCouponLoading(false);
+      }
+    }
+  };
+
   // ── Premium checkout flow ────────────────────────────────────────────────────
   const handlePremium = async () => {
     if (isPremiumLoading || isSkipping || !user) return;
@@ -159,6 +228,9 @@ export default function Paywall() {
         await createSubscription({
           idToken,
           plan: selectedPlan,
+          couponCode: appliedCoupon
+            ? couponCode
+            : undefined,
         });
 
       if (!createRes.razorpaySubscriptionId) {
@@ -392,12 +464,12 @@ export default function Paywall() {
         ) : (
           <div className="w-full flex flex-col">
             <div className="mb-6 px-4">
-              <button 
+              <button
                 onClick={() => setPaywallStep("explainer")}
                 className="text-[#001D32] hover:bg-slate-200/50 w-10 h-10 flex items-center justify-center rounded-full font-bold transition-colors"
                 aria-label="Back to explainer"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
               </button>
             </div>
 
@@ -406,9 +478,85 @@ export default function Paywall() {
 
               <PremiumPlanCard
                 selectedPlan={selectedPlan}
-                onSelectPlan={setSelectedPlan}
+                onSelectPlan={(plan) => {
+                  setSelectedPlan(plan);
+                  setAppliedCoupon(null);
+                  setCouponError(null);
+                }}
                 disabled={isPremiumLoading || isSkipping}
               />
+
+              <div className="mt-6 rounded-2xl border border-[#FFDCBC] bg-[#fffaf3] p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-bold text-[#001D32]">
+                    Have a coupon code?
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Enter a creator or promotional code before checkout.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(event) => {
+                      setCouponCode(event.target.value.toUpperCase());
+                      setAppliedCoupon(null);
+                      setCouponError(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleApplyCoupon();
+                      }
+                    }}
+                    placeholder="e.g. HARRY20"
+                    maxLength={50}
+                    disabled={
+                      couponLoading ||
+                      isPremiumLoading ||
+                      isSkipping
+                    }
+                    aria-label="Coupon code"
+                    className="min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#001D32] outline-none transition-colors placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#00A9FF] disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={
+                      couponLoading ||
+                      isPremiumLoading ||
+                      isSkipping ||
+                      !couponCode.trim()
+                    }
+                    className="rounded-xl bg-[#001D32] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:bg-[#00304d] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {couponLoading ? "CHECKING..." : "APPLY"}
+                  </button>
+                </div>
+
+                {appliedCoupon && (
+                  <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                    <p className="text-sm font-bold text-green-700">
+                      {appliedCoupon.code} applied
+                    </p>
+                    <p className="mt-1 text-xs text-green-600">
+                      Your promotional offer will be applied at checkout.
+                    </p>
+                  </div>
+                )}
+
+                {couponError && (
+                  <p
+                    role="alert"
+                    className="mt-3 text-xs font-semibold text-red-600"
+                  >
+                    {couponError}
+                  </p>
+                )}
+              </div>
 
               <PaywallActions
                 isPremiumLoading={isPremiumLoading}

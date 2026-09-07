@@ -4,6 +4,7 @@
 export async function createSubscription({
   idToken,
   plan,
+  couponCode,
 }) {
   try {
     const res =
@@ -19,6 +20,9 @@ export async function createSubscription({
           },
           body: JSON.stringify({
             plan,
+            ...(couponCode
+              ? { couponCode }
+              : {}),
           }),
         },
       );

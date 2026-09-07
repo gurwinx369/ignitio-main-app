@@ -17,6 +17,12 @@ import { PLAN_SLUGS } from "@/lib/subscription/constants";
 
 const CreateSubscriptionSchema = z.object({
   plan: z.enum(Object.values(PLAN_SLUGS)),
+  couponCode: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .optional(),
 });
 
 export async function POST(request) {
@@ -59,6 +65,7 @@ export async function POST(request) {
     result = await createSubscription({
       firebaseUID: decodedToken.uid,
       plan: validation.data.plan,
+      couponCode: validation.data.couponCode,
     });
   } catch (err) {
     console.error("[POST /api/v2/subscription/create] Unexpected error:", err.name);

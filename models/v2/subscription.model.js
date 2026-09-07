@@ -128,6 +128,27 @@ const SubscriptionSchema = new Schema(
       type: Date,
       default: null,
     },
+
+    couponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coupon",
+      default: null,
+      index: true,
+    },
+
+    couponCode: {
+      type: String,
+      default: null,
+      trim: true,
+      uppercase: true,
+    },
+
+    razorpayOfferId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
   },
   {
     timestamps: true,
