@@ -10,8 +10,7 @@ export const QUESTIONS = [
       },
       {
         value: "casual_chatgpt_user",
-        label:
-          "I use ChatGPT or Claude casually, but haven't built with an API.",
+        label: "I use ChatGPT or Claude, but haven't built with an API.",
       },
       {
         value: "called_api_before",
@@ -28,7 +27,8 @@ export const QUESTIONS = [
     id: "casual_api_usage",
     type: "SINGLE_CHOICE",
     title: "API Experience",
-    description: "Have you ever called an LLM API (like OpenAI's API) directly from code, or just used ChatGPT in the browser?",
+    description:
+      "Have you ever called an LLM API (like OpenAI's API) directly from code, or just used ChatGPT in the browser?",
     options: [
       { value: "chat_only", label: "I've only used chat interfaces." },
       { value: "called_llm_api", label: "I've called an LLM API from code." },
@@ -39,13 +39,17 @@ export const QUESTIONS = [
     id: "technologies_used",
     type: "MULTI_SELECT",
     title: "Technologies Used",
-    description: "Which of these have you worked with before? Select all that apply.",
+    description:
+      "Which of these have you worked with before? Select all that apply.",
     options: [
       { value: "langchain", label: "LangChain or LlamaIndex" },
       { value: "embeddings", label: "Embeddings / Vector DBs" },
       { value: "rag", label: "RAG (Retrieval-Augmented Generation)" },
       { value: "api_framework", label: "FastAPI / Flask / Express" },
-      { value: "structured_outputs", label: "Structured Outputs / Function Calling" },
+      {
+        value: "structured_outputs",
+        label: "Structured Outputs / Function Calling",
+      },
       { value: "agents", label: "LLM Agents" },
     ],
     skippable: false,
@@ -56,7 +60,10 @@ export const QUESTIONS = [
     title: "Project Type",
     description: "Which of these best describes what you shipped?",
     options: [
-      { value: "rag", label: "A RAG (Retrieval-Augmented Generation) application." },
+      {
+        value: "rag",
+        label: "A RAG (Retrieval-Augmented Generation) application.",
+      },
       { value: "agent", label: "An autonomous LLM Agent." },
       { value: "both", label: "Both RAG and Agent components." },
     ],
@@ -84,7 +91,8 @@ Output MUST be valid JSON matching this schema:
       },
       {
         value: "b",
-        label: "It explicitly constrains the output to a defined JSON structure.",
+        label:
+          "It explicitly constrains the output to a defined JSON structure.",
       },
       {
         value: "c",
@@ -101,11 +109,13 @@ Output MUST be valid JSON matching this schema:
     id: "q2b",
     type: "SINGLE_CHOICE",
     title: "Context Engineering",
-    description: "Where should an important instruction generally be placed in a long prompt?",
+    description:
+      "Where should an important instruction generally be placed in a long prompt?",
     options: [
       {
         value: "a",
-        label: "Near the beginning, with reinforcement near the end when needed.",
+        label:
+          "Near the beginning, with reinforcement near the end when needed.",
       },
       {
         value: "b",
@@ -164,8 +174,7 @@ Output MUST be valid JSON matching this schema:
     id: "q3b",
     type: "SINGLE_CHOICE",
     title: "API Key Safety",
-    description:
-      "Where should you NEVER put an API key?",
+    description: "Where should you NEVER put an API key?",
     options: [
       {
         value: "a",
@@ -177,8 +186,7 @@ Output MUST be valid JSON matching this schema:
       },
       {
         value: "c",
-        label:
-          "Loaded from an environment variable at runtime",
+        label: "Loaded from an environment variable at runtime",
       },
     ],
     skippable: true,
@@ -187,7 +195,8 @@ Output MUST be valid JSON matching this schema:
     id: "q4",
     type: "SINGLE_CHOICE",
     title: "LangChain / LCEL",
-    description: "What should replace the blank to return a clean string from the model?",
+    description:
+      "What should replace the blank to return a clean string from the model?",
     code: `chain = prompt | model | ______
   result = chain.invoke({"topic": "space"})`,
     options: [
@@ -219,13 +228,11 @@ Output MUST be valid JSON matching this schema:
     options: [
       {
         value: "A",
-        label:
-          '"I want to return this product" / "How do I get a refund?"',
+        label: '"I want to return this product" / "How do I get a refund?"',
       },
       {
         value: "B",
-        label:
-          '"I want to return this product" / "I love this product"',
+        label: '"I want to return this product" / "I love this product"',
       },
     ],
     skippable: true,
@@ -234,7 +241,8 @@ Output MUST be valid JSON matching this schema:
     id: "q6",
     type: "ORDERING",
     title: "RAG Pipeline",
-    description: "Order these steps to form a standard Retrieval-Augmented Generation pipeline (1 = first step).",
+    description:
+      "Order these steps to form a standard Retrieval-Augmented Generation pipeline (1 = first step).",
     items: [
       { id: "generate_answer", label: "Generate Answer" },
       { id: "chunk", label: "Chunk Document" },
@@ -248,7 +256,8 @@ Output MUST be valid JSON matching this schema:
     id: "q7",
     type: "SINGLE_CHOICE",
     title: "FastAPI Concurrency",
-    description: "If run_rag() is a blocking operation and this route is async, what should you do to avoid blocking FastAPI's event loop?",
+    description:
+      "If run_rag() is a blocking operation and this route is async, what should you do to avoid blocking FastAPI's event loop?",
     code: `@app.post("/query")
   async def query(question: str):
       answer = run_rag(question)
@@ -277,7 +286,8 @@ Output MUST be valid JSON matching this schema:
     id: "q7b",
     type: "SINGLE_CHOICE",
     title: "Pydantic Reason",
-    description: "Why return a Pydantic model instead of a raw dict from an API endpoint?",
+    description:
+      "Why return a Pydantic model instead of a raw dict from an API endpoint?",
     options: [
       {
         value: "a",
@@ -306,11 +316,13 @@ Output MUST be valid JSON matching this schema:
     options: [
       {
         value: "a",
-        label: "A chain follows a predefined sequence, while an agent can dynamically choose actions or tools.",
+        label:
+          "A chain follows a predefined sequence, while an agent can dynamically choose actions or tools.",
       },
       {
         value: "b",
-        label: "A chain can only use Python, while an agent can only use JavaScript.",
+        label:
+          "A chain can only use Python, while an agent can only use JavaScript.",
       },
       {
         value: "c",
@@ -327,8 +339,7 @@ Output MUST be valid JSON matching this schema:
     id: "q9",
     type: "SINGLE_CHOICE",
     title: "Time Availability",
-    description:
-      "How much focused time can you give this on a normal day?",
+    description: "How much focused time can you give this on a normal day?",
     options: [
       { value: "20_30", label: "20–30 minutes" },
       { value: "45_60", label: "45–60 minutes" },

@@ -17,10 +17,12 @@ import {
   Briefcase,
   CheckCircle2,
 } from "lucide-react";
+import ClockDialPicker from "./ClockDialPicker";
 
 import { useAuth } from "@/features/context/AuthContext";
 import { ONBOARDING_ROUTES } from "@/features/onboarding/paywall/constants/routes";
 import OnboardingShell from "../components/OnboardingShell";
+import { getDiagnosticResults } from "@/features/onboarding/results/services/getDiagnosticResults";
 
 import {
   SCHEDULE_PERIOD_CONFIG,
@@ -113,6 +115,29 @@ export default function RoleScheduleController() {
 
   const [endTime, setEndTime] =
     useState("09:00");
+
+  const [durationMins, setDurationMins] = useState(60);
+
+  // ponytail: fetch diagnostic pacing to pre-fill end time, fallback to 60m
+  React.useEffect(() => {
+    if (!user) return;
+    user.getIdToken().then(token => {
+      getDiagnosticResults(token).then(data => {
+        const cat = data?.results?.pacing?.category;
+        if (cat === "20_30") setDurationMins(30);
+        else if (cat === "90_plus") setDurationMins(90);
+        else if (cat === "45_60") setDurationMins(60);
+      }).catch(() => {});
+    });
+  }, [user]);
+
+  function addMinutes(timeStr, mins) {
+    const [h, m] = timeStr.split(":").map(Number);
+    let totalM = m + mins;
+    let newH = (h + Math.floor(totalM / 60)) % 24;
+    let newM = totalM % 60;
+    return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+  }
 
   const activePeriodConfig =
     SCHEDULE_PERIOD_CONFIG[period];
@@ -446,89 +471,35 @@ export default function RoleScheduleController() {
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label
-                    htmlFor="learning-start-time"
-                    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500"
-                  >
-                    From
-                  </label>
-
-                  <input
-                    id="learning-start-time"
-                    type="time"
-                    value={
-                      startTime
-                    }
-                    min={
-                      activePeriodConfig.min
-                    }
-                    max={
-                      activePeriodConfig.max
-                    }
-                    onChange={(
-                      event,
-                    ) => {
-                      setStartTime(
-                        event.target
-                          .value,
-                      );
-
+                  <ClockDialPicker
+                    label="From"
+                    value={startTime}
+                    onChange={(val) => {
+                      setStartTime(val);
+                      setEndTime(addMinutes(val, durationMins));
                       setErrorMsg("");
                     }}
-                    className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
+                    minTime={activePeriodConfig.min}
+                    maxTime={activePeriodConfig.max}
+                    periodName={period}
                   />
                 </div>
 
                 <div className="flex-1">
-                  <label
-                    htmlFor="learning-end-time"
-                    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500"
-                  >
-                    To
-                  </label>
-
-                  <input
-                    id="learning-end-time"
-                    type="time"
+                  <ClockDialPicker
+                    label="To"
                     value={endTime}
-                    min={
-                      activePeriodConfig.min
-                    }
-                    max={
-                      activePeriodConfig.max
-                    }
-                    onChange={(
-                      event,
-                    ) => {
-                      setEndTime(
-                        event.target
-                          .value,
-                      );
-
+                    onChange={(val) => {
+                      setEndTime(val);
                       setErrorMsg("");
                     }}
-                    className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
+                    minTime={activePeriodConfig.min}
+                    maxTime={activePeriodConfig.max}
+                    periodName={period}
                   />
                 </div>
               </div>
 
-              <p className="text-xs text-slate-500">
-                {period ===
-                  "MORNING" &&
-                  "Morning: 5:00 AM – 12:00 PM"}
-
-                {period ===
-                  "NOON" &&
-                  "Noon: 12:00 PM – 5:00 PM"}
-
-                {period ===
-                  "EVENING" &&
-                  "Evening: 5:00 PM – 9:00 PM"}
-
-                {period ===
-                  "NIGHT" &&
-                  "Night: 9:00 PM – 11:59 PM"}
-              </p>
             </div>
           </div>
         </div>

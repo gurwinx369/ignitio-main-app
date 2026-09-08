@@ -1,30 +1,29 @@
+"use client";
+
 export default function SingleChoiceQuestion({ question, value, onChange, isGrid = false }) {
   return (
-    <div className={isGrid ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-5"}>
+    <div className={isGrid ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "flex flex-col gap-3"}>
       {question.options.map((option) => {
         const isSelected = value === option.value;
         return (
-          <label
+          <button
             key={option.value}
-            className={`block p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected
-              ? "border-[#4EC3FF] bg-[#A8E2FF]"
-              : "border-[#FFDCBC] bg-white hover:border-[#4EC3FF]"
-              }`}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={[
+              "w-full text-left px-5 py-4 rounded-2xl border-2 cursor-pointer select-none font-semibold text-[15px] leading-snug",
+              "transition-[border-color,background-color,box-shadow,transform] duration-100",
+              // Duolingo press: translate down + kill shadow on active
+              isSelected
+                ? "active:translate-y-[3px] active:shadow-none"
+                : "active:translate-y-[3px] active:shadow-none",
+              isSelected
+                ? "border-[#00a9ff] bg-[#ddf2ff] text-[#001d32] shadow-[0_3px_0_#3081AD]"
+                : "border-[#e5d5c5] bg-white text-[#1a2a3a] shadow-[0_3px_0_#FFDCBC]",
+            ].join(" ")}
           >
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                name={question.id}
-                value={option.value}
-                checked={isSelected}
-                onChange={() => onChange(option.value)}
-                className="sr-only"
-              />
-              <span className={`text-lg font-bold ${isSelected ? "text-[#001D32]" : "text-[#001D32]"}`}>
-                {option.label}
-              </span>
-            </div>
-          </label>
+            {option.label}
+          </button>
         );
       })}
     </div>

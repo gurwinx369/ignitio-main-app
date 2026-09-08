@@ -290,3 +290,27 @@ body {
 .progress-squares-container::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.6);
 }
+
+/* ── Onboarding: Duolingo-style press buttons ─────────────────── */
+.diag-continue-btn,
+.ob-press-btn {
+  box-shadow: 0 4px 0 #3081AD;
+  transition: transform 80ms ease, box-shadow 80ms ease, background-color 150ms ease;
+}
+
+.diag-continue-btn:active:not(:disabled),
+.ob-press-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0px 0 #3081AD;
+}
+
+.diag-continue-btn:disabled {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diag-continue-btn,
+  .ob-press-btn {
+    transition: none;
+  }
+}

@@ -6,76 +6,87 @@ import ProgressHeader from './components/ProgressHeader';
 
 const OnboardingStepSeenBefore = ({ onBack, onNext, selection = [], setSelection }) => {
   const options = [
-    { id: 'python', title: 'Python', icon: <Terminal className="text-slate-700" />, bg: 'bg-[#d9f7e8]' },
-    { id: 'git', title: 'Git & GitHub', icon: <Network className="text-slate-700" />, bg: 'bg-[#d9ecff]' },
-    { id: 'rest_apis', title: 'REST APIs', icon: <Webhook className="text-slate-700" />, bg: 'bg-[#ffecd9]' },
-    { id: 'sql', title: 'SQL / Databases', icon: <Database className="text-slate-700" />, bg: 'bg-[#f0d9ff]' },
-    { id: 'langchain', title: 'LangChain', icon: <Link2 className="text-slate-700" />, bg: 'bg-[#fde8f0]' },
-    { id: 'langgraph', title: 'LangGraph', icon: <GitBranch className="text-slate-700" />, bg: 'bg-[#fff3d9]' },
-    { id: 'react_next', title: 'React / Next.js', icon: <Layers className="text-slate-700" />, bg: 'bg-[#d9f0ff]' },
-    { id: 'docker', title: 'Docker', icon: <Box className="text-slate-700" />, bg: 'bg-[#e8f7d9]' },
+    { id: 'python', title: 'Python', icon: <Terminal size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'git', title: 'Git & GitHub', icon: <Network size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'rest_apis', title: 'REST APIs', icon: <Webhook size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'sql', title: 'SQL / Databases', icon: <Database size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'langchain', title: 'LangChain', icon: <Link2 size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'langgraph', title: 'LangGraph', icon: <GitBranch size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'react_next', title: 'React / Next.js', icon: <Layers size={20} className="text-slate-600 shrink-0" /> },
+    { id: 'docker', title: 'Docker', icon: <Box size={20} className="text-slate-600 shrink-0" /> },
   ];
 
   const toggleSelection = (id) => {
     if (selection.includes(id)) {
-      setSelection(selection.filter(item => item !== id));
+      setSelection(selection.filter((item) => item !== id));
     } else {
       setSelection([...selection, id]);
     }
   };
 
-  const handleContinue = () => {
-    onNext();
-  };
-
   return (
-    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
-      <ProgressHeader 
-        currentStep="seenBefore" 
-        codingLevel="know_basics" 
-        onBack={onBack} 
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee]">
+      <ProgressHeader
+        currentStep="seenBefore"
+        codingLevel="know_basics"
+        onBack={onBack}
       />
 
-      <section className="px-6 mt-4 mb-6">
-        <h1 className="text-[26px] font-bold text-[#19183b] leading-tight mb-2">Which of these have you actually used?</h1>
-        <p className="text-[13px] text-slate-500 font-normal">Pick everything that applies — no wrong answers.</p>
-      </section>
+      {/* Question */}
+      <div className="px-6 pt-2 mb-6">
+        <h1 className="text-[22px] font-bold text-[#19183b] leading-tight mb-1">
+          Which of these have you actually used?
+        </h1>
+        <p className="text-[13px] text-[#94a3b8]">Pick everything that applies — no wrong answers.</p>
+      </div>
 
-      <div className="px-6 grid grid-cols-2 gap-[10px] pb-32 flex-1 overflow-y-auto">
+      {/* Option chips — single column, one per line */}
+      <div className="px-6 flex flex-col gap-3 flex-1">
         {options.map((opt) => {
           const isSelected = selection.includes(opt.id);
           return (
-            <div
+            <button
               key={opt.id}
+              type="button"
               onClick={() => toggleSelection(opt.id)}
-              className={`relative bg-white border-2 rounded-[16px] p-5 flex flex-col items-center justify-center aspect-square shadow-[0_2px_10px_rgba(0,0,0,0.055)] cursor-pointer transition-all ${
-                isSelected ? 'border-[#00a9ff] bg-[#f0faff]' : 'border-[#ede8e1]'
+              className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+                isSelected
+                  ? 'bg-[#e8f6ff] border-[#00a9ff] shadow-[0_2px_12px_rgba(0,169,255,0.12)]'
+                  : 'bg-white border-[#e2ddd6]'
               }`}
             >
-              {isSelected && (
-                <div className="absolute top-2 right-2 w-[20px] h-[20px] bg-[#00a9ff] rounded-full flex items-center justify-center">
-                  <Check className="text-white" size={14} strokeWidth={3} />
-                </div>
-              )}
-              <div className={`w-[44px] h-[44px] rounded-2xl flex items-center justify-center mb-3 ${opt.bg}`}>
-                {opt.icon}
+              {opt.icon}
+              <span className="flex-1 text-[15px] font-semibold text-[#19183b]">
+                {opt.title}
+              </span>
+              <div
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  isSelected ? 'border-[#00a9ff] bg-[#00a9ff]' : 'border-[#ccc5bc]'
+                }`}
+              >
+                {isSelected && <Check size={11} className="text-white" strokeWidth={3} />}
               </div>
-              <span className="font-bold text-[13px] text-[#19183b] text-center">{opt.title}</span>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      <div className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent flex flex-col items-center">
-        <div className="bg-[#e8f7ff] rounded-full px-3 py-1 mb-4">
-          <span className="font-bold text-[12px] text-[#00a9ff] tracking-wider">{selection.length} SELECTED</span>
+      {/* CTA — flat divider + full-width button */}
+      <div className="w-full mt-auto">
+        {selection.length > 0 && (
+          <p className="text-center text-[12px] font-bold text-[#00a9ff] mb-3">
+            {selection.length} SELECTED
+          </p>
+        )}
+        <div className="h-px bg-[#e8e0d8]" />
+        <div className="px-6 py-5">
+          <button
+            onClick={onNext}
+            className="w-full py-4 rounded-2xl text-white font-bold text-[16px] tracking-wide bg-[#00a9ff] shadow-[0_4px_0px_#0085cc] active:translate-y-[3px] active:shadow-none transition-all duration-150 active:scale-[0.98]"
+          >
+            CONTINUE
+          </button>
         </div>
-        <button
-          onClick={handleContinue}
-          className="w-full h-14 bg-[#00a9ff] rounded-[30px] flex items-center justify-center shadow-[0_5px_0px_#0085cc] active:translate-y-[4px] active:shadow-none transition-all"
-        >
-          <span className="font-bold text-[16px] text-white">Continue -&gt;</span>
-        </button>
       </div>
     </div>
   );

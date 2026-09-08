@@ -5,34 +5,30 @@ export default function DiagnosticNav({
   canContinue,
   skippable,
   onSkip,
-  isSubmitting
+  isSubmitting,
 }) {
+  const disabled = !canContinue || isSubmitting;
+
   return (
-    <div className="flex items-center justify-end mt-4 pt-2">
-      <div />
-      <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-end flex-col-reverse sm:flex-row">
-        {skippable && (
-          <button
-            type="button"
-            onClick={() => onSkip(SKIP_MARKER)}
-            disabled={isSubmitting}
-            className="text-[#001D32] hover:bg-slate-200/50 px-4 py-3 sm:py-2 rounded-full font-medium transition-colors disabled:opacity-50 w-full sm:w-auto"
-          >
-            Skip
-          </button>
-        )}
+    <>
+      {skippable && (
         <button
           type="button"
-          onClick={onContinue}
-          disabled={!canContinue || isSubmitting}
-          className="bg-[#00A9FF] text-white px-8 py-4 sm:py-3 w-full sm:w-auto rounded-full font-bold uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-[#0096e6] active:translate-y-1"
-          style={{
-            boxShadow: (!canContinue || isSubmitting) ? "none" : "0 4px 0 #004B74"
-          }}
+          onClick={() => onSkip(SKIP_MARKER)}
+          disabled={isSubmitting}
+          className="w-full py-3 text-[#4A5568] font-semibold text-[15px] hover:text-[#001D32] transition-colors disabled:opacity-50"
         >
-          {isSubmitting ? "SAVING..." : "CONTINUE"}
+          Skip
         </button>
-      </div>
-    </div>
+      )}
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={disabled}
+        className="diag-continue-btn w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] hover:bg-[#0096e6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        {isSubmitting ? "Saving…" : "Continue"}
+      </button>
+    </>
   );
 }

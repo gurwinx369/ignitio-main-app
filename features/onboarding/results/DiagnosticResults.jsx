@@ -8,7 +8,7 @@ import { ONBOARDING_STEP_ROUTES } from "../diagnostic/constants/routes";
 import { getDiagnosticResults } from "./services/getDiagnosticResults";
 import { continueToPaywall } from "./services/continueToPaywall";
 
-import DiagnosticResultsSkeleton from "./components/DiagnosticResultsSkeleton";
+import ResultsLoader from "./components/ResultsLoader";
 import ResultsSummary from "./components/ResultsSummary";
 import SkillResultCard from "./components/SkillResultCard";
 import PacingSummary from "./components/PacingSummary";
@@ -16,6 +16,7 @@ import GoalSummary from "./components/GoalSummary";
 import ResultsActions from "./components/ResultsActions";
 import OnboardingShell from "../components/OnboardingShell";
 import LearningPlanPreparation from "../components/LearningPlanPreparation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const MINIMUM_PREPARATION_MS = 2400;
 
@@ -26,6 +27,7 @@ export default function DiagnosticResults() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAnimatingLoader, setIsAnimatingLoader] = useState(true);
 
   // "idle" | "preparing" | "error"
   const [
@@ -189,12 +191,6 @@ export default function DiagnosticResults() {
     }
   };
 
-  if (loading) {
-    return (
-      <DiagnosticResultsSkeleton />
-    );
-  }
-
   if (error && !data) {
     return (
       <OnboardingShell
@@ -224,19 +220,26 @@ export default function DiagnosticResults() {
     );
   }
 
-  if (!data) {
-    return null;
-  }
-
   return (
     <div className="min-h-dvh flex flex-col bg-[#07131D] text-white relative">
-      {preparationStatus !== "idle" && (
-        <LearningPlanPreparation
-          status={preparationStatus}
-          error={preparationError}
-          onRetry={handleContinue}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {(loading || isAnimatingLoader) && !error ? (
+          <ResultsLoader key="loader" onComplete={() => setIsAnimatingLoader(false)} />
+        ) : data ? (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full flex-col flex-grow flex"
+          >
+            {preparationStatus !== "idle" && (
+              <LearningPlanPreparation
+                status={preparationStatus}
+                error={preparationError}
+                onRetry={handleContinue}
+              />
+            )}
 
       <div className="w-full max-w-[430px] mx-auto flex flex-col pt-12 pb-12 px-4 flex-grow">
         <header className="mb-10 text-center">
@@ -256,69 +259,122 @@ export default function DiagnosticResults() {
         )}
 
         <div className="w-full flex-grow mt-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-10 px-4 leading-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-6 px-4 leading-tight">
             {(data.summary?.passedChecks ?? 0) > 0
               ? "Your roadmap adapts around what you already know."
               : "Your personalized roadmap is ready."}
           </h2>
 
-          {/* Roadmap spine + alternating nodes */}
-          <div className="relative flex flex-col items-center">
-            {/* Vertical spine */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-[#00A9FF] -translate-x-1/2" />
+          {/* Scroll Prompt */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, y: [0, 10, 0] }}
+            transition={{ opacity: { delay: 1, duration: 1 }, y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
+            className="flex flex-col items-center justify-center mb-10 text-[#0EA5E9]"
+          >
+            <span className="text-xs uppercase tracking-widest font-semibold mb-1">Scroll to view full roadmap</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+          </motion.div>
 
+          {/* Roadmap spine + alternating nodes */}
+          <div className="relative flex flex-col items-center w-full pb-8">
             {data.areas.map((area, index) => {
               const isLeft = index % 2 === 0;
+              const isPassed = area.status === 'passed';
+              const isLast = index === data.areas.length - 1;
+              
+              // Base colors based on status using Sky Blue
+              const bgColor = isPassed ? "#1E293B" : "#0EA5E9";
+              const borderColor = isPassed ? "#334155" : "#0EA5E9";
+              const shadowColor = isPassed ? "#0F172A" : "#0284C7";
+              const textColor = isPassed ? "#94A3B8" : "#FFFFFF";
+              const labelColor = isPassed ? "#64748B" : "#E0F2FE";
+
               return (
                 <div
                   key={area.id}
-                  className="relative w-full flex items-center mb-8"
+                  className="relative w-full h-[140px]"
                 >
+                  {/* Curvy Spine Path to Next Node */}
+                  {!isLast && (
+                    <motion.svg 
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{ delay: 0.2, duration: 0.6 }}
+                      viewBox="0 0 400 140" 
+                      preserveAspectRatio="none" 
+                      className="absolute top-1/2 left-0 w-full h-[140px] z-0 pointer-events-none"
+                    >
+                      <path 
+                        d={isLeft 
+                          ? "M 120 0 C 120 70, 280 70, 280 140" 
+                          : "M 280 0 C 280 70, 120 70, 120 140"} 
+                        stroke="#0EA5E9" 
+                        strokeOpacity="0.4" 
+                        strokeWidth="4" 
+                        strokeDasharray="8 8" 
+                        fill="none" 
+                        vectorEffect="non-scaling-stroke" 
+                      />
+                    </motion.svg>
+                  )}
+
                   {/* Module card */}
-                  <div
-                    className={`w-[44%] ${isLeft ? "mr-auto pr-3" : "ml-auto pl-3"
-                      }`}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
+                    className={`absolute top-1/2 -translate-y-1/2 w-[44%] sm:w-[40%] z-20 ${isLeft ? "left-[8%] sm:left-[10%]" : "right-[8%] sm:right-[10%]"}`}
                   >
-                    <div className="bg-[#102235] border border-slate-700/60 rounded-2xl p-3 shadow-sm">
-                      <p className="text-white text-[13px] font-bold leading-snug mb-1">
+                    <div 
+                      className="cursor-pointer transition-all duration-200 rounded-[2rem] p-4 font-medium select-none flex flex-col items-center justify-center text-center relative w-full min-h-[80px]"
+                      style={{
+                        backgroundColor: bgColor,
+                        color: textColor,
+                        border: `2px solid ${borderColor}`,
+                        boxShadow: `0 6px 0 ${shadowColor}`,
+                        transform: "translateY(0)"
+                      }}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = "translateY(6px)";
+                        e.currentTarget.style.boxShadow = `0 0px 0 ${shadowColor}`;
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = `0 6px 0 ${shadowColor}`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = `0 6px 0 ${shadowColor}`;
+                      }}
+                    >
+                      <p className="text-[13px] font-bold leading-snug mb-1">
                         {area.title}
                       </p>
                       {area.moduleLabel && (
-                        <span className="text-[10px] font-semibold text-[#00A9FF] uppercase tracking-wide">
+                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: labelColor }}>
                           {area.moduleLabel}
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  {/* Spine node dot */}
-                  <div className="absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#00A9FF] border-2 border-[#07131D] z-10 shadow-[0_0_8px_rgba(0,169,255,0.6)]" />
-
-                  {/* Connector line from node to card */}
-                  {/* LEFT card: connector extends from spine (center) toward card (left), so it sits right of center */}
-                  {/* RIGHT card: connector extends from spine (center) toward card (right), so it sits left of center */}
-                  <div
-                    className={`absolute top-1/2 h-[2px] bg-[#00A9FF]/40 w-[8%] ${isLeft
-                      ? "right-[calc(50%+8px)]"
-                      : "left-[calc(50%+8px)]"
-                      }`}
-                  />
-
-                  {/* Status label — opposite side from card */}
-                  <div
-                    className={`absolute top-[calc(50%2px)] ${isLeft
-                      ? "left-[calc(50%+20px)] text-left"
-                      : "right-[calc(50%+20px)] text-right"
-                      }`}
-                  >
-                    <span className="whitespace-nowrap text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
-                      {area.status === "passed"
-                        ? "skip"
-                        : area.status === "partial"
-                          ? "refresh"
-                          : "include"}
-                    </span>
-                  </div>
+                    {/* Status label floating next to the card */}
+                    <div
+                      className={`absolute top-1/2 -translate-y-1/2 ${isLeft ? "left-[calc(100%+12px)] sm:left-[calc(100%+16px)]" : "right-[calc(100%+12px)] sm:right-[calc(100%+16px)]"}`}
+                    >
+                      <span className="whitespace-nowrap text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
+                        {isPassed
+                          ? "skip"
+                          : area.status === "partial"
+                            ? "refresh"
+                            : "include"}
+                      </span>
+                    </div>
+                  </motion.div>
                 </div>
               );
             })}
@@ -356,6 +412,9 @@ export default function DiagnosticResults() {
         </div>
 
       </div>
+      </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
