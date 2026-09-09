@@ -32,15 +32,16 @@
     "next": "16.2.3",
     "posthog-js": "^1.418.10",
     "posthog-node": "^5.50.0",
+    "razorpay": "^2.9.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0",
-    "three": "^0.182.0",
+    "three": "^0.185.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/three": "^0.182.0",
+    "@types/three": "^0.185.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",

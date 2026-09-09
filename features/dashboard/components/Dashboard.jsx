@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
-import Profile from "@/layout/Profile";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
+import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
@@ -18,72 +18,79 @@ import {
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
 import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
-import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
-import CertificateDashboardSection from "@/features/certificates/CertificateDashboardSection";
-import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
+import { Globe2 } from "lucide-react";
+import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
+import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 
-// Resolve full roadmap data from a stored roadmapId — mirrors NewOnboardingV3 + RoadmapTemplate logic.
-function resolveRoadmapData(roadmapId, role) {
-  if (!roadmapId) return null;
-  if (roadmapId === "git-github") return gitGithubRoadmapData;
-  if (roadmapId === "cpp") return cppRoadmapData;
-  if (roadmapId === "system-design-fundamentals") return systemDesignRoadmapData;
-  if (roadmapId === "python-beginner") return pythonBeginnerRoadmapData;
-  if (roadmapId === "c-beginner") return clangBeginnerRoadmapData;
-  if (roadmapId.startsWith("prompt-engineering"))
-    return getPromptEngineeringRoadmapByRole(role);
-  if (roadmapId.startsWith("dsa")) return getDsaRoadmapByRole(role);
-  return null;
-}
+// Layout Components
+import HomeHeader from "./HomeHeader";
+import FeedbackModal from "./FeedbackModal";
+import StreakStatusCard from "./StreakStatusCard";
+import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
+
+import DashboardBottomNav from "./DashboardBottomNav";
+
+const getRedirects = (isPreview) => ({
+  GitGithub: isPreview
+    ? "/preview/roadmaps/git-github"
+    : "/home/roadmaps/git-github",
+  CPP: isPreview
+    ? "/preview/roadmaps/cpp"
+    : "/home/roadmaps/cpp",
+  PromptEngineering: isPreview
+    ? "/preview/roadmaps/prompt-engineering"
+    : "/home/roadmaps/prompt-engineering",
+  SystemDesign: isPreview
+    ? "/preview/roadmaps/system-design-fundamentals"
+    : "/home/roadmaps/system-design-fundamentals",
+  Python: isPreview
+    ? "/preview/roadmaps/python-beginner"
+    : "/home/roadmaps/python-beginner",
+  CLang: isPreview
+    ? "/preview/roadmaps/c-beginner"
+    : "/home/roadmaps/c-beginner",
+});
 
 export default function Dashboard({ isPreview = false }) {
   const router = useRouter();
+  const redirects = getRedirects(isPreview);
   const pathname = usePathname();
+  const searchParams =
+    useSearchParams();
+
+  const requestedTab =
+    searchParams.get("tab");
   const posthog = usePostHog();
   const { user } = useAuth();
+  const {
+    status,
+    retry,
+  } = usePremiumAccess();
 
   const [isNavigating, setIsNavigating] = useState(false);
-  const [pendingCertificate, setPendingCertificate] = useState(null);
-
-  // ponytail: handle pending certificate animations
+  const [activeTab, setActiveTab] = useState("home");
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const pending = localStorage.getItem("ignitio:pending_certificate_animation");
-        if (pending) {
-          setPendingCertificate(JSON.parse(pending));
-          localStorage.removeItem("ignitio:pending_certificate_animation");
-        }
-      } catch (e) {}
+    if (
+      requestedTab === "worlds" ||
+      requestedTab === "premium" ||
+      requestedTab === "home"
+    ) {
+      setActiveTab(
+        requestedTab,
+      );
     }
-  }, []);
+  }, [
+    requestedTab,
+  ]);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   useEffect(() => {
     setIsNavigating(false);
   }, [pathname]);
-
-  const redirects = {
-    GitGithub: isPreview
-      ? "/preview/roadmaps/git-github"
-      : "/home/roadmaps/git-github",
-    CPP: isPreview ? "/preview/roadmaps/cpp" : "/home/roadmaps/cpp",
-    PromptEngineering: isPreview
-      ? "/preview/roadmaps/prompt-engineering"
-      : "/home/roadmaps/prompt-engineering",
-    SystemDesign: isPreview
-      ? "/preview/roadmaps/system-design-fundamentals"
-      : "/home/roadmaps/system-design-fundamentals",
-    Python: isPreview
-      ? "/preview/roadmaps/python-beginner"
-      : "/home/roadmaps/python-beginner",
-    CLang: isPreview
-      ? "/preview/roadmaps/c-beginner"
-      : "/home/roadmaps/c-beginner",
-  };
 
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
@@ -94,11 +101,30 @@ export default function Dashboard({ isPreview = false }) {
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
+  const [profileData, setProfileData] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // We store the full list of parsed roadmaps so we can feed them to Carousel
+  const [allRoadmaps, setAllRoadmaps] = useState([]);
+
   useEffect(() => {
     const fetchUserRole = async () => {
       let role = "other";
+
       if (isPreview) {
-        role = localStorage.getItem("profession") || "other";
+        try {
+          role =
+            typeof window !== "undefined"
+              ? localStorage.getItem("profession") || "other"
+              : "other";
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "Failed to read preview profession:",
+              error?.message || "unknown error",
+            );
+          }
+        }
       } else if (user) {
         try {
           const token = await user.getIdToken();
@@ -107,19 +133,21 @@ export default function Dashboard({ isPreview = false }) {
               Authorization: `Bearer ${token}`,
             },
           });
+
           if (res.ok) {
             const data = await res.json();
+
             if (data.user?.requiresOnboarding) {
               router.replace("/home/onboarding");
               return;
             }
+
             role = data.user?.role || "other";
           } else {
             if (res.status === 404) {
               router.replace("/home/onboarding");
               return;
             }
-            role = "other";
           }
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
@@ -128,71 +156,75 @@ export default function Dashboard({ isPreview = false }) {
               error?.message || "unknown error",
             );
           }
+
           role = "other";
         }
-      } else {
-        role = "other";
       }
+
       setUserRole(role);
       setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
       setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
 
-      // Migrate preview progress to MongoDB now that user + role are confirmed.
-      // This is the right moment: auth is settled, profile exists, role is known.
-      // Only runs for authenticated users coming from the preview funnel.
-      if (!isPreview && user) {
-        try {
-          const raw =
-            typeof window !== "undefined" &&
-            localStorage.getItem("ignitio:preview_payload");
-          if (raw) {
-            const { roadmapId, completedLevels: previewCompleted } =
-              JSON.parse(raw);
-            const roadmapData = resolveRoadmapData(roadmapId, role);
+      if (!isPreview && user && typeof window !== "undefined") {
+        const previewPayload = localStorage.getItem(
+          "ignitio:preview_payload",
+        );
+
+        if (previewPayload) {
+          try {
+            const parsedPayload = JSON.parse(previewPayload);
+
             if (
-              roadmapData &&
-              Array.isArray(previewCompleted) &&
-              previewCompleted.length > 0
+              parsedPayload &&
+              typeof parsedPayload === "object" &&
+              parsedPayload.roadmapId
             ) {
-              const allLevels = roadmapData.days.flatMap((d) => d.levels);
-              const validIds = new Set(allLevels.map((l) => l.id));
-              const validCompleted = previewCompleted.filter((id) =>
-                validIds.has(id),
-              );
-              if (validCompleted.length > 0) {
-                await migrateRoadmapProgress({
-                  user,
-                  roadmapSlug: roadmapData.id,
-                  payload: {
-                    roadmapTitle: roadmapData.title || "",
-                    role,
-                    totalLevels: allLevels.length,
-                    allLevelIds: allLevels.map((l) => l.id),
-                    days: roadmapData.days.map((d) => ({
-                      id: d.id,
-                      levelIds: d.levels.map((l) => l.id),
-                    })),
-                    completedLevels: validCompleted,
-                    passedAssignments: [],
-                  },
-                });
-              }
+              await migrateRoadmapProgress({
+                user,
+                roadmapSlug: parsedPayload.roadmapId,
+                payload: parsedPayload,
+              });
+
+              localStorage.removeItem("ignitio:preview_payload");
             }
-            localStorage.removeItem("ignitio:preview_payload");
+          } catch (error) {
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "Failed to migrate preview roadmap progress:",
+                error?.message || "unknown error",
+              );
+            }
           }
-        } catch (migrationErr) {
-          if (process.env.NODE_ENV === "development") {
-            console.warn("[preview migration] Failed:", migrationErr?.message);
-          }
-          // Non-fatal — RoadmapTemplate's lazy migration is the safety net
         }
       }
     };
 
-    if (isPreview || user !== undefined) {
+    const fetchProfile = async () => {
+      if (!user) {
+        setIsLoadingProfile(false);
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch("/api/v2/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfileData(data.profile);
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    if (user !== undefined) {
       fetchUserRole();
+      fetchProfile();
     }
-  }, [user, isPreview, router]);
+  }, [user, router, isPreview]);
 
   useEffect(() => {
     setIsClient(true);
@@ -201,11 +233,17 @@ export default function Dashboard({ isPreview = false }) {
 
     const roadmapsData = [
       {
+        id: selectedPromptRoadmap.id,
+        title: selectedPromptRoadmap.title,
+        route: redirects.PromptEngineering,
+        totalLevels: selectedPromptRoadmap.days.flatMap((day) => day.levels).length,
+        legacySections: [],
+      },
+      {
         id: "git-github",
         title: gitGithubRoadmapData.title,
         route: redirects.GitGithub,
-        totalLevels: gitGithubRoadmapData.days.flatMap((day) => day.levels)
-          .length,
+        totalLevels: gitGithubRoadmapData.days.flatMap((day) => day.levels).length,
         legacySections: ["beginner", "intermediate", "advanced"],
       },
       {
@@ -215,23 +253,14 @@ export default function Dashboard({ isPreview = false }) {
         totalLevels: cppRoadmapData.days.flatMap((day) => day.levels).length,
         legacySections: ["beginner", "intermediate", "advanced"],
       },
-      {
-        id: selectedPromptRoadmap.id,
-        title: selectedPromptRoadmap.title,
-        route: redirects.PromptEngineering,
-        totalLevels: selectedPromptRoadmap.days.flatMap((day) => day.levels)
-          .length,
-        legacySections: [],
-      },
     ];
 
     if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
-      roadmapsData.push({
+      roadmapsData.splice(1, 0, {
         id: selectedDsaRoadmap.id,
         title: selectedDsaRoadmap.title,
-        route: isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa",
-        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels)
-          .length,
+        route: "/home/roadmaps/dsa",
+        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
         legacySections: [],
       });
     }
@@ -240,8 +269,9 @@ export default function Dashboard({ isPreview = false }) {
       id: systemDesignRoadmapData.id,
       title: systemDesignRoadmapData.title,
       route: redirects.SystemDesign,
-      totalLevels: systemDesignRoadmapData.days.flatMap((day) => day.levels)
-        .length,
+      totalLevels: systemDesignRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
       legacySections: [],
     });
 
@@ -249,8 +279,9 @@ export default function Dashboard({ isPreview = false }) {
       id: pythonBeginnerRoadmapData.id,
       title: pythonBeginnerRoadmapData.title,
       route: redirects.Python,
-      totalLevels: pythonBeginnerRoadmapData.days.flatMap((day) => day.levels)
-        .length,
+      totalLevels: pythonBeginnerRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
       legacySections: [],
     });
 
@@ -258,8 +289,9 @@ export default function Dashboard({ isPreview = false }) {
       id: clangBeginnerRoadmapData.id,
       title: clangBeginnerRoadmapData.title,
       route: redirects.CLang,
-      totalLevels: clangBeginnerRoadmapData.days.flatMap((day) => day.levels)
-        .length,
+      totalLevels: clangBeginnerRoadmapData.days.flatMap(
+        (day) => day.levels,
+      ).length,
       legacySections: [],
     });
 
@@ -267,7 +299,6 @@ export default function Dashboard({ isPreview = false }) {
 
     for (const roadmap of roadmapsData) {
       let completedLevelsCount = 0;
-
       const canonicalKey = `completed_levels_${roadmap.id}`;
       const saved = localStorage.getItem(canonicalKey);
 
@@ -277,7 +308,7 @@ export default function Dashboard({ isPreview = false }) {
           if (Array.isArray(parsed)) {
             completedLevelsCount = parsed.length;
           }
-        } catch (e) {}
+        } catch (e) { }
       } else if (roadmap.legacySections && roadmap.legacySections.length > 0) {
         for (const section of roadmap.legacySections) {
           const key = `progress_${roadmap.id}_${section}`;
@@ -288,21 +319,15 @@ export default function Dashboard({ isPreview = false }) {
               if (Array.isArray(parsed)) {
                 completedLevelsCount += parsed.length;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
       }
 
       roadmap.completedLevels = completedLevelsCount;
-      roadmap.progressPercent = Math.round(
-        (completedLevelsCount / roadmap.totalLevels) * 100,
-      );
-      progressMap[roadmap.id] = {
-        completed: completedLevelsCount,
-        total: roadmap.totalLevels,
-      };
+      roadmap.progressPercent = Math.round((completedLevelsCount / roadmap.totalLevels) * 100);
+      progressMap[roadmap.id] = { completed: completedLevelsCount, total: roadmap.totalLevels };
 
-      // Track roadmap with the highest completion count (must be > 0)
       if (completedLevelsCount > highestCompleted) {
         highestCompleted = completedLevelsCount;
         bestRoadmap = roadmap;
@@ -316,14 +341,11 @@ export default function Dashboard({ isPreview = false }) {
       );
       if (savedLastActive) {
         const parsed = JSON.parse(savedLastActive);
-        if (parsed && parsed.id) {
-          lastActiveRoadmapId = parsed.id;
-        }
+        if (parsed && parsed.id) lastActiveRoadmapId = parsed.id;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     let activeRoadmapToSet = bestRoadmap;
-
     if (lastActiveRoadmapId) {
       const foundLastActive = roadmapsData.find(
         (r) => r.id === lastActiveRoadmapId,
@@ -335,205 +357,287 @@ export default function Dashboard({ isPreview = false }) {
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(activeRoadmapToSet);
+    setAllRoadmaps(roadmapsData);
   }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
 
-  const handleRedirectGitGithub = () => {
-    router.push(redirects.GitGithub);
+  const handleRedirect = (route) => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    router.push(route);
+    setTimeout(() => setIsNavigating(false), 3000);
   };
-  const handleRedirectCPP = () => {
-    router.push(redirects.CPP);
-  };
-  const handleRedirectPromptEngineering = () => {
-    router.push(redirects.PromptEngineering);
-  };
-  const handleRedirectDsa = () => {
-    router.push(isPreview ? "/preview/roadmaps/dsa" : "/home/roadmaps/dsa");
-  };
-  const handleRedirectSystemDesign = () => {
-    router.push(redirects.SystemDesign);
-  };
-  const handleRedirectPython = () => {
-    router.push(redirects.Python);
-  };
-  const handleRedirectCLang = () => {
-    router.push(redirects.CLang);
-  };
+
+  const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub);
+  const handleRedirectCPP = () => handleRedirect(redirects.CPP);
+  const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
+  const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa");
+  const handleRedirectSystemDesign = () =>
+    handleRedirect(redirects.SystemDesign);
+
+  const handleRedirectPython = () =>
+    handleRedirect(redirects.Python);
+
+  const handleRedirectCLang = () =>
+    handleRedirect(redirects.CLang);
+
+  const displayName = profileData?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
+
+  const carouselRoadmaps = [];
+
+  // System Design
+  carouselRoadmaps.push({
+    id: systemDesignRoadmapData.id,
+    component: (
+      <SystemDesignCourseCard
+        onClick={handleRedirectSystemDesign}
+        levelsFinished={
+          roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[systemDesignRoadmapData.id]?.total ||
+          systemDesignRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
+
+  // Python
+  carouselRoadmaps.push({
+    id: pythonBeginnerRoadmapData.id,
+    component: (
+      <PythonCourseCard
+        onClick={handleRedirectPython}
+        levelsFinished={
+          roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
+          pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
+
+  // C Language
+  carouselRoadmaps.push({
+    id: clangBeginnerRoadmapData.id,
+    component: (
+      <CCourseCard
+        onClick={handleRedirectCLang}
+        levelsFinished={
+          roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
+        }
+        totalLevels={
+          roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
+          clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+        }
+      />
+    ),
+  });
+
+  // Prompt Engineering
+  carouselRoadmaps.push({
+    id: selectedPromptRoadmap.id,
+    component: (
+      <PromptEngineeringCourseCard
+        onClick={handleRedirectPromptEngineering}
+        levelsFinished={roadmapProgress[selectedPromptRoadmap.id]?.completed || 0}
+        totalLevels={roadmapProgress[selectedPromptRoadmap.id]?.total || selectedPromptRoadmap.days.flatMap((day) => day.levels).length}
+        roadmapData={selectedPromptRoadmap}
+      />
+    )
+  });
+
+  // DSA
+  if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
+    carouselRoadmaps.push({
+      id: selectedDsaRoadmap.id,
+      component: (
+        <DsaCourseCard
+          onClick={handleRedirectDsa}
+          levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+          totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
+          roadmapData={selectedDsaRoadmap}
+        />
+      )
+    });
+  }
+
+  // CPP
+  carouselRoadmaps.push({
+    id: "cpp",
+    component: (
+      <CppCourseCard
+        onClick={handleRedirectCPP}
+        levelsFinished={roadmapProgress["cpp"]?.completed || 0}
+        totalLevels={roadmapProgress["cpp"]?.total || cppRoadmapData.days.flatMap((day) => day.levels).length}
+      />
+    )
+  });
+
+  // Git
+  carouselRoadmaps.push({
+    id: "git-github",
+    component: (
+      <GitCourseCard
+        onClick={handleRedirectGitGithub}
+        levelsFinished={roadmapProgress["git-github"]?.completed || 0}
+        totalLevels={roadmapProgress["git-github"]?.total || gitGithubRoadmapData.days.flatMap((day) => day.levels).length}
+      />
+    )
+  });
+
+  /**
+   * New-user guard:
+   * Only show the empty state after client-side resolution completes.
+   * Prevents existing learners from seeing "Choose your first roadmap" briefly.
+   *
+   * isClient becomes true after localStorage is read (useEffect).
+   * If isClient is false, we haven't resolved yet → do not show empty state.
+   */
+  const clientResolved = isClient;
+  const hasActiveRoadmap = Boolean(activeRoadmap);
 
   return (
-    <div className="min-h-screen bg-[var(--color-primary)] pb-24 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        {/* Header Section */}
-        {!isPreview && (
-          <div className="mb-12">
-            <Profile />
-          </div>
-        )}
+    <div className="min-h-screen bg-[#FCF5EE] font-sans text-[#19183B]">
+      {/* ── HOME TAB ── */}
+      {activeTab === "home" && (
+        <div className="max-w-[780px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
 
-        {/* Continue Learning Banner */}
-        <div className="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-gray-100 mb-16 flex flex-col md:flex-row md:items-center justify-between gap-8 transition-shadow hover:shadow-md">
-          <div>
-            <span className="text-xs md:text-sm font-bold text-[#06b6d4] tracking-widest uppercase mb-3 block">
-              {activeRoadmap
-                ? "Resume Course"
-                : "Choose a roadmap and begin learning."}
-            </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-              {activeRoadmap
-                ? activeRoadmap.title
-                : "Start Your Learning Journey"}
-            </h2>
-            <div className="flex items-center gap-4">
-              <div className="w-48 md:w-64 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#06b6d4] rounded-full shadow-sm transition-all duration-500"
-                  style={{
-                    width: `${isClient && activeRoadmap ? activeRoadmap.progressPercent : 0}%`,
-                  }}
-                ></div>
+          <HomeHeader
+            displayName={displayName}
+            onOpenFeedback={() => setIsFeedbackOpen(true)}
+          />
+
+          <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+
+          {/* Loading state — show skeleton while client resolves */}
+          {!clientResolved && (
+            <div className="flex flex-col gap-5">
+              <div className="animate-pulse bg-white/80 rounded-3xl h-52 border border-[#E6BA91] shadow-sm" />
+              <div className="animate-pulse bg-white/80 rounded-3xl h-40 border border-[#E6BA91] shadow-sm" />
+            </div>
+          )}
+
+          {/* New-user empty state — only after resolution, only if no roadmap */}
+          {clientResolved && !hasActiveRoadmap && (
+            <div className="flex flex-col items-center justify-center text-center py-16 px-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#00A9FF]/12 flex items-center justify-center mb-6">
+                <Globe2 className="w-8 h-8 text-[#00A9FF]" />
               </div>
-              <span className="text-sm font-semibold text-gray-500">
-                {isClient && activeRoadmap ? activeRoadmap.progressPercent : 0}%
-              </span>
+
+              <h2 className="text-2xl font-bold text-[#19183B] mb-3">
+                Choose your first roadmap
+              </h2>
+
+              <p className="text-[#19183B]/65 text-sm max-w-xs mb-8 leading-relaxed">
+                Start with a structured learning path and build your first learning streak.
+              </p>
+
+              <button
+                onClick={() => setActiveTab("worlds")}
+                className="
+                  px-8 py-3.5
+                  bg-[#00A9FF]
+                  text-[#19183B]
+                  font-bold
+                  rounded-xl
+                  shadow-[0_4px_0_#0085C7]
+                  hover:-translate-y-px
+                  active:translate-y-[2px]
+                  active:shadow-[0_1px_0_#0085C7]
+                  active:scale-[0.99]
+                  transition-all duration-150
+                  text-sm
+                "
+              >
+                Start Roadmap
+              </button>
             </div>
-          </div>
-          <button
-            onClick={() => {
-              if (isNavigating) return;
-              const targetRoute = activeRoadmap ? activeRoadmap.route : "/home";
-              if (pathname === targetRoute) return;
+          )}
 
-              setIsNavigating(true);
-              posthog?.capture("dashboard_navigation_clicked", {
-                target_route: targetRoute,
-                roadmap_id: activeRoadmap ? activeRoadmap.id : null,
-              });
-              router.push(targetRoute);
-
-              setTimeout(() => setIsNavigating(false), 3000);
-            }}
-            disabled={isNavigating || !activeRoadmap}
-            className={`px-8 py-4 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95 shrink-0 ${
-              isNavigating || !activeRoadmap
-                ? "bg-[var(--color-secondary-100)] text-[var(--color-secondary-500)] cursor-not-allowed"
-                : "bg-[var(--color-secondary-900)] hover:bg-[var(--color-secondary-800)] hover:shadow-lg"
-            }`}
-          >
-            {isNavigating
-              ? "Loading..."
-              : activeRoadmap
-                ? "Continue Learning"
-                : "Explore Roadmaps"}
-          </button>
-        </div>
-
-        {/* Certificates Section */}
-        <CertificateDashboardSection />
-
-        {/* Explore Topics */}
-        <div>
-          <div className="flex items-end justify-between mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-              Explore Roadmaps
-            </h2>
-          </div>
-
-          <div className="flex flex-col items-center gap-10 w-full">
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <SystemDesignCourseCard
-                onClick={handleRedirectSystemDesign}
-                levelsFinished={
-                  roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
-                }
-                totalLevels={
-                  roadmapProgress[systemDesignRoadmapData.id]?.total ||
-                  systemDesignRoadmapData.days.flatMap((day) => day.levels)
-                    .length
-                }
+          {/* Existing learner — streak + roadmap */}
+          {clientResolved && hasActiveRoadmap && (
+            <div className="flex flex-col gap-5">
+              {/* Streak module */}
+              <StreakStatusCard
+                streak={profileData?.streak}
+                isLoadingProfile={isLoadingProfile}
+                user={user}
               />
-            </div>
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <PythonCourseCard
-                onClick={handleRedirectPython}
-                levelsFinished={
-                  roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
-                }
-                totalLevels={
-                  roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
-                  pythonBeginnerRoadmapData.days.flatMap((day) => day.levels)
-                    .length
-                }
-              />
-            </div>
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <CCourseCard
-                onClick={handleRedirectCLang}
-                levelsFinished={
-                  roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
-                }
-                totalLevels={
-                  roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
-                  clangBeginnerRoadmapData.days.flatMap((day) => day.levels)
-                    .length
-                }
-              />
-            </div>
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <PromptEngineeringCourseCard
-                onClick={handleRedirectPromptEngineering}
-                levelsFinished={
-                  roadmapProgress[selectedPromptRoadmap.id]?.completed || 0
-                }
-                totalLevels={
-                  roadmapProgress[selectedPromptRoadmap.id]?.total ||
-                  selectedPromptRoadmap.days.flatMap((day) => day.levels).length
-                }
-                roadmapData={selectedPromptRoadmap}
-              />
-            </div>
-            {isDsaAllowedRole(userRole) && selectedDsaRoadmap && (
-              <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-                <DsaCourseCard
-                  onClick={handleRedirectDsa}
-                  levelsFinished={
-                    roadmapProgress[selectedDsaRoadmap.id]?.completed || 0
-                  }
-                  totalLevels={
-                    roadmapProgress[selectedDsaRoadmap.id]?.total ||
-                    selectedDsaRoadmap.days.flatMap((day) => day.levels).length
-                  }
-                  roadmapData={selectedDsaRoadmap}
-                />
+
+              {/* Current roadmap — actual course card */}
+              <div>
+                <p
+                  className="
+                    text-[11px]
+                    font-bold
+                    text-[#19183B]/55
+                    uppercase
+                    tracking-widest
+                    mb-2
+                    px-1
+                  "
+                >
+                  CONTINUE LEARNING
+                </p>
+
+                <div className="w-full max-w-[460px] mx-auto">
+                  {(() => {
+                    const comp = carouselRoadmaps.find(
+                      (r) => r.id === activeRoadmap.id
+                    )?.component;
+
+                    return comp
+                      ? React.cloneElement(comp, { variant: "home" })
+                      : null;
+                  })()}
+                </div>
               </div>
-            )}
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <CppCourseCard
-                onClick={handleRedirectCPP}
-                levelsFinished={roadmapProgress["cpp"]?.completed || 0}
-                totalLevels={
-                  roadmapProgress["cpp"]?.total ||
-                  cppRoadmapData.days.flatMap((day) => day.levels).length
-                }
-              />
             </div>
-            <div className="w-full flex justify-center transition-transform hover:-translate-y-2 duration-300">
-              <GitCourseCard
-                onClick={handleRedirectGitGithub}
-                levelsFinished={roadmapProgress["git-github"]?.completed || 0}
-                totalLevels={
-                  roadmapProgress["git-github"]?.total ||
-                  gitGithubRoadmapData.days.flatMap((day) => day.levels).length
-                }
-              />
-            </div>
-          </div>
+          )}
         </div>
-      </div>
-      {pendingCertificate && (
-        <CertificateUnlockedModal
-          certificate={pendingCertificate}
-          onClose={() => setPendingCertificate(null)}
-        />
       )}
+
+      {/* ── WORLDS TAB ── */}
+      {activeTab === "worlds" && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
+          {/* RoadmapWorldsCarousel renders its own "Roadmap Worlds" heading internally */}
+          <RoadmapWorldsCarousel
+            roadmaps={carouselRoadmaps}
+            initialActiveId={activeRoadmap?.id}
+          />
+        </div>
+      )}
+
+      {/* ── PREMIUM TAB ── */}
+      {activeTab === "premium" && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Premium Worlds</h1>
+            <p className="text-sm text-slate-500 mt-2">
+              Master advanced skills with GenAI.
+            </p>
+          </div>
+          <div className="flex justify-center items-center w-full">
+            <div className="w-full max-w-[760px]">
+              <GenAiPremiumCard
+                status={status}
+                onRetry={retry}
+                onNavigatePremium={() =>
+                  handleRedirect("/home/premium/genai")
+                }
+                onNavigatePaywall={() =>
+                  handleRedirect("/home/premium/genai/paywall")
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FIXED BOTTOM NAVIGATION ── */}
+      <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }

@@ -10,29 +10,17 @@ const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
     {
       id: 'beginner',
       title: 'Complete Beginner',
-      icon: <Leaf className="text-[#16a34a]" size={24} />,
-      bg: 'bg-[#d9f7e8]',
-      borderActive: 'border-[#00a9ff]',
-      cardActive: 'bg-[#f0faff] border-[#00a9ff]',
-      cardInactive: 'bg-white border-[#ede8e1]',
+      icon: <Leaf size={20} className="text-[#16a34a] shrink-0" />,
     },
     {
       id: 'some_code',
-      title: <>I&apos;ve written some code</>,
-      icon: <Code className="text-[#d97706]" size={24} />,
-      bg: 'bg-[#ffecd9]',
-      borderActive: 'border-[#00a9ff]',
-      cardActive: 'bg-[#f0faff] border-[#00a9ff]',
-      cardInactive: 'bg-white border-[#ede8e1]',
+      title: "I've written some code",
+      icon: <Code size={20} className="text-[#d97706] shrink-0" />,
     },
     {
       id: 'know_basics',
-      title: 'I know basics, want structure',
-      icon: <Zap className="text-[#db2777]" size={24} />,
-      bg: 'bg-[#fde8f0]',
-      borderActive: 'border-[#00a9ff]',
-      cardActive: 'bg-[#f0faff] border-[#00a9ff]',
-      cardInactive: 'bg-white border-[#ede8e1]',
+      title: 'I know the basics, want structure',
+      icon: <Zap size={20} className="text-[#db2777] shrink-0" />,
     },
   ];
 
@@ -41,77 +29,87 @@ const OnboardingStepLevel = ({ onBack, onNext, selection, setSelection }) => {
   };
 
   return (
-    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">
-      <ProgressHeader 
-        currentStep="level" 
-        codingLevel={selection || 'beginner'} 
-        onBack={onBack} 
+    <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee]">
+      <ProgressHeader
+        currentStep="level"
+        codingLevel={selection || 'beginner'}
+        onBack={onBack}
       />
 
-      {/* HEADER SECTION */}
-      <div className="mt-8 px-6 flex items-start gap-4">
-        <div className="w-[64px] h-[64px] shrink-0 border-2 border-[#1e293b] rounded-xl bg-[#edeae2] flex flex-col items-center justify-between p-1 overflow-hidden">
-          <div className="flex-1 flex items-center justify-center pt-1">
-            <Image alt="Kyle Robot Mascot" className="w-9 h-9 object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0uhm7k_FuO5l-pDmZI_sW4ke1q7jxG_zhrnlhxq8wIDLpY6kkP0fMPvzIAeoAljcolLH5IqH8klQchoKRtmf1_MzL2njPw3KcAp5wHc3wMYVxKfWZHtJbnuUJDs2OCd3ixRPCbONpeWYUThDtkRAPQgCPXl9v8Uovb0ikeQXPDIbj3eToR_ftdFcNu26KZagmj3maI9xGJwhZ-vxn9FsXM2qgiIbxBaKe54vhVf5Ohfg0yGg4wKUeRPdn9ZABC9P6VYanewmt6L5cw" width={36} height={36} unoptimized />
-          </div>
+      {/* Mascot chat bubble */}
+      <div className="px-6 pt-2 pb-6 flex items-start gap-3">
+        <div className="w-[52px] h-[52px] shrink-0 border-2 border-[#1e293b] rounded-2xl bg-[#edeae2] flex items-center justify-center overflow-hidden">
+          <Image
+            alt="Kyle Robot Mascot"
+            src="https://lh3.googleusercontent.com/aida/ADBb0uhm7k_FuO5l-pDmZI_sW4ke1q7jxG_zhrnlhxq8wIDLpY6kkP0fMPvzIAeoAljcolLH5IqH8klQchoKRtmf1_MzL2njPw3KcAp5wHc3wMYVxKfWZHtJbnuUJDs2OCd3ixRPCbONpeWYUThDtkRAPQgCPXl9v8Uovb0ikeQXPDIbj3eToR_ftdFcNu26KZagmj3maI9xGJwhZ-vxn9FsXM2qgiIbxBaKe54vhVf5Ohfg0yGg4wKUeRPdn9ZABC9P6VYanewmt6L5cw"
+            width={36}
+            height={36}
+            className="object-contain"
+            unoptimized
+          />
         </div>
-        <div className="relative bg-white border-[1.5px] border-[#e2e8f0] rounded-2xl p-4 flex-1">
-          <div className="absolute left-[-10px] top-[19px] w-0 h-0 border-t-[9px] border-t-transparent border-b-[9px] border-b-transparent border-r-[9px] border-r-[#e2e8f0] z-0"></div>
-          <div className="absolute left-[-8px] top-[20px] w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white z-10"></div>
-          <p className="text-[14px] font-medium text-[#19183b] leading-tight">
+        <div className="relative bg-white border border-[#e2e8f0] rounded-2xl px-4 py-3 flex-1 shadow-sm">
+          <div className="absolute left-[-7px] top-4 w-3 h-3 bg-white border-l border-b border-[#e2e8f0] rotate-45" />
+          <p className="text-[13px] font-medium text-[#19183b] leading-snug">
             Hey <span className="text-[#00a9ff]">Student</span>! Quick question before we begin
           </p>
         </div>
       </div>
 
-      {/* QUESTION SECTION */}
-      <div className="mt-10 px-6">
-        <h1 className="text-[26px] font-bold text-[#19183b] leading-[1.2]">
+      {/* Question */}
+      <div className="px-6 mb-6">
+        <h1 className="text-[22px] font-bold text-[#19183b] leading-tight">
           What&apos;s your current coding level?
         </h1>
       </div>
 
-      {/* SELECTION CARDS */}
-      <div className="mt-6 px-6 flex flex-col gap-4 flex-1 overflow-y-auto pb-32">
+      {/* Option chips — single column, one per line */}
+      <div className="px-6 flex flex-col gap-3 flex-1">
         {options.map((opt) => {
           const isSelected = selection === opt.id;
           return (
-            <div
+            <button
               key={opt.id}
+              type="button"
               onClick={() => setSelection(opt.id)}
-              className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer active:scale-[0.98] ${
-                isSelected ? opt.cardActive + ' shadow-[0_4px_20px_rgba(0,169,255,0.15)]' : opt.cardInactive
+              className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+                isSelected
+                  ? 'bg-[#e8f6ff] border-[#00a9ff] shadow-[0_2px_12px_rgba(0,169,255,0.12)]'
+                  : 'bg-white border-[#e2ddd6]'
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl ${opt.bg} flex items-center justify-center shrink-0`}>
-                {opt.icon}
-              </div>
-              <div className="ml-4 flex-1">
-                <p className="text-[16px] font-bold text-[#19183b]">{opt.title}</p>
-              </div>
+              {opt.icon}
+              <span className="flex-1 text-[15px] font-semibold text-[#19183b]">
+                {opt.title}
+              </span>
               <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  isSelected ? 'border-[#00a9ff] bg-[#00a9ff]' : 'border-[#ede8e1]'
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  isSelected ? 'border-[#00a9ff] bg-[#00a9ff]' : 'border-[#ccc5bc]'
                 }`}
               >
-                {isSelected && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      {/* CTA BUTTON */}
-      <div className="sticky bottom-0 left-0 w-full px-6 py-6 bg-linear-to-t from-[#fcf5ee] via-[#fcf5ee] to-transparent">
-        <button
-          onClick={handleContinue}
-          disabled={!selection}
-          className={`w-full h-15 py-4 text-white font-extrabold text-[17px] transition-all flex items-center justify-center gap-2 rounded-full ${
-            selection ? 'bg-[#00a9ff] shadow-[0_5px_0px_#0085cc] active:translate-y-[3px] active:shadow-[0_2px_0px_#0085cc]' : 'bg-gray-300'
-          }`}
-        >
-          Continue →
-        </button>
+      {/* CTA — Duolingo-style: divider + full-width button */}
+      <div className="w-full mt-auto">
+        <div className="h-px bg-[#e8e0d8] mx-0" />
+        <div className="px-6 py-5">
+          <button
+            onClick={handleContinue}
+            disabled={!selection}
+            className={`w-full py-4 rounded-2xl text-white font-bold text-[16px] tracking-wide transition-all duration-150 active:scale-[0.98] ${
+              selection
+                ? 'bg-[#00a9ff] shadow-[0_4px_0px_#0085cc] active:translate-y-[3px] active:shadow-none'
+                : 'bg-[#d4cfc9] cursor-not-allowed'
+            }`}
+          >
+            CONTINUE
+          </button>
+        </div>
       </div>
     </div>
   );

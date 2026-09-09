@@ -5,7 +5,7 @@
 import mongoose, { Schema } from "mongoose";
 
 // A single quiz question attempt for one video level.
-const QuizAttemptSchema = new Schema(
+export const QuizAttemptSchema = new Schema(
   {
     concept: { type: String, required: true },
     dayNumber: { type: Number, required: true },
@@ -15,7 +15,7 @@ const QuizAttemptSchema = new Schema(
     wasCorrect: { type: Boolean, required: true },
     submittedAt: { type: Date, default: Date.now },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // One scored submission within an assignment session.
@@ -27,7 +27,7 @@ const AssignmentSubmissionSchema = new Schema(
     passed: { type: Boolean, required: true },
     submittedAt: { type: Date, default: Date.now },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // One assignment record per (user, dayNumber).
@@ -43,7 +43,7 @@ const AssignmentAttemptSchema = new Schema(
     locked: { type: Boolean, default: false },
     lockedUntil: { type: Date, default: null }, // null unless locked after 3 failures
   },
-  { _id: false }
+  { _id: false },
 );
 
 const KyleHistorySchema = new Schema(
@@ -55,7 +55,7 @@ const KyleHistorySchema = new Schema(
     assignmentHistory: { type: [AssignmentAttemptSchema], default: [] },
     assignmentsPassed: { type: Number, default: 0 }, // $inc at write, never recomputed
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Efficient lookups: all quiz attempts for a user on a given day.

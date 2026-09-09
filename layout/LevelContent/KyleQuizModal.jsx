@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, CheckCircle, XCircle, AlertCircle, RefreshCcw } from 'lucide-react';
+import Image from 'next/image';
+import { CheckCircle, XCircle, AlertCircle, RefreshCcw } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
 function normalizeAnswer(value) {
@@ -154,12 +155,18 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
             <div className="bg-[#FAF9F6] w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-                        <Bot size={24} />
+                    <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                        <Image
+                            src="/kyle/kyle.svg"
+                            alt="Kyle"
+                            width={48}
+                            height={48}
+                            className="w-full h-full rounded-full object-cover"
+                        />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-gray-900">Knowledge Check</h3>
-                        <p className="text-sm text-gray-500">Alright. Let's see if you were actually watching.</p>
+                        <p className="text-sm text-gray-500">Alright. Let&apos;s see if you were actually watching.</p>
                     </div>
                 </div>
 

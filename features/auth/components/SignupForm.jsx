@@ -7,6 +7,37 @@ import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
+import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
+
+async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
+  const idToken = await firebaseUser.getIdToken();
+
+  const response = await fetch("/api/v2/user", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
+      email: firebaseUser.email,
+      initializeLegalConsent,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      "Failed to provision user profile"
+    );
+  }
+
+  return data.user;
+}
+
+
 export default function SignupForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [focusedInput, setFocusedInput] = useState(null);
@@ -14,18 +45,30 @@ export default function SignupForm() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState("");
   const isHandlingAuthActionRef = useRef(false);
+  const isResumingRef = useRef(false);
   const posthog = usePostHog();
 
   const { signup, loginWithGoogle, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user && !isHandlingAuthActionRef.current) {
-      router.replace("/home");
+    if (user && !isHandlingAuthActionRef.current && !isResumingRef.current) {
+      isResumingRef.current = true;
+      setLoading(true);
+      ensureUserProfile(user)
+        .then((profile) => {
+          router.replace(getOnboardingRoute(profile));
+        })
+        .catch(() => {
+          // Profile provision failed — show error, do not navigate
+          isResumingRef.current = false;
+          setLoading(false);
+          setError("Could not load your profile. Please try again.");
+        });
     }
   }, [user, router]);
 
-  if (user && !isHandlingAuthActionRef.current) {
+  if (user && !isHandlingAuthActionRef.current && !isResumingRef.current) {
     return <Loader />;
   }
 
@@ -45,11 +88,26 @@ export default function SignupForm() {
       const result = await signup(form.email, form.password);
 
       if (result.success) {
-        if (result.authMode === "existing_login") {
-          router.replace("/home");
-        } else {
-          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
-          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
+        try {
+          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
+
+          if (result.authMode === "new_signup") {
+            const hasPreview =
+              typeof window !== "undefined" &&
+              !!localStorage.getItem("ignitio:preview_payload");
+
+            router.replace(
+              hasPreview
+                ? "/home/onboarding?from=preview"
+                : "/home/onboarding"
+            );
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
         }
       } else {
         isHandlingAuthActionRef.current = false;
@@ -72,11 +130,26 @@ export default function SignupForm() {
       const result = await loginWithGoogle();
 
       if (result.success) {
-        if (result.authMode === "new_signup") {
-          const hasPreview = typeof window !== "undefined" && !!localStorage.getItem("ignitio:preview_payload");
-          router.replace(hasPreview ? "/home/onboarding?from=preview" : "/home/onboarding");
-        } else {
-          router.replace("/home");
+        try {
+          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
+
+          if (result.authMode === "new_signup") {
+            const hasPreview =
+              typeof window !== "undefined" &&
+              !!localStorage.getItem("ignitio:preview_payload");
+
+            router.replace(
+              hasPreview
+                ? "/home/onboarding?from=preview"
+                : "/home/onboarding"
+            );
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
         }
       } else if (result.error === null) {
         // Cancelled popup
@@ -321,12 +394,12 @@ export default function SignupForm() {
                     <Link
                       href="/auth/login"
                       onClick={(e) => {
-                          if (isNavigating) {
-                              e.preventDefault();
-                              return;
-                          }
-                          setIsNavigating(true);
-                          posthog?.capture("auth_navigation_clicked", { target: "login" });
+                        if (isNavigating) {
+                          e.preventDefault();
+                          return;
+                        }
+                        setIsNavigating(true);
+                        posthog?.capture("auth_navigation_clicked", { target: "login" });
                       }}
                       className="font-semibold hover:underline transition-colors duration-200 inline-flex items-center gap-1"
                       style={{

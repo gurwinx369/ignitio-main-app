@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   useCardLoader,
   SpinnerIcon,
   SuccessIcon,
   StatusBadge,
   CardInfoShimmer,
-  LevelSquaresLoading,
 } from "./CardLoader";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
+import useRoadmapCanvasActivity from "./useRoadmapCanvasActivity";
 
 const ANIM_STYLE = `
 @keyframes py-cursor {
@@ -104,10 +108,33 @@ function renderVisibleTokens(tokens, visibleCharacters) {
 }
 
 function PythonCodeVisual() {
-  const [phase, setPhase] = useState("typing");
-  const [lineIndex, setLineIndex] = useState(0);
-  const [charIndex, setCharIndex] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const visualRef =
+    useRef(null);
+
+  const animationActiveRef =
+    useRoadmapCanvasActivity(
+      visualRef,
+    );
+
+  const [
+    phase,
+    setPhase,
+  ] = useState("typing");
+
+  const [
+    lineIndex,
+    setLineIndex,
+  ] = useState(0);
+
+  const [
+    charIndex,
+    setCharIndex,
+  ] = useState(0);
+
+  const [
+    reducedMotion,
+    setReducedMotion,
+  ] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -130,74 +157,223 @@ function PythonCodeVisual() {
       return undefined;
     }
 
-    let timer;
+    let timer = null;
+
+    const scheduleWhenActive = (
+      callback,
+      delay,
+    ) => {
+      const run = () => {
+        if (
+          !animationActiveRef.current
+        ) {
+          timer =
+            window.setTimeout(
+              run,
+              120,
+            );
+
+          return;
+        }
+
+        callback();
+      };
+
+      timer =
+        window.setTimeout(
+          run,
+          delay,
+        );
+    };
 
     if (phase === "typing") {
-      if (lineIndex >= CODE_LINES.length) {
-        timer = setTimeout(() => {
-          setPhase("running");
-        }, 280);
+      if (
+        lineIndex >=
+        CODE_LINES.length
+      ) {
+        scheduleWhenActive(
+          () => {
+            setPhase(
+              "running",
+            );
+          },
+          280,
+        );
 
-        return () => clearTimeout(timer);
+        return () => {
+          if (timer) {
+            clearTimeout(
+              timer,
+            );
+          }
+        };
       }
 
-      const currentLine = CODE_LINES[lineIndex];
+      const currentLine =
+        CODE_LINES[
+        lineIndex
+        ];
 
-      const currentLineLength = getLineLength(currentLine);
+      const currentLineLength =
+        getLineLength(
+          currentLine,
+        );
 
-      if (currentLineLength === 0) {
-        timer = setTimeout(() => {
-          setLineIndex((current) => current + 1);
-          setCharIndex(0);
-        }, 150);
+      if (
+        currentLineLength ===
+        0
+      ) {
+        scheduleWhenActive(
+          () => {
+            setLineIndex(
+              (current) =>
+                current +
+                1,
+            );
 
-        return () => clearTimeout(timer);
+            setCharIndex(
+              0,
+            );
+          },
+          150,
+        );
+
+        return () => {
+          if (timer) {
+            clearTimeout(
+              timer,
+            );
+          }
+        };
       }
 
-      if (charIndex < currentLineLength) {
-        timer = setTimeout(() => {
-          setCharIndex((current) => current + 1);
-        }, 42);
+      if (
+        charIndex <
+        currentLineLength
+      ) {
+        scheduleWhenActive(
+          () => {
+            setCharIndex(
+              (current) =>
+                current +
+                1,
+            );
+          },
+          42,
+        );
 
-        return () => clearTimeout(timer);
+        return () => {
+          if (timer) {
+            clearTimeout(
+              timer,
+            );
+          }
+        };
       }
 
-      timer = setTimeout(() => {
-        setLineIndex((current) => current + 1);
-        setCharIndex(0);
-      }, 190);
+      scheduleWhenActive(
+        () => {
+          setLineIndex(
+            (current) =>
+              current +
+              1,
+          );
 
-      return () => clearTimeout(timer);
+          setCharIndex(
+            0,
+          );
+        },
+        190,
+      );
+
+      return () => {
+        if (timer) {
+          clearTimeout(
+            timer,
+          );
+        }
+      };
     }
 
-    if (phase === "running") {
-      timer = setTimeout(() => {
-        setPhase("output");
-      }, 650);
+    if (
+      phase === "running"
+    ) {
+      scheduleWhenActive(
+        () => {
+          setPhase(
+            "output",
+          );
+        },
+        650,
+      );
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (timer) {
+          clearTimeout(
+            timer,
+          );
+        }
+      };
     }
 
-    if (phase === "output") {
-      timer = setTimeout(() => {
-        setPhase("pause");
-      }, 1500);
+    if (
+      phase === "output"
+    ) {
+      scheduleWhenActive(
+        () => {
+          setPhase(
+            "pause",
+          );
+        },
+        1500,
+      );
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (timer) {
+          clearTimeout(
+            timer,
+          );
+        }
+      };
     }
 
-    if (phase === "pause") {
-      timer = setTimeout(() => {
-        setLineIndex(0);
-        setCharIndex(0);
-        setPhase("typing");
-      }, 1100);
+    if (
+      phase === "pause"
+    ) {
+      scheduleWhenActive(
+        () => {
+          setLineIndex(
+            0,
+          );
 
-      return () => clearTimeout(timer);
+          setCharIndex(
+            0,
+          );
+
+          setPhase(
+            "typing",
+          );
+        },
+        1100,
+      );
+
+      return () => {
+        if (timer) {
+          clearTimeout(
+            timer,
+          );
+        }
+      };
     }
 
     return undefined;
-  }, [phase, lineIndex, charIndex, reducedMotion]);
+  }, [
+    phase,
+    lineIndex,
+    charIndex,
+    reducedMotion,
+    animationActiveRef,
+  ]);
 
   const effectivePhase = reducedMotion ? "output" : phase;
 
@@ -208,13 +384,23 @@ function PythonCodeVisual() {
 
   return (
     <div
+      ref={visualRef}
+      data-roadmap-animated-visual
       style={{
         background:
           "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-        height: "100%",
-        overflow: "hidden",
-        position: "relative",
-        fontFamily: "'Fira Code', 'Fira Mono', monospace",
+
+        height:
+          "100%",
+
+        overflow:
+          "hidden",
+
+        position:
+          "relative",
+
+        fontFamily:
+          "'Fira Code', 'Fira Mono', monospace",
       }}
     >
       <style>{ANIM_STYLE}</style>
@@ -524,14 +710,17 @@ export default function PythonCourseCard({
   status = "Not Started",
   levelsFinished = 0,
   totalLevels,
+  variant = "world",
 }) {
-  const allLevels = pythonBeginnerRoadmapData.days.flatMap((day) => day.levels);
+  const allLevels = pythonBeginnerRoadmapData.days.flatMap(
+    (day) => day.levels
+  );
 
-  const calculatedTotal = allLevels.length;
+  const calculatedTotalLevels = allLevels.length;
 
   const totalMinutes = allLevels.reduce(
     (acc, level) => acc + (level.durationInMinutes || 0),
-    0,
+    0
   );
 
   const formattedDuration =
@@ -539,36 +728,33 @@ export default function PythonCourseCard({
       ? `${Math.round(totalMinutes / 60)} Hours`
       : `${totalMinutes} Minutes`;
 
-  const displayTotal = totalLevels || calculatedTotal;
+  const displayTotalLevels =
+    totalLevels || calculatedTotalLevels;
 
   const [hovered, setHovered] = useState(false);
 
-  const { state, handleClick, isLocked, isLoading, isSuccess, isPressing } =
-    useCardLoader(onClick, 1400);
+  const {
+    state,
+    handleClick,
+    isLocked,
+    isLoading,
+    isSuccess,
+    isPressing,
+  } = useCardLoader(onClick, 1400);
 
   const isActive = isLoading || isSuccess;
 
-  const scale = isPressing
-    ? "scale(0.972)"
+  const transform = isPressing
+    ? "translateY(2px) scale(0.985)"
     : hovered && !isLocked
-      ? "translateY(-4px)"
+      ? "translateY(-2px)"
       : "translateY(0)";
 
-  const shadow = isActive
-    ? "0 12px 40px rgba(0,0,0,0.10)"
+  const cardShadow = isActive
+    ? "drop-shadow(0 7px 12px rgba(25,24,59,0.09))"
     : hovered
-      ? "0 20px 56px rgba(0,0,0,0.14)"
-      : "0 6px 24px rgba(0,0,0,0.08)";
-
-  const arrowBg = isActive
-    ? isSuccess
-      ? "rgba(59,130,246,0.16)"
-      : "rgba(30,26,24,0.11)"
-    : hovered
-      ? "rgba(30,26,24,0.14)"
-      : "rgba(30,26,24,0.07)";
-
-  const arrowShift = hovered && !isLocked ? "translateX(3px)" : "translateX(0)";
+      ? "drop-shadow(0 10px 15px rgba(25,24,59,0.12))"
+      : "drop-shadow(0 5px 10px rgba(25,24,59,0.07))";
 
   return (
     <div
@@ -576,21 +762,44 @@ export default function PythonCourseCard({
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="w-full sm:w-120 overflow-hidden select-none"
+      className="
+        group
+        w-full
+        relative
+        overflow-hidden
+        select-none
+        flex
+        flex-col
+      "
       style={{
         borderRadius: 24,
-        boxShadow: shadow,
-        transform: scale,
-        transition: "transform 0.28s ease, box-shadow 0.28s ease",
-        cursor: isLocked ? "not-allowed" : "pointer",
-        pointerEvents: isLocked ? "none" : "auto",
+
+        minHeight:
+          variant === "home"
+            ? 620
+            : 540,
+
+        transform,
+
+        filter: cardShadow,
+
+        transition:
+          "transform 160ms ease, filter 160ms ease",
+
+        cursor: isLocked
+          ? "not-allowed"
+          : "pointer",
+
+        pointerEvents: isLocked
+          ? "none"
+          : "auto",
       }}
     >
-      {/* Visual header */}
+      {/* HERO */}
       <div
-        className="relative overflow-hidden"
+        className="relative overflow-hidden shrink-0"
         style={{
-          height: 310,
+          height: variant === "home" ? 305 : 250,
           background:
             "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
         }}
@@ -600,14 +809,11 @@ export default function PythonCourseCard({
         {isActive && (
           <div
             aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
             style={{
-              position: "absolute",
-              inset: 0,
               background: isSuccess
-                ? "rgba(59,130,246,0.06)"
-                : "rgba(0,0,0,0.08)",
-              transition: "background 0.28s ease",
-              pointerEvents: "none",
+                ? "rgba(0,169,255,0.06)"
+                : "rgba(25,24,59,0.05)",
             }}
           />
         )}
@@ -615,79 +821,98 @@ export default function PythonCourseCard({
         <StatusBadge state={state} status={status} />
       </div>
 
-      {/* Info section */}
+      {/* INFO */}
       <div
-        className="px-5 pt-4.5 pb-5"
-        style={{ background: "#f2e0d0", position: "relative" }}
+        className="
+          relative
+          px-5
+          pt-[18px]
+          pb-5
+          flex-grow
+          flex
+          flex-col
+        "
+        style={{
+          background: "#F2E0D0",
+        }}
       >
         <CardInfoShimmer state={state} />
 
-        <div className="flex items-center gap-1.5 mb-3.5">
+        <div className="flex items-center gap-1.5 mb-3">
           <svg
             width="14"
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#3a3330"
+            stroke="#19183B"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ opacity: 0.55, flexShrink: 0 }}
+            style={{
+              opacity: 0.55,
+              flexShrink: 0,
+            }}
           >
             <circle cx="12" cy="12" r="10" />
-
             <polyline points="12 6 12 12 16 14" />
           </svg>
 
-          <span
-            className="text-[11px] font-bold tracking-widest uppercase"
-            style={{ color: "#3a3330" }}
-          >
-            {totalMinutes > 0 ? formattedDuration : "18 Hours"}
+          <span className="text-[11px] font-bold tracking-widest uppercase text-[#19183B]">
+            {totalMinutes > 0
+              ? formattedDuration
+              : "18 Hours"}
           </span>
         </div>
 
-        <p
-          className="text-[15.5px] font-medium leading-[1.55] mb-4"
-          style={{ color: "#1e1a18" }}
-        >
-          Learn Python from scratch - variables, functions, OOP, and
-          industry-ready skills for AI, ML, and software development.
+        <h3 className="text-[18px] font-extrabold leading-tight text-[#19183B] mb-1.5">
+          {pythonBeginnerRoadmapData.title}
+        </h3>
+
+        <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+          {pythonBeginnerRoadmapData.description ||
+            "Learn Python from scratch — variables, functions, OOP, and industry-ready skills for AI, ML, and software development."}
         </p>
 
-        <div className="flex items-center gap-1 mb-4 flex-wrap">
-          <LevelSquaresLoading
-            state={state}
-            levelsFinished={levelsFinished}
-            totalLevels={displayTotal}
-          />
+        <p className="text-[11px] font-semibold text-[#19183B]/55">
+          {levelsFinished}/{displayTotalLevels} levels
+        </p>
 
-          <span
-            className="text-[11px] font-semibold ml-1"
-            style={{ color: "rgba(30,26,24,0.45)" }}
-          >
-            {levelsFinished}/{displayTotal} levels
-          </span>
-        </div>
-
-        <div className="flex justify-end">
+        <div className="flex justify-center mt-auto pt-4">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{
-              background: arrowBg,
-              transform: isLoading ? "none" : arrowShift,
-              transition: "all 0.22s ease",
-            }}
+            className="
+              flex
+              h-12
+              w-12
+              items-center
+              justify-center
+              rounded-full
+              bg-[#00A9FF]
+              text-[#19183B]
+              shadow-[0_4px_0_#0085C7]
+              transition-[transform,box-shadow]
+              duration-150
+              ease-out
+              group-hover:-translate-y-px
+              group-active:translate-y-[2px]
+              group-active:scale-[0.98]
+              group-active:shadow-[0_1px_0_#0085C7]
+            "
           >
-            {isLoading && <SpinnerIcon size={14} color="#1e1a18" />}
-            {isSuccess && <SuccessIcon size={14} color="#2ecc8a" />}
+            {isLoading && (
+              <SpinnerIcon size={16} color="#19183B" />
+            )}
+
+            {isSuccess && (
+              <SuccessIcon size={16} color="#19183B" />
+            )}
+
             {!isLoading && !isSuccess && (
               <svg
-                width="14"
-                height="14"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#1e1a18"
+                stroke="#19183B"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"

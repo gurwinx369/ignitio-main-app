@@ -4,6 +4,7 @@ export function isKyleEnabledRoadmap(roadmapType) {
         (
             roadmapType.startsWith("prompt-engineering") ||
             roadmapType.startsWith("dsa") ||
+            roadmapType === "gen-ai-internship" ||
             roadmapType.startsWith("system-design") ||
             roadmapType.startsWith("python-beginner") ||
             roadmapType.startsWith("c-language")

@@ -1,35 +1,90 @@
 "use client"
-import {useState} from 'react';
-import {LogOut, X} from 'lucide-react';
-import {useAuth} from '@/features/context/AuthContext';
-import Image from "next/image"
+import { useEffect, useState } from 'react';
+import { LogOut, X, User, UserCircle, Gamepad2, CreditCard } from 'lucide-react';
+import { useAuth } from '@/features/context/AuthContext';
+import Image from "next/image";
+import { useRouter } from 'next/navigation';
 
-const UserIcon = () => (
-    <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400"
-    >
-        <circle cx="12" cy="8" r="4" strokeWidth="1.5"/>
-        <path
-            d="M6 21c0-3.314 2.686-6 6-6s6 2.686 6 6"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-        />
-    </svg>
-);
+const AVATAR_PRESETS = {
+    default: { label: "Default", className: "bg-cyan-100 text-cyan-700", image: null },
+    spark: { label: "Spark", className: "bg-amber-100 text-amber-700", image: "/profile/avatars/profile1.png" },
+    phoenix: { label: "Phoenix", className: "bg-orange-100 text-orange-700", image: "/profile/avatars/profile2.png" },
+    learner: { label: "Learner", className: "bg-emerald-100 text-emerald-700", image: "/profile/avatars/profile3.png" },
+    builder: { label: "Builder", className: "bg-blue-100 text-blue-700", image: "/profile/avatars/profile4.png" },
+    creator: { label: "Creator", className: "bg-fuchsia-100 text-fuchsia-700", image: "/profile/avatars/profile5.png" },
+};
+
+const AVATAR_FRAMES = {
+    cyan: "/profile/rings/ring1.png",
+    blue: "/profile/rings/ring2.png",
+    purple: "/profile/rings/ring3.png",
+    orange: "/profile/rings/ring4.png",
+    gold: "/profile/rings/ring5.png",
+    green: "/profile/rings/ring5.png",
+    slate: "/profile/rings/ring1.png",
+};
 
 export default function ProfileDropdown({ compact = false }) {
     const [isOpen, setIsOpen] = useState(false);
-    const {user, logout} = useAuth();
-    const {photoURL, displayName} = user;
+    const { user, logout } = useAuth();
+    const photoURL = user?.photoURL;
+    const displayName = user?.displayName;
+    const router = useRouter();
+
+    const [profileData, setProfileData] = useState(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchProfile() {
+            if (!user) return;
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch("/api/v2/profile", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) setProfileData(data.profile);
+                }
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            }
+        }
+        fetchProfile();
+
+        const handleProfileUpdated = () => {
+            fetchProfile();
+        };
+
+        window.addEventListener("profileUpdated", handleProfileUpdated);
+
+        return () => {
+            isMounted = false;
+            window.removeEventListener("profileUpdated", handleProfileUpdated);
+        };
+    }, [user]);
+
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
     };
 
+    const handleProfileClick = () => {
+        setIsOpen(false);
+        router.push('/home/profile');
+    };
+
+    const handleSubscriptionClick = () => {
+        setIsOpen(false);
+        router.push('/home/subscription');
+    };
+
     const handleDiscordClick = () => {
-        window.open('https://discord.com/invite/vaEFpQnFRs', '_blank');
+        setIsOpen(false);
+        window.open(
+            'https://discord.com/invite/vaEFpQnFRs',
+            '_blank',
+            'noopener,noreferrer'
+        );
     };
 
     const handleLogout = async () => {
@@ -41,77 +96,127 @@ export default function ProfileDropdown({ compact = false }) {
         }
     };
 
+    const displayAvatarFrame = profileData?.avatarFrame
+        ? (AVATAR_FRAMES[profileData.avatarFrame] || AVATAR_FRAMES.cyan)
+        : null;
+
+    const renderAvatar = () => {
+        if (!profileData) {
+            if (photoURL) {
+                return <Image src={photoURL} alt="Avatar" width={compact ? 44 : 64} height={compact ? 44 : 64} className="w-full h-full object-cover" />;
+            }
+            return (
+                <div className={`flex w-full h-full items-center justify-center ${AVATAR_PRESETS.default.className}`}>
+                    <User className={compact ? "w-5 h-5 sm:w-6 sm:h-6" : "w-8 h-8 sm:w-10 sm:h-10"} strokeWidth={2} />
+                </div>
+            );
+        }
+
+        const avatarUrl = profileData.avatarUrl || "";
+        const avatarPreset = profileData.avatarPreset || "default";
+        const selectedPreset = AVATAR_PRESETS[avatarPreset] || AVATAR_PRESETS.default;
+
+        if (avatarUrl) {
+            // eslint-disable-next-line @next/next/no-img-element
+            return <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />;
+        }
+        if ((!avatarPreset || avatarPreset === "default") && photoURL) {
+            return <Image src={photoURL} alt="Avatar" width={compact ? 44 : 64} height={compact ? 44 : 64} className="w-full h-full object-cover" />;
+        }
+        if (selectedPreset?.image) {
+            return <Image src={selectedPreset.image} alt={selectedPreset.label || "Avatar"} width={compact ? 44 : 64} height={compact ? 44 : 64} className="w-full h-full object-cover" />;
+        }
+        return (
+            <div className={`flex w-full h-full items-center justify-center ${selectedPreset?.className || AVATAR_PRESETS.default.className}`}>
+                <User className={compact ? "w-5 h-5 sm:w-6 sm:h-6" : "w-8 h-8 sm:w-10 sm:h-10"} strokeWidth={2} />
+            </div>
+        );
+    };
+
     const avatarButton = (
         <div className="relative z-50 shrink-0">
             <button
                 onClick={toggleDropdown}
                 className={
                     compact
-                        ? "w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-full bg-white/80 border border-[#f1e4d2] shadow-sm flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#06b6d4] hover:shadow-md transition-all duration-300"
-                        : "w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-[#fffaf3] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#06b6d4] hover:shadow-md transition-shadow duration-300"
+                        ? "relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-full focus:outline-none hover:shadow-md transition-all duration-300"
+                        : "relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full focus:outline-none hover:shadow-md transition-shadow duration-300"
                 }
                 aria-label="Profile menu"
             >
-                {photoURL ? (
-                    <Image src={photoURL} alt="Profile Image" width={compact ? 44 : 64} height={compact ? 44 : 64} className="w-full h-full object-cover"/>
-                ) : (
-                    <UserIcon/>
+                <div className={`absolute ${compact ? "inset-[5px]" : "inset-[7px] sm:inset-[8px]"} overflow-hidden rounded-full ${compact ? "bg-white/80" : "bg-[#fffaf3]"}`}>
+                    {renderAvatar()}
+                </div>
+
+                {displayAvatarFrame && (
+                    <Image
+                        src={displayAvatarFrame}
+                        alt=""
+                        fill
+                        sizes={compact ? "44px" : "64px"}
+                        className="pointer-events-none object-contain"
+                    />
                 )}
             </button>
 
             {/* Dropdown Menu */}
             <div
-                className={`absolute ${compact ? 'right-0 origin-top-right' : 'left-0 origin-top-left md:origin-top-right md:left-auto md:right-0'} mt-3 w-64 sm:w-[20rem] max-w-[calc(100vw-2rem)] bg-[#fff3dc] rounded-[1.5rem] shadow-2xl border border-[#f1ddbd] overflow-hidden transition-all duration-300 ease-out z-[9999] ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
+                className={`absolute ${compact ? 'right-0 origin-top-right' : 'left-0 origin-top-left md:origin-top-right md:left-auto md:right-0'} mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-[9999] transition-all duration-200 ease-out ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
             >
                 {/* Close button header */}
-                <div className="p-4 sm:px-5 sm:py-4 flex items-center justify-between border-b border-[#f1ddbd]/50">
-                    <span className="font-bold text-[#071225] text-xs px-2 uppercase tracking-wider">Account</span>
+                <div className="flex items-center justify-between px-4 pb-2 pt-1 border-b border-slate-100 mb-2">
+                    <span className="font-bold text-slate-500 text-xs uppercase tracking-wider">Account</span>
                     <button
+                        type="button"
                         onClick={toggleDropdown}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/60 transition-colors duration-200 bg-white/40 shadow-sm border border-white/50 text-[#071225]"
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors duration-200 text-slate-400 hover:text-slate-600"
                         aria-label="Close menu"
                     >
-                        <X className="w-4 h-4" strokeWidth={2.5}/>
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Menu Options */}
-                <div className="p-3 sm:p-4 flex flex-col gap-1">
-                    {/* Discord Option */}
-                    <button
-                        onClick={handleDiscordClick}
-                        className="w-full flex items-center gap-4 p-2 rounded-2xl hover:bg-white/50 transition-all duration-200 group"
-                    >
-                        <div
-                            className="w-12 h-12 flex items-center justify-center rounded-xl bg-[#071225] group-hover:scale-105 transition-transform duration-200 shrink-0 shadow-md">
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-5 h-5 text-white"
-                            >
-                                <path
-                                    d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
-                            </svg>
-                        </div>
-                        <span className="text-lg font-bold text-[#071225]">
-                            Discord
-                        </span>
-                    </button>
-
-                    {/* Logout Option */}
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-4 p-2 rounded-2xl hover:bg-white/50 transition-all duration-200 group"
-                    >
-                        <div
-                            className="w-12 h-12 flex items-center justify-center rounded-xl bg-[#071225] group-hover:scale-105 transition-transform duration-200 shrink-0 shadow-md">
-                            <LogOut className="w-5 h-5 text-white" strokeWidth={2}/>
-                        </div>
-                        <span className="text-lg font-bold text-[#071225]">
-                            Logout
-                        </span>
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleProfileClick}
+                    className="w-[calc(100%_-_1rem)] flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1 text-left"
+                >
+                    <div className="p-1.5 bg-[#06b6d4]/10 text-[#0891b2] rounded-lg">
+                        <UserCircle className="w-4 h-4" />
+                    </div>
+                    Profile
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSubscriptionClick}
+                    className="w-[calc(100%_-_1rem)] flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all hover:translate-x-1 text-left"
+                >
+                    <div className="p-1.5 bg-[#06b6d4]/10 text-[#0891b2] rounded-lg">
+                        <CreditCard className="w-4 h-4" />
+                    </div>
+                    Subscription
+                </button>
+                <button
+                    type="button"
+                    onClick={handleDiscordClick}
+                    className="w-[calc(100%_-_1rem)] flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-[#5865F2] hover:bg-[#5865F2]/5 rounded-xl transition-all hover:translate-x-1 text-left"
+                >
+                    <div className="p-1.5 bg-[#5865F2]/10 text-[#5865F2] rounded-lg">
+                        <Gamepad2 className="w-4 h-4" />
+                    </div>
+                    Join Discord
+                </button>
+                <div className="h-px bg-slate-100 my-2 mx-4" />
+                <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-[calc(100%_-_1rem)] flex items-center gap-3 px-4 py-3 mx-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all hover:translate-x-1 text-left"
+                >
+                    <div className="p-1.5 bg-red-100 text-red-600 rounded-lg">
+                        <LogOut className="w-4 h-4" />
+                    </div>
+                    Logout
+                </button>
             </div>
         </div>
     );

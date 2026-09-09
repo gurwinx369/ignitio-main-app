@@ -8,73 +8,73 @@ import {
     SuccessIcon,
     StatusBadge,
     CardInfoShimmer,
-    LevelSquaresLoading,
 } from './CardLoader';
+import useRoadmapCanvasActivity from "./useRoadmapCanvasActivity";
 
 // ─── 17 second loop (1020 frames @ 60fps) ────────────────────────
 const CYCLE = 1020;
 
 const F = {
-    EDITOR_IN:   0,
-    MAIN:        70,
-    VAR:         200,
-    CALL:        330,
-    FUNC_DEF:    430,
-    COUT1:       520,
-    OUTPUT1:     590,
-    RETURN_ARC:  660,
-    COUT2:       740,
-    OUTPUT2:     810,
-    RET0:        880,
-    DONE:        940,
-    HOLD:        970,
+    EDITOR_IN: 0,
+    MAIN: 70,
+    VAR: 200,
+    CALL: 330,
+    FUNC_DEF: 430,
+    COUT1: 520,
+    OUTPUT1: 590,
+    RETURN_ARC: 660,
+    COUT2: 740,
+    OUTPUT2: 810,
+    RET0: 880,
+    DONE: 940,
+    HOLD: 970,
 };
 
 function caption(t) {
-    if (t < F.MAIN)       return { step: '',       title: 'C++ Execution',      sub: 'Watch a real program run, line by line' };
-    if (t < F.VAR)        return { step: 'Step 1', title: 'main() starts',      sub: 'Every C++ program begins here' };
-    if (t < F.CALL)       return { step: 'Step 2', title: 'int x = 5',          sub: 'Declare a variable and store the value 5' };
-    if (t < F.FUNC_DEF)   return { step: 'Step 3', title: 'greet() is called',  sub: 'Execution jumps into the function above' };
-    if (t < F.COUT1)      return { step: 'Step 4', title: 'Inside greet()',     sub: 'The function body starts running' };
-    if (t < F.RETURN_ARC) return { step: 'Step 5', title: 'cout << "Hello!"',   sub: 'Text is printed to the output screen' };
-    if (t < F.COUT2)      return { step: 'Step 6', title: 'Returned to main()', sub: 'Function done — back to where we called it' };
-    if (t < F.RET0)       return { step: 'Step 7', title: 'cout << x * 2',      sub: '5 × 2 = 10  →  printed to output' };
-    if (t < F.DONE)       return { step: 'Step 8', title: 'return 0',           sub: 'Program signals it finished successfully' };
-    return                       { step: '✓ Done', title: 'Full C++ Flow',      sub: 'declare → call → compute → output' };
+    if (t < F.MAIN) return { step: '', title: 'C++ Execution', sub: 'Watch a real program run, line by line' };
+    if (t < F.VAR) return { step: 'Step 1', title: 'main() starts', sub: 'Every C++ program begins here' };
+    if (t < F.CALL) return { step: 'Step 2', title: 'int x = 5', sub: 'Declare a variable and store the value 5' };
+    if (t < F.FUNC_DEF) return { step: 'Step 3', title: 'greet() is called', sub: 'Execution jumps into the function above' };
+    if (t < F.COUT1) return { step: 'Step 4', title: 'Inside greet()', sub: 'The function body starts running' };
+    if (t < F.RETURN_ARC) return { step: 'Step 5', title: 'cout << "Hello!"', sub: 'Text is printed to the output screen' };
+    if (t < F.COUT2) return { step: 'Step 6', title: 'Returned to main()', sub: 'Function done — back to where we called it' };
+    if (t < F.RET0) return { step: 'Step 7', title: 'cout << x * 2', sub: '5 × 2 = 10  →  printed to output' };
+    if (t < F.DONE) return { step: 'Step 8', title: 'return 0', sub: 'Program signals it finished successfully' };
+    return { step: '✓ Done', title: 'Full C++ Flow', sub: 'declare → call → compute → output' };
 }
 
 const LINES = [
-    { tokens: [{ t: 'void ',   c: '#c678dd' }, { t: 'greet', c: '#61afef' }, { t: '() {', c: '#abb2bf' }],   active: F.FUNC_DEF },
-    { tokens: [{ t: '  cout',  c: '#61afef' }, { t: ' << ',  c: '#abb2bf' }, { t: '"Hello!"', c: '#98c379' }, { t: ';', c: '#abb2bf' }], active: F.COUT1 },
-    { tokens: [{ t: '}',       c: '#abb2bf' }],   active: -1 },
-    { tokens: [],                                  active: -1 },
-    { tokens: [{ t: 'int ',    c: '#c678dd' }, { t: 'main', c: '#61afef' }, { t: '() {', c: '#abb2bf' }],    active: F.MAIN },
-    { tokens: [{ t: '  int ',  c: '#c678dd' }, { t: 'x',   c: '#e06c75' }, { t: ' = ',  c: '#abb2bf' }, { t: '5', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.VAR },
-    { tokens: [{ t: '  ',      c: '#abb2bf' }, { t: 'greet', c: '#61afef' }, { t: '();', c: '#abb2bf' }],    active: F.CALL },
-    { tokens: [{ t: '  cout',  c: '#61afef' }, { t: ' << ', c: '#abb2bf' }, { t: 'x', c: '#e06c75' }, { t: ' * ', c: '#abb2bf' }, { t: '2', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.COUT2 },
-    { tokens: [{ t: '  ',      c: '#abb2bf' }, { t: 'return ', c: '#c678dd' }, { t: '0', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.RET0 },
-    { tokens: [{ t: '}',       c: '#abb2bf' }],   active: -1 },
+    { tokens: [{ t: 'void ', c: '#c678dd' }, { t: 'greet', c: '#61afef' }, { t: '() {', c: '#abb2bf' }], active: F.FUNC_DEF },
+    { tokens: [{ t: '  cout', c: '#61afef' }, { t: ' << ', c: '#abb2bf' }, { t: '"Hello!"', c: '#98c379' }, { t: ';', c: '#abb2bf' }], active: F.COUT1 },
+    { tokens: [{ t: '}', c: '#abb2bf' }], active: -1 },
+    { tokens: [], active: -1 },
+    { tokens: [{ t: 'int ', c: '#c678dd' }, { t: 'main', c: '#61afef' }, { t: '() {', c: '#abb2bf' }], active: F.MAIN },
+    { tokens: [{ t: '  int ', c: '#c678dd' }, { t: 'x', c: '#e06c75' }, { t: ' = ', c: '#abb2bf' }, { t: '5', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.VAR },
+    { tokens: [{ t: '  ', c: '#abb2bf' }, { t: 'greet', c: '#61afef' }, { t: '();', c: '#abb2bf' }], active: F.CALL },
+    { tokens: [{ t: '  cout', c: '#61afef' }, { t: ' << ', c: '#abb2bf' }, { t: 'x', c: '#e06c75' }, { t: ' * ', c: '#abb2bf' }, { t: '2', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.COUT2 },
+    { tokens: [{ t: '  ', c: '#abb2bf' }, { t: 'return ', c: '#c678dd' }, { t: '0', c: '#d19a66' }, { t: ';', c: '#abb2bf' }], active: F.RET0 },
+    { tokens: [{ t: '}', c: '#abb2bf' }], active: -1 },
 ];
 
 const OUTPUT_LINES = [
     { text: 'Hello!', start: F.OUTPUT1, dur: 35, color: '#98c379' },
-    { text: '10',     start: F.OUTPUT2, dur: 25, color: '#d19a66' },
+    { text: '10', start: F.OUTPUT2, dur: 25, color: '#d19a66' },
 ];
 
-const ease  = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const prog  = (t, s, d) => ease(clamp((t - s) / d, 0, 1));
+const prog = (t, s, d) => ease(clamp((t - s) / d, 0, 1));
 
 function activeLineFor(t) {
     const frameToLine = {
-        [F.MAIN]:       4,
-        [F.VAR]:        5,
-        [F.CALL]:       6,
-        [F.FUNC_DEF]:   0,
-        [F.COUT1]:      1,
+        [F.MAIN]: 4,
+        [F.VAR]: 5,
+        [F.CALL]: 6,
+        [F.FUNC_DEF]: 0,
+        [F.COUT1]: 1,
         [F.RETURN_ARC]: 6,
-        [F.COUT2]:      7,
-        [F.RET0]:       8,
+        [F.COUT2]: 7,
+        [F.RET0]: 8,
     };
     const frameKeys = [F.RET0, F.COUT2, F.RETURN_ARC, F.COUT1, F.FUNC_DEF, F.CALL, F.VAR, F.MAIN];
     for (const fv of frameKeys) {
@@ -86,8 +86,17 @@ function activeLineFor(t) {
 // ─── Canvas ───────────────────────────────────────────────────────
 function CppExecCanvas() {
     const canvasRef = useRef(null);
-    const rafRef    = useRef(null);
-    const tRef      = useRef(0);
+    const rafRef = useRef(null);
+    const pauseTimerRef = useRef(null);
+    const lastFrameTimeRef = useRef(0);
+    const tRef = useRef(0);
+
+    const animationActiveRef =
+        useRoadmapCanvasActivity(
+            canvasRef,
+        );
+
+    const FRAME_INTERVAL = 1000 / 30;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -95,8 +104,11 @@ function CppExecCanvas() {
         const ctx = canvas.getContext('2d');
 
         function resize() {
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width  = canvas.offsetWidth  * dpr;
+            const dpr = Math.min(
+                window.devicePixelRatio || 1,
+                1.75,
+            );
+            canvas.width = canvas.offsetWidth * dpr;
             canvas.height = canvas.offsetHeight * dpr;
             ctx.scale(dpr, dpr);
         }
@@ -105,17 +117,17 @@ function CppExecCanvas() {
         const W = () => canvas.offsetWidth;
         const H = () => canvas.offsetHeight;
 
-        const PAD      = 10;
-        const CODE_X   = () => PAD + 10;
-        const CODE_W   = () => W() * 0.60;
-        const TERM_X   = () => CODE_X() + CODE_W() + 8;
-        const TERM_W   = () => W() - TERM_X() - PAD;
-        const PANEL_Y  = 14;
-        const LINE_H   = 17;
-        const NUM_W    = 20;
+        const PAD = 10;
+        const CODE_X = () => PAD + 10;
+        const CODE_W = () => W() * 0.60;
+        const TERM_X = () => CODE_X() + CODE_W() + 8;
+        const TERM_W = () => W() - TERM_X() - PAD;
+        const PANEL_Y = 14;
+        const LINE_H = 17;
+        const NUM_W = 20;
         const CODE_TOP = PANEL_Y + 22;
-        const PANEL_H  = () => LINES.length * LINE_H + 28;
-        const lineY    = i => CODE_TOP + i * LINE_H + 12;
+        const PANEL_H = () => LINES.length * LINE_H + 28;
+        const lineY = i => CODE_TOP + i * LINE_H + 12;
 
         function rr(x, y, w, h, r) {
             ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
@@ -164,7 +176,7 @@ function CppExecCanvas() {
             const activeLine = activeLineFor(t);
 
             LINES.forEach((line, i) => {
-                const ly    = lineY(i);
+                const ly = lineY(i);
                 const isAct = i === activeLine && activeLine >= 0;
 
                 if (isAct) {
@@ -223,7 +235,7 @@ function CppExecCanvas() {
 
         function drawCallArc(alpha) {
             if (alpha <= 0) return;
-            const x  = CODE_X() + CODE_W();
+            const x = CODE_X() + CODE_W();
             const y1 = lineY(6) - 5;
             const y2 = lineY(0) - 5;
             const ax = x + 14;
@@ -250,7 +262,7 @@ function CppExecCanvas() {
 
         function drawReturnArc(alpha) {
             if (alpha <= 0) return;
-            const x  = CODE_X() + CODE_W();
+            const x = CODE_X() + CODE_W();
             const y1 = lineY(2) - 5;
             const y2 = lineY(7) - 5;
             const ax = x + 14;
@@ -333,10 +345,10 @@ function CppExecCanvas() {
 
         function drawCaption(alpha, t) {
             if (alpha <= 0) return;
-            const cap  = caption(t);
-            const cy   = H() - 46;
+            const cap = caption(t);
+            const cy = H() - 46;
             const padX = PAD + 4;
-            const w    = W() - padX * 2;
+            const w = W() - padX * 2;
 
             ctx.save();
             ctx.globalAlpha = alpha;
@@ -370,34 +382,189 @@ function CppExecCanvas() {
             ctx.restore();
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, W(), H());
-            const t = tRef.current;
-            const bg = ctx.createLinearGradient(0, 0, 0, H());
-            bg.addColorStop(0, '#0e1117'); bg.addColorStop(1, '#12151f');
-            ctx.fillStyle = bg; ctx.fillRect(0, 0, W(), H());
+        function draw(now = performance.now()) {
+            /*
+             * While the Worlds rail is moving or this
+             * canvas is off-screen, skip every expensive
+             * canvas operation.
+             *
+             * Check only ~8 times/sec while paused.
+             */
+            if (!animationActiveRef.current) {
+                pauseTimerRef.current =
+                    window.setTimeout(() => {
+                        rafRef.current =
+                            requestAnimationFrame(
+                                draw,
+                            );
+                    }, 120);
 
-            for (let sy = 0; sy < H(); sy += 3) {
-                ctx.fillStyle = 'rgba(0,0,0,0.04)';
-                ctx.fillRect(0, sy, W(), 1);
+                return;
             }
 
-            const edA = prog(t, F.EDITOR_IN, 45);
-            drawEditor(edA, t);
-            if (t >= F.MAIN) drawExecArrow(prog(t, F.MAIN, 20), t);
-            if (t >= F.CALL && t < F.RETURN_ARC) drawCallArc(prog(t, F.CALL, 30));
-            if (t >= F.RETURN_ARC && t < F.COUT2 + 40) drawReturnArc(prog(t, F.RETURN_ARC, 30));
-            drawTerminal(edA, t);
-            drawCaption(edA, t);
+            /*
+             * Card animation does not need to render at
+             * 120/144Hz on high-refresh displays.
+             *
+             * 30 FPS keeps the animation visually smooth
+             * while substantially reducing CPU/GPU work.
+             */
+            if (
+                now -
+                lastFrameTimeRef.current <
+                FRAME_INTERVAL
+            ) {
+                rafRef.current =
+                    requestAnimationFrame(
+                        draw,
+                    );
 
-            tRef.current   = (tRef.current + 1) % CYCLE;
-            rafRef.current = requestAnimationFrame(draw);
+                return;
+            }
+
+            lastFrameTimeRef.current = now;
+
+            ctx.clearRect(
+                0,
+                0,
+                W(),
+                H(),
+            );
+
+            const t = tRef.current;
+
+            const bg =
+                ctx.createLinearGradient(
+                    0,
+                    0,
+                    0,
+                    H(),
+                );
+
+            bg.addColorStop(
+                0,
+                "#0e1117",
+            );
+
+            bg.addColorStop(
+                1,
+                "#12151f",
+            );
+
+            ctx.fillStyle = bg;
+
+            ctx.fillRect(
+                0,
+                0,
+                W(),
+                H(),
+            );
+
+            for (
+                let sy = 0;
+                sy < H();
+                sy += 3
+            ) {
+                ctx.fillStyle =
+                    "rgba(0,0,0,0.04)";
+
+                ctx.fillRect(
+                    0,
+                    sy,
+                    W(),
+                    1,
+                );
+            }
+
+            const edA =
+                prog(
+                    t,
+                    F.EDITOR_IN,
+                    45,
+                );
+
+            drawEditor(
+                edA,
+                t,
+            );
+
+            if (t >= F.MAIN) {
+                drawExecArrow(
+                    prog(
+                        t,
+                        F.MAIN,
+                        20,
+                    ),
+                    t,
+                );
+            }
+
+            if (
+                t >= F.CALL &&
+                t < F.RETURN_ARC
+            ) {
+                drawCallArc(
+                    prog(
+                        t,
+                        F.CALL,
+                        30,
+                    ),
+                );
+            }
+
+            if (
+                t >= F.RETURN_ARC &&
+                t < F.COUT2 + 40
+            ) {
+                drawReturnArc(
+                    prog(
+                        t,
+                        F.RETURN_ARC,
+                        30,
+                    ),
+                );
+            }
+
+            drawTerminal(
+                edA,
+                t,
+            );
+
+            drawCaption(
+                edA,
+                t,
+            );
+
+            tRef.current =
+                (tRef.current + 1) %
+                CYCLE;
+
+            rafRef.current =
+                requestAnimationFrame(
+                    draw,
+                );
         }
 
         rafRef.current = requestAnimationFrame(draw);
         const ro = new ResizeObserver(resize);
         ro.observe(canvas);
-        return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
+        return () => {
+            if (rafRef.current) {
+                cancelAnimationFrame(
+                    rafRef.current,
+                );
+            }
+
+            if (
+                pauseTimerRef.current
+            ) {
+                clearTimeout(
+                    pauseTimerRef.current,
+                );
+            }
+
+            ro.disconnect();
+        };
     }, []);
 
     return <canvas ref={canvasRef} className="block w-full h-full" />;
@@ -407,166 +574,265 @@ import { cppRoadmapData } from '@/data/cppCourseData';
 
 // ─── CppCourseCard ────────────────────────────────────────────────
 export default function CppCourseCard({
-                                          onClick,
-                                          status         = 'Not Started',
-                                          levelsFinished = 0,
-                                          totalLevels,
-                                      }) {
-    const totalLevelsData = cppRoadmapData.days.flatMap(day => day.levels);
-    const calculatedTotalLevels = totalLevelsData.length;
-    const totalDurationMinutes = totalLevelsData.reduce((acc, level) => acc + (level.durationInMinutes || 0), 0);
-    const formattedDuration = totalDurationMinutes >= 60 
-        ? `${Math.round(totalDurationMinutes / 60)} Hours`
-        : `${totalDurationMinutes} Minutes`;
+    onClick,
+    status = "Not Started",
+    levelsFinished = 0,
+    totalLevels,
+    variant = "world",
+}) {
+    const totalLevelsData =
+        cppRoadmapData.days.flatMap(
+            (day) => day.levels
+        );
 
-    const displayTotalLevels = totalLevels || calculatedTotalLevels;
+    const calculatedTotalLevels =
+        totalLevelsData.length;
 
-    const [hovered, setHovered] = useState(false);
+    const totalDurationMinutes =
+        totalLevelsData.reduce(
+            (acc, level) =>
+                acc + (level.durationInMinutes || 0),
+            0
+        );
 
-    // ── Loader integration ─────────────────────────────────────────
-    const { state, handleClick, isLocked, isLoading, isSuccess, isPressing } =
-        useCardLoader(onClick, 1400);
+    const formattedDuration =
+        totalDurationMinutes >= 60
+            ? `${Math.round(
+                totalDurationMinutes / 60
+            )} Hours`
+            : `${totalDurationMinutes} Minutes`;
 
-    // ── Derived visual states ──────────────────────────────────────
-    const isActive = isLoading || isSuccess;
+    const displayTotalLevels =
+        totalLevels ||
+        calculatedTotalLevels;
 
-    // Scale: press sinks the card, loading holds slightly raised
-    const scale = isPressing
-        ? 'scale(0.972)'
+    const [hovered, setHovered] =
+        useState(false);
+
+    const {
+        state,
+        handleClick,
+        isLocked,
+        isLoading,
+        isSuccess,
+        isPressing,
+    } = useCardLoader(onClick, 1400);
+
+    const isActive =
+        isLoading || isSuccess;
+
+    const transform = isPressing
+        ? "translateY(2px) scale(0.985)"
         : hovered && !isLocked
-            ? 'translateY(-4px)'
-            : 'translateY(0)';
+            ? "translateY(-2px)"
+            : "translateY(0)";
 
-    const shadow = isActive
-        ? '0 12px 40px rgba(0,0,0,0.10)'
+    const cardShadow = isActive
+        ? "drop-shadow(0 7px 12px rgba(25,24,59,0.09))"
         : hovered
-            ? '0 20px 56px rgba(0,0,0,0.14)'
-            : '0 6px 24px rgba(0,0,0,0.08)';
-
-    // Arrow button visuals
-    const arrowBg = isActive
-        ? (isSuccess ? 'rgba(46,204,138,0.18)' : 'rgba(30,26,24,0.11)')
-        : hovered
-            ? 'rgba(30,26,24,0.14)'
-            : 'rgba(30,26,24,0.07)';
-
-    const arrowShift = hovered && !isLocked ? 'translateX(3px)' : 'translateX(0)';
+            ? "drop-shadow(0 10px 15px rgba(25,24,59,0.12))"
+            : "drop-shadow(0 5px 10px rgba(25,24,59,0.07))";
 
     return (
         <div
             onClick={handleClick}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            className="w-full sm:w-120 overflow-hidden select-none"
+            onMouseEnter={() =>
+                setHovered(true)
+            }
+            onMouseLeave={() =>
+                setHovered(false)
+            }
+            className="
+        group
+        w-full
+        relative
+        overflow-hidden
+        select-none
+        flex
+        flex-col
+      "
             style={{
                 borderRadius: 24,
-                boxShadow:    shadow,
-                transform:    scale,
-                transition:   'transform 0.28s ease, box-shadow 0.28s ease',
-                // ── Rage-click prevention: block pointer while locked ────
-                cursor:        isLocked ? 'not-allowed' : 'pointer',
-                pointerEvents: isLocked ? 'none'         : 'auto',
+
+                minHeight:
+                    variant === "home"
+                        ? 620
+                        : 540,
+
+                transform,
+
+                filter: cardShadow,
+
+                transition:
+                    "transform 160ms ease, filter 160ms ease",
+
+                cursor: isLocked
+                    ? "not-allowed"
+                    : "pointer",
+
+                pointerEvents: isLocked
+                    ? "none"
+                    : "auto",
             }}
         >
-            {/* ── Animation section ─────────────────────────────────── */}
-            <div className="relative overflow-hidden" style={{ height: 310 }}>
+            {/* HERO */}
+            <div
+                className="
+          relative
+          overflow-hidden
+          shrink-0
+        "
+                style={{
+                    height:
+                        variant === "home"
+                            ? 305
+                            : 250,
+                }}
+            >
                 <CppExecCanvas />
 
-                {/* Loading overlay on canvas — subtle dark veil while navigating */}
                 {isActive && (
                     <div
                         aria-hidden="true"
+                        className="
+              absolute
+              inset-0
+              pointer-events-none
+            "
                         style={{
-                            position:   'absolute',
-                            inset:      0,
                             background: isSuccess
-                                ? 'rgba(46,204,138,0.06)'
-                                : 'rgba(0,0,0,0.10)',
-                            transition: 'background 0.28s ease',
-                            pointerEvents: 'none',
+                                ? "rgba(0,169,255,0.06)"
+                                : "rgba(25,24,59,0.05)",
                         }}
                     />
                 )}
 
-                {/* Status badge — morphs through states */}
-                <StatusBadge state={state} status={status} />
+                <StatusBadge
+                    state={state}
+                    status={status}
+                />
             </div>
 
-            {/* ── Info section ──────────────────────────────────────── */}
+            {/* INFO */}
             <div
-                className="px-5 pt-4.5 pb-5"
-                style={{ background: '#f2e0d0', position: 'relative' }}
+                className="
+          relative
+          px-5
+          pt-[18px]
+          pb-5
+          flex-grow
+          flex
+          flex-col
+        "
+                style={{
+                    background: "#F2E0D0",
+                }}
             >
-                {/* Shimmer + success overlay */}
-                <CardInfoShimmer state={state} />
+                <CardInfoShimmer
+                    state={state}
+                />
 
-                {/* Duration row */}
-                <div className="flex items-center gap-1.5 mb-3.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="#3a3330" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                         style={{ opacity: 0.55, flexShrink: 0 }}
-                    >
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span
-                        className="text-[11px] font-bold tracking-widest uppercase"
-                        style={{ color: '#3a3330' }}
-                    >
-            {totalDurationMinutes > 0 ? formattedDuration : "6 Hours"}
-          </span>
-                </div>
-
-                {/* Description */}
-                <p
-                    className="text-[15.5px] font-medium leading-[1.55] mb-4"
-                    style={{ color: '#1e1a18' }}
-                >
-                    Learn C++ from scratch — variables, functions, memory management,
-                    OOP, and how programs run at the hardware level.
-                </p>
-
-                {/* Level squares — wave-animated during load */}
-                <div className="flex items-center gap-1 mb-4 flex-wrap">
-                    <LevelSquaresLoading
-                        state={state}
-                        levelsFinished={levelsFinished}
-                        totalLevels={displayTotalLevels}
-                    />
-                    <span
-                        className="text-[11px] font-semibold ml-1"
-                        style={{ color: 'rgba(30,26,24,0.45)' }}
-                    >
-            {levelsFinished}/{displayTotalLevels} levels
-          </span>
-                </div>
-
-                {/* Arrow / Spinner / Checkmark button */}
-                <div className="flex justify-end">
-                    <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                <div className="flex items-center gap-1.5 mb-3">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#19183B"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         style={{
-                            background: arrowBg,
-                            transform:  isLoading ? 'none' : arrowShift,
-                            transition: 'all 0.22s ease',
+                            opacity: 0.55,
+                            flexShrink: 0,
                         }}
                     >
-                        {/* ── Icon morphs based on state ───────────────────── */}
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                        />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-[#19183B]">
+                        {totalDurationMinutes > 0
+                            ? formattedDuration
+                            : "6 Hours"}
+                    </span>
+                </div>
+
+                <h3 className="text-[18px] font-extrabold leading-tight text-[#19183B] mb-1.5">
+                    {cppRoadmapData.title}
+                </h3>
+
+                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+                    {cppRoadmapData.description ||
+                        "Learn C++ from scratch — variables, functions, memory management, OOP, and how programs run at the hardware level."}
+                </p>
+
+                <p className="text-[11px] font-semibold text-[#19183B]/55">
+                    {levelsFinished}/
+                    {displayTotalLevels} levels
+                </p>
+
+                <div className="flex justify-center mt-auto pt-4">
+                    <div
+                        className="
+              flex
+              h-12
+              w-12
+              items-center
+              justify-center
+              rounded-full
+              bg-[#00A9FF]
+              text-[#19183B]
+              shadow-[0_4px_0_#0085C7]
+              transition-[transform,box-shadow]
+              duration-150
+              ease-out
+              group-hover:-translate-y-px
+              group-active:translate-y-[2px]
+              group-active:scale-[0.98]
+              group-active:shadow-[0_1px_0_#0085C7]
+            "
+                    >
                         {isLoading && (
-                            <SpinnerIcon size={14} color="#1e1a18" />
+                            <SpinnerIcon
+                                size={16}
+                                color="#19183B"
+                            />
                         )}
+
                         {isSuccess && (
-                            <SuccessIcon size={14} color="#2ecc8a" />
+                            <SuccessIcon
+                                size={16}
+                                color="#19183B"
+                            />
                         )}
-                        {!isLoading && !isSuccess && (
-                            <svg
-                                width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="#1e1a18" strokeWidth="2.5"
-                                strokeLinecap="round" strokeLinejoin="round"
-                            >
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                                <polyline points="12 5 19 12 12 19" />
-                            </svg>
-                        )}
+
+                        {!isLoading &&
+                            !isSuccess && (
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#19183B"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <line
+                                        x1="5"
+                                        y1="12"
+                                        x2="19"
+                                        y2="12"
+                                    />
+
+                                    <polyline points="12 5 19 12 12 19" />
+                                </svg>
+                            )}
                     </div>
                 </div>
             </div>

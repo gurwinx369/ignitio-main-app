@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/features/context/AuthContext";
 import { Flame, Lightbulb, Clock } from 'lucide-react';
+import { resolveCertificateTemplate } from "./certificateTemplateResolver";
 
 export const CERTIFICATE_WIDTH = 735;
 export const CERTIFICATE_HEIGHT = 934;
+
 
 const TEMPLATE_TEXT_POSITIONS = {
   providedOn: { top: 53, left: 594, width: 900 },
@@ -27,7 +29,8 @@ export default function CertificateCanvas({ certificate, canvasId }) {
     day: 'numeric',
   });
 
-  const providedOn = certificate.providedOn || dateStr;
+  const meta = certificate.metadata || {};
+  const providedOn = certificate.providedOn || meta.providedOn || dateStr;
 
   // Fallbacks for backward compatibility
   const certificateDayMatch = certificate.certificateKey?.match(/\d+/);
@@ -35,11 +38,13 @@ export default function CertificateCanvas({ certificate, canvasId }) {
     ? Number.parseInt(certificateDayMatch[0], 10)
     : 1;
 
-  const dayNumber = certificate.dayNumber || fallbackDayNumber;
-  const quizCount = certificate.quizCompletedCount || 0;
-  const duration = certificate.durationMinutes || 0;
+  const dayNumber = certificate.dayNumber ?? meta.dayNumber ?? fallbackDayNumber;
+  const quizCount = certificate.quizCompletedCount ?? meta.quizCompletedCount ?? 0;
+  const duration = certificate.durationMinutes ?? meta.durationMinutes ?? 0;
 
   const labelText = certificate.certificateKey === "dsa-level-1" ? "Level 1" : `Day ${dayNumber}`;
+
+  const resolvedTemplate = resolveCertificateTemplate(certificate);
 
   return (
     <div
@@ -54,7 +59,7 @@ export default function CertificateCanvas({ certificate, canvasId }) {
       {!imgError && (
         <>
           <img
-            src={`/certificates/templates/${certificate.template}`}
+            src={`/certificates/templates/${resolvedTemplate}`}
             alt="Certificate Background"
             className="absolute inset-0 w-full h-full -z-10"
             style={{ objectFit: 'fill' }}

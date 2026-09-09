@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home } from 'lucide-react';
+import Image from 'next/image';
+import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -28,7 +29,10 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     const [retryNonce, setRetryNonce] = useState(0);
 
     const hasFetched = useRef(false);
-    const requiredScore = Math.min(10, dayNumber + 4);
+    // Server-equivalent pass thresholds: Day 1 → 5, Day 2 → 6, Day 3+ → 7.
+    // This must stay in sync with FastAPI's scoring logic so the displayed
+    // required score never contradicts the authoritative API-returned `passed`.
+    const requiredScore = dayNumber === 1 ? 5 : dayNumber === 2 ? 6 : 7;
 
     useEffect(() => {
         if (!open) {
@@ -136,8 +140,9 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 throw new Error(data.error || 'Failed to submit assignment');
             }
 
-            const { score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses } = data.data;
-            const uiPassed = Number(score) >= requiredScore;
+            // `passed` from the API is authoritative — do not recalculate from score.
+            const { score, feedback, passed, attemptsRemaining, lockedUntil, breakdown, weaknesses } = data.data;
+            const uiPassed = Boolean(passed);
             
             setScoreData({ score, feedback, attemptsRemaining, lockedUntil, breakdown, weaknesses, uiPassed });
 
@@ -174,12 +179,18 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 {/* Header */}
                 <div className="bg-white px-6 py-5 border-b border-orange-50 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-                            <Bot size={24} />
+                        <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                            <Image
+                                src="/kyle/kyle.svg"
+                                alt="Kyle"
+                                width={48}
+                                height={48}
+                                className="w-full h-full rounded-full object-cover"
+                            />
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-gray-900">Day {dayNumber} &middot; Assignment</h3>
-                            <p className="text-sm text-gray-500">You've finished today's lessons.</p>
+                            <p className="text-sm text-gray-500">You&apos;ve finished today&apos;s lessons.</p>
                         </div>
                     </div>
                     <span className="bg-orange-50 text-orange-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
@@ -326,7 +337,15 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
 
                             <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm">
                                 <h5 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                    <Bot size={18} className="text-blue-500" /> Feedback from Kyle
+                                    <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center overflow-hidden rounded-full">
+                                        <Image
+                                            src="/kyle/kyle.svg"
+                                            alt="Kyle"
+                                            width={18}
+                                            height={18}
+                                            className="w-full h-full rounded-full object-cover"
+                                        />
+                                    </div> Feedback from Kyle
                                 </h5>
                                 <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
                                     {scoreData.feedback}

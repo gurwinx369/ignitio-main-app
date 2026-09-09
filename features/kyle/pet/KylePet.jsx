@@ -22,6 +22,11 @@ function getKyleRouteContext(pathname) {
 
 export default function KylePet() {
   const pathname = usePathname();
+  
+  if (pathname && pathname.includes('/onboarding')) {
+    return null;
+  }
+
   const { position, isDragging, hasMovedBeyondClickThreshold, isReady, petSize, resetPosition, cleanupDragState, handlers } = useKylePetPosition();
   const {
     isOpen: isAskKyleOpen,
