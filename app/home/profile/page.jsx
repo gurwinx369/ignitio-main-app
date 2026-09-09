@@ -41,55 +41,63 @@ import DashboardBottomNav from "@/features/dashboard/components/DashboardBottomN
 
 const BANNER_PRESETS = {
   cyan: {
-    label: "Cyan",
+    label: "Banner 1",
     gradient:
       "from-cyan-100 via-sky-100 to-blue-100",
     image:
-      "/profile/banners/banner1.webp",
+      "/profile/banners/banner1.png",
   },
 
   blue: {
-    label: "Blue",
+    label: "Banner 2",
     gradient:
       "from-blue-100 via-sky-100 to-cyan-100",
     image:
-      "/profile/banners/banner2.webp",
+      "/profile/banners/banner2.png",
   },
 
   purple: {
-    label: "Purple",
+    label: "Banner 3",
     gradient:
       "from-violet-100 via-purple-100 to-fuchsia-100",
     image:
-      "/profile/banners/banner3.webp",
+      "/profile/banners/banner3.png",
   },
 
-  /*
   orange: {
-    label: "Orange",
+    label: "Banner 4",
     gradient:
       "from-orange-100 via-amber-100 to-yellow-100",
     image:
-      "/profile/banners/banner4.webp",
+      "/profile/banners/banner4.png",
   },
 
   green: {
-    label: "Green",
+    label: "Banner 5",
     gradient:
       "from-emerald-100 via-green-100 to-teal-100",
     image:
-      "/profile/banners/green-game.webp",
+      "/profile/banners/banner5.png",
   },
 
+  // Backward compatibility for profiles
+  // that may already have "slate" saved.
   slate: {
-    label: "Slate",
+    label: "Banner 5",
     gradient:
-      "from-slate-100 via-slate-50 to-zinc-100",
+      "from-emerald-100 via-green-100 to-teal-100",
     image:
-      "/profile/banners/slate-game.webp",
+      "/profile/banners/banner5.png",
   },
-  */
 };
+
+const BANNER_PRESET_OPTIONS = [
+  "cyan",
+  "blue",
+  "purple",
+  "orange",
+  "green",
+];
 
 const AVATAR_PRESETS = {
   default: {
@@ -104,7 +112,7 @@ const AVATAR_PRESETS = {
     className:
       "bg-amber-100 text-amber-700",
     image:
-      "/profile/avatars/profile1.webp",
+      "/profile/avatars/profile1.png",
   },
 
   phoenix: {
@@ -112,7 +120,7 @@ const AVATAR_PRESETS = {
     className:
       "bg-orange-100 text-orange-700",
     image:
-      "/profile/avatars/profile2.webp",
+      "/profile/avatars/profile2.png",
   },
 
   learner: {
@@ -120,7 +128,7 @@ const AVATAR_PRESETS = {
     className:
       "bg-emerald-100 text-emerald-700",
     image:
-      "/profile/avatars/profile3.webp",
+      "/profile/avatars/profile3.png",
   },
 
   builder: {
@@ -128,42 +136,84 @@ const AVATAR_PRESETS = {
     className:
       "bg-blue-100 text-blue-700",
     image:
-      "/profile/avatars/profile4.webp",
+      "/profile/avatars/profile4.png",
   },
 
-  /*
   creator: {
     label: "Creator",
     className:
       "bg-purple-100 text-purple-700",
     image:
-      "/profile/avatars/profile5.webp",
+      "/profile/avatars/profile5.png",
   },
-  */
 };
 
+/*
+ * Existing backend frame values are preserved.
+ * The new ring artwork is mapped to those values.
+ *
+ * cyan   -> ring1.png
+ * blue   -> ring2.png
+ * purple -> ring3.png
+ * orange -> ring4.png
+ * gold   -> ring5.png
+ *
+ * green/slate remain supported for
+ * backward compatibility with existing data.
+ */
 const AVATAR_FRAMES = {
-  cyan:
-    "border-cyan-200 shadow-cyan-100",
+  cyan: {
+    label: "Ring 1",
+    image:
+      "/profile/rings/ring1.png",
+  },
 
-  blue:
-    "border-blue-200 shadow-blue-100",
+  blue: {
+    label: "Ring 2",
+    image:
+      "/profile/rings/ring2.png",
+  },
 
-  purple:
-    "border-purple-200 shadow-purple-100",
+  purple: {
+    label: "Ring 3",
+    image:
+      "/profile/rings/ring3.png",
+  },
 
-  orange:
-    "border-orange-200 shadow-orange-100",
+  orange: {
+    label: "Ring 4",
+    image:
+      "/profile/rings/ring4.png",
+  },
 
-  green:
-    "border-emerald-200 shadow-emerald-100",
+  gold: {
+    label: "Ring 5",
+    image:
+      "/profile/rings/ring5.png",
+  },
 
-  slate:
-    "border-slate-200 shadow-slate-100",
+  // Legacy saved value.
+  green: {
+    label: "Ring 5",
+    image:
+      "/profile/rings/ring5.png",
+  },
 
-  gold:
-    "border-amber-300 shadow-amber-100",
+  // Legacy saved value.
+  slate: {
+    label: "Ring 1",
+    image:
+      "/profile/rings/ring1.png",
+  },
 };
+
+const AVATAR_FRAME_OPTIONS = [
+  "cyan",
+  "blue",
+  "purple",
+  "orange",
+  "gold",
+];
 
 /* =========================================================
    PROFILE
@@ -652,6 +702,8 @@ export default function ProfilePage() {
           }),
         );
 
+        window.dispatchEvent(new Event("profileUpdated"));
+
         setIsEditing(false);
       } catch (err) {
         setEditError(
@@ -925,7 +977,7 @@ export default function ProfilePage() {
     ] ||
     AVATAR_PRESETS.default;
 
-  const displayAvatarFrameClass =
+  const displayAvatarFrame =
     AVATAR_FRAMES[
     avatarFrame ||
     "cyan"
@@ -1174,6 +1226,7 @@ export default function ProfilePage() {
           "
         >
           {/* Banner */}
+
           <div
             className={`
               relative
@@ -1190,10 +1243,10 @@ export default function ProfilePage() {
                 selectedBanner.image
                   ? `linear-gradient(
                       to right,
-                    rgba(25,24,59,0.015),
-                    rgba(25,24,59,0.015)
-                  ),
-                  url("${selectedBanner.image}")`
+                      rgba(25,24,59,0.015),
+                      rgba(25,24,59,0.015)
+                    ),
+                    url("${selectedBanner.image}")`
                   : undefined,
 
               backgroundSize:
@@ -1208,18 +1261,19 @@ export default function ProfilePage() {
           >
             <div
               className="
+                pointer-events-none
                 absolute
                 inset-0
                 bg-gradient-to-t
                 from-[#19183B]/5
                 via-transparent
                 to-transparent
-                pointer-events-none
               "
             />
           </div>
 
           {/* Identity */}
+
           <div
             className="
               relative
@@ -1246,27 +1300,29 @@ export default function ProfilePage() {
               "
             >
               <div
-                className={`
+                className="
+                  relative
                   h-[108px]
                   w-[108px]
 
-                  overflow-hidden
                   rounded-full
 
-                  border-[5px]
                   bg-[#FFFDF9]
-
-                  p-1
 
                   shadow-[0_12px_28px_rgba(25,24,59,0.16)]
 
                   md:h-[136px]
                   md:w-[136px]
-
-                  ${displayAvatarFrameClass}
-                `}
+                "
               >
-                <div className="h-full w-full overflow-hidden rounded-full">
+                <div
+                  className="
+                    absolute
+                    inset-0
+                    overflow-hidden
+                    rounded-full
+                  "
+                >
                   {renderAvatar(
                     avatarUrl,
                     selectedAvatarPreset,
@@ -1274,6 +1330,20 @@ export default function ProfilePage() {
                     avatarPreset,
                   )}
                 </div>
+
+                {displayAvatarFrame?.image && (
+                  <Image
+                    src={displayAvatarFrame.image}
+                    alt=""
+                    fill
+                    sizes="198px"
+                    className="
+                      pointer-events-none
+                      object-contain
+                      scale-[1.35]
+                    "
+                  />
+                )}
               </div>
             </div>
 
@@ -2209,17 +2279,17 @@ export default function ProfilePage() {
               0 && (
                 <span
                   className="
-                  rounded-full
+                    rounded-full
 
-                  bg-[#F2E0D0]/45
+                    bg-[#F2E0D0]/45
 
-                  px-3
-                  py-1.5
+                    px-3
+                    py-1.5
 
-                  text-xs
-                  font-black
-                  text-[#19183B]/55
-                "
+                    text-xs
+                    font-black
+                    text-[#19183B]/55
+                  "
                 >
                   {
                     normalizedCards.length
@@ -2569,35 +2639,61 @@ export default function ProfilePage() {
                     pb-4
                   "
                 >
+                  {/* Preview avatar */}
+
                   <div
-                    className={`
+                    className="
                       absolute
                       -top-9
                       left-4
 
                       h-[78px]
                       w-[78px]
-
-                      overflow-hidden
-                      rounded-full
-
-                      border-4
-
-                      bg-[#FFFDF9]
-
-                      p-1
-
-                      shadow-lg
-
-                      ${editAvatarFrame}
-                    `}
+                    "
                   >
-                    <div className="h-full w-full overflow-hidden rounded-full">
-                      {renderAvatar(
-                        editForm.avatarUrl,
-                        editAvatarPreset,
-                        user?.photoURL,
-                        editForm.avatarPreset,
+                    <div
+                      className="
+                        relative
+                        h-full
+                        w-full
+
+                        rounded-full
+
+                        bg-[#FFFDF9]
+
+                        shadow-lg
+                      "
+                    >
+                      <div
+                        className="
+                          absolute
+                          inset-0
+                          overflow-hidden
+                          rounded-full
+                        "
+                      >
+                        {renderAvatar(
+                          editForm.avatarUrl,
+                          editAvatarPreset,
+                          user?.photoURL,
+                          editForm.avatarPreset,
+                        )}
+                      </div>
+
+                      {editAvatarFrame?.image && (
+                        <Image
+                          src={
+                            editAvatarFrame.image
+                          }
+                          alt=""
+                          fill
+                          sizes="198px"
+                          className="
+                            pointer-events-none
+                            object-contain
+                            scale-[1.35]
+                          "
+                        />
                       )}
                     </div>
                   </div>
@@ -2715,6 +2811,7 @@ export default function ProfilePage() {
                         outline-none
 
                         transition-[border-color,box-shadow]
+                        duration-150
 
                         placeholder:text-[#19183B]/30
 
@@ -2786,6 +2883,7 @@ export default function ProfilePage() {
                         outline-none
 
                         transition-[border-color,box-shadow]
+                        duration-150
 
                         placeholder:text-[#19183B]/30
 
@@ -2855,6 +2953,7 @@ export default function ProfilePage() {
                         outline-none
 
                         transition-[border-color,box-shadow]
+                        duration-150
 
                         placeholder:text-[#19183B]/30
 
@@ -2912,102 +3011,106 @@ export default function ProfilePage() {
                         xl:grid-cols-3
                       "
                     >
-                      {Object.entries(
-                        BANNER_PRESETS,
-                      ).map(
-                        ([
-                          key,
-                          preset,
-                        ]) => (
-                          <button
-                            key={
-                              key
-                            }
-                            type="button"
-                            onClick={() =>
-                              setEditForm(
-                                {
-                                  ...editForm,
+                      {BANNER_PRESET_OPTIONS.map(
+                        (key) => {
+                          const preset =
+                            BANNER_PRESETS[
+                            key
+                            ];
 
-                                  bannerColor:
-                                    key,
-                                },
-                              )
-                            }
-                            title={
-                              preset.label
-                            }
-                            className={`
-                              relative
-
-                              aspect-[1.75/1]
-                              w-full
-
-                              overflow-hidden
-
-                              rounded-[16px]
-
-                              border-[3px]
-
-                              bg-gradient-to-r
-
-                              shadow-sm
-
-                              transition-[transform,border-color]
-                              duration-150
-
-                              hover:-translate-y-px
-
-                              ${preset.gradient
-                              }
-
-                              ${editForm.bannerColor ===
+                          return (
+                            <button
+                              key={
                                 key
-                                ? "border-[#00A9FF]"
-                                : "border-transparent"
                               }
-                            `}
-                            style={{
-                              backgroundImage:
-                                preset.image
-                                  ? `linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.05)), url("${preset.image}")`
-                                  : undefined,
+                              type="button"
+                              onClick={() =>
+                                setEditForm(
+                                  {
+                                    ...editForm,
 
-                              backgroundSize:
-                                "cover",
+                                    bannerColor:
+                                      key,
+                                  },
+                                )
+                              }
+                              title={
+                                preset.label
+                              }
+                              className={`
+                                relative
 
-                              backgroundPosition:
-                                "center",
-                            }}
-                          >
-                            {editForm.bannerColor ===
-                              key && (
-                                <div
-                                  className="
-                                  absolute
-                                  right-2
-                                  top-2
+                                aspect-[1.75/1]
+                                w-full
 
-                                  flex
-                                  h-6
-                                  w-6
-                                  items-center
-                                  justify-center
+                                overflow-hidden
 
-                                  rounded-full
+                                rounded-[16px]
 
-                                  bg-[#00A9FF]
+                                border-[3px]
 
-                                  text-[#19183B]
+                                bg-gradient-to-r
 
-                                  shadow-sm
-                                "
-                                >
-                                  <Check className="h-3.5 w-3.5" />
-                                </div>
-                              )}
-                          </button>
-                        ),
+                                shadow-sm
+
+                                transition-[transform,border-color]
+                                duration-150
+
+                                hover:-translate-y-px
+
+                                ${preset.gradient}
+
+                                ${editForm.bannerColor ===
+                                  key
+                                  ? "border-[#00A9FF]"
+                                  : "border-transparent"
+                                }
+                              `}
+                              style={{
+                                backgroundImage:
+                                  preset.image
+                                    ? `linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.05)), url("${preset.image}")`
+                                    : undefined,
+
+                                backgroundSize:
+                                  "cover",
+
+                                backgroundPosition:
+                                  "center",
+
+                                backgroundRepeat:
+                                  "no-repeat",
+                              }}
+                            >
+                              {editForm.bannerColor ===
+                                key && (
+                                  <div
+                                    className="
+                                    absolute
+                                    right-2
+                                    top-2
+
+                                    flex
+                                    h-6
+                                    w-6
+                                    items-center
+                                    justify-center
+
+                                    rounded-full
+
+                                    bg-[#00A9FF]
+
+                                    text-[#19183B]
+
+                                    shadow-sm
+                                  "
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                  </div>
+                                )}
+                            </button>
+                          );
+                        },
                       )}
                     </div>
                   </div>
@@ -3076,8 +3179,7 @@ export default function ProfilePage() {
 
                                 hover:-translate-y-px
 
-                                ${preset.className
-                                }
+                                ${preset.className}
 
                                 ${editForm.avatarPreset ===
                                   key
@@ -3189,71 +3291,106 @@ export default function ProfilePage() {
                     </label>
 
                     <div className="flex flex-wrap gap-3">
-                      {Object.entries(
-                        AVATAR_FRAMES,
-                      ).map(
-                        ([
-                          key,
-                          frameClass,
-                        ]) => (
-                          <button
-                            key={
-                              key
-                            }
-                            type="button"
-                            onClick={() =>
-                              setEditForm(
-                                {
-                                  ...editForm,
+                      {AVATAR_FRAME_OPTIONS.map(
+                        (key) => {
+                          const frame =
+                            AVATAR_FRAMES[
+                            key
+                            ];
 
+                          return (
+                            <button
+                              key={
+                                key
+                              }
+                              type="button"
+                              onClick={() =>
+                                setEditForm({
+                                  ...editForm,
                                   avatarFrame:
                                     key,
-                                },
-                              )
-                            }
-                            title={
-                              key
-                            }
-                            className={`
-                              flex
-                              h-14
-                              w-14
-                              items-center
-                              justify-center
-
-                              rounded-full
-
-                              border-[5px]
-
-                              bg-white
-
-                              shadow-sm
-
-                              transition-[transform,box-shadow]
-                              duration-150
-
-                              hover:-translate-y-px
-
-                              ${frameClass}
-
-                              ${editForm.avatarFrame ===
-                                key
-                                ? "scale-[1.05] ring-2 ring-[#00A9FF] ring-offset-2"
-                                : ""
+                                })
                               }
-                            `}
-                          >
-                            {editForm.avatarFrame ===
-                              key && (
-                                <Check
-                                  className="h-4 w-4 text-[#19183B]/45"
-                                  strokeWidth={
-                                    3
-                                  }
-                                />
-                              )}
-                          </button>
-                        ),
+                              title={
+                                frame.label
+                              }
+                              className={`
+                                relative
+                                h-14
+                                w-14
+
+                                rounded-full
+
+                                bg-white
+
+                                transition-[transform,box-shadow]
+                                duration-150
+
+                                hover:-translate-y-px
+
+                                ${editForm.avatarFrame ===
+                                  key
+                                  ? "scale-[1.05] ring-2 ring-[#00A9FF] ring-offset-2"
+                                  : ""
+                                }
+                              `}
+                            >
+                              <Image
+                                src={
+                                  frame.image
+                                }
+                                alt={
+                                  frame.label
+                                }
+                                fill
+                                sizes="56px"
+                                className="
+                                  pointer-events-none
+                                  object-contain
+                                "
+                              />
+
+                              {editForm.avatarFrame ===
+                                key && (
+                                  <div
+                                    className="
+                                    absolute
+                                    inset-0
+
+                                    flex
+                                    items-center
+                                    justify-center
+
+                                    pointer-events-none
+                                  "
+                                  >
+                                    <div
+                                      className="
+                                      flex
+                                      h-7
+                                      w-7
+                                      items-center
+                                      justify-center
+
+                                      rounded-full
+
+                                      bg-[#00A9FF]
+
+                                      text-[#19183B]
+
+                                      shadow-sm
+                                    "
+                                    >
+                                      <Check
+                                        className="h-4 w-4"
+                                        strokeWidth={3}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                            </button>
+                          );
+                        },
                       )}
                     </div>
                   </div>
@@ -3380,7 +3517,6 @@ export default function ProfilePage() {
       <DashboardBottomNav
         activeTab="profile"
       />
-
     </main>
   );
 }

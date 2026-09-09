@@ -218,7 +218,14 @@ export async function PATCH(request) {
     }
 
     if (bannerColor !== undefined) {
-      const allowedBannerColors = ["cyan", "blue", "purple", "orange", "green", "slate"];
+      const allowedBannerColors = [
+        "cyan",
+        "blue",
+        "purple",
+        "orange",
+        "green",
+        "slate",
+      ];
       if (!allowedBannerColors.includes(bannerColor)) {
         return NextResponse.json({ message: "Invalid bannerColor" }, { status: 400 });
       }

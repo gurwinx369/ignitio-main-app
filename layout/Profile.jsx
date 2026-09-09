@@ -7,20 +7,21 @@ import { useRouter } from 'next/navigation';
 
 const AVATAR_PRESETS = {
     default: { label: "Default", className: "bg-cyan-100 text-cyan-700", image: null },
-    spark: { label: "Spark", className: "bg-amber-100 text-amber-700", image: "/profile/avatars/profile1.webp" },
-    phoenix: { label: "Phoenix", className: "bg-orange-100 text-orange-700", image: "/profile/avatars/profile2.webp" },
-    learner: { label: "Learner", className: "bg-emerald-100 text-emerald-700", image: "/profile/avatars/profile3.webp" },
-    builder: { label: "Builder", className: "bg-blue-100 text-blue-700", image: "/profile/avatars/profile4.webp" },
+    spark: { label: "Spark", className: "bg-amber-100 text-amber-700", image: "/profile/avatars/profile1.png" },
+    phoenix: { label: "Phoenix", className: "bg-orange-100 text-orange-700", image: "/profile/avatars/profile2.png" },
+    learner: { label: "Learner", className: "bg-emerald-100 text-emerald-700", image: "/profile/avatars/profile3.png" },
+    builder: { label: "Builder", className: "bg-blue-100 text-blue-700", image: "/profile/avatars/profile4.png" },
+    creator: { label: "Creator", className: "bg-fuchsia-100 text-fuchsia-700", image: "/profile/avatars/profile5.png" },
 };
 
 const AVATAR_FRAMES = {
-    cyan: "ring-cyan-300",
-    blue: "ring-blue-300",
-    purple: "ring-purple-300",
-    orange: "ring-orange-300",
-    green: "ring-emerald-300",
-    slate: "ring-slate-300",
-    gold: "ring-amber-400",
+    cyan: "/profile/rings/ring1.png",
+    blue: "/profile/rings/ring2.png",
+    purple: "/profile/rings/ring3.png",
+    orange: "/profile/rings/ring4.png",
+    gold: "/profile/rings/ring5.png",
+    green: "/profile/rings/ring5.png",
+    slate: "/profile/rings/ring1.png",
 };
 
 export default function ProfileDropdown({ compact = false }) {
@@ -50,7 +51,17 @@ export default function ProfileDropdown({ compact = false }) {
             }
         }
         fetchProfile();
-        return () => { isMounted = false; };
+
+        const handleProfileUpdated = () => {
+            fetchProfile();
+        };
+
+        window.addEventListener("profileUpdated", handleProfileUpdated);
+
+        return () => {
+            isMounted = false;
+            window.removeEventListener("profileUpdated", handleProfileUpdated);
+        };
     }, [user]);
 
     const toggleDropdown = () => {
@@ -85,9 +96,9 @@ export default function ProfileDropdown({ compact = false }) {
         }
     };
 
-    const displayAvatarFrameClass = profileData?.avatarFrame
+    const displayAvatarFrame = profileData?.avatarFrame
         ? (AVATAR_FRAMES[profileData.avatarFrame] || AVATAR_FRAMES.cyan)
-        : "";
+        : null;
 
     const renderAvatar = () => {
         if (!profileData) {
@@ -128,18 +139,24 @@ export default function ProfileDropdown({ compact = false }) {
                 onClick={toggleDropdown}
                 className={
                     compact
-                        ? `w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-full bg-white/80 ${displayAvatarFrameClass
-                            ? `ring-2 ring-offset-2 ring-offset-[#fffaf3] ${displayAvatarFrameClass}`
-                            : "border border-[#f1e4d2] shadow-sm"
-                        } flex items-center justify-center overflow-hidden focus:outline-none hover:shadow-md transition-all duration-300`
-                        : `w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-[#fffaf3] ${displayAvatarFrameClass
-                            ? `ring-2 ring-offset-2 ring-offset-[#fffaf3] ${displayAvatarFrameClass}`
-                            : "border-2 border-white shadow-sm"
-                        } flex items-center justify-center overflow-hidden focus:outline-none hover:shadow-md transition-shadow duration-300`
+                        ? "relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-full focus:outline-none hover:shadow-md transition-all duration-300"
+                        : "relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full focus:outline-none hover:shadow-md transition-shadow duration-300"
                 }
                 aria-label="Profile menu"
             >
-                {renderAvatar()}
+                <div className={`absolute ${compact ? "inset-[5px]" : "inset-[7px] sm:inset-[8px]"} overflow-hidden rounded-full ${compact ? "bg-white/80" : "bg-[#fffaf3]"}`}>
+                    {renderAvatar()}
+                </div>
+
+                {displayAvatarFrame && (
+                    <Image
+                        src={displayAvatarFrame}
+                        alt=""
+                        fill
+                        sizes={compact ? "44px" : "64px"}
+                        className="pointer-events-none object-contain"
+                    />
+                )}
             </button>
 
             {/* Dropdown Menu */}

@@ -32,6 +32,7 @@ import {
     DEFAULT_SUBSCRIPTION_PLAN,
     getClientSubscriptionPlan,
 } from "@/features/onboarding/paywall/constants/plans";
+import { validateCoupon } from "@/features/onboarding/paywall/services/validateCoupon";
 
 /* =========================================================
    ROUTE LOADER
@@ -604,6 +605,11 @@ export default function GenAiPaywallPage() {
         DEFAULT_SUBSCRIPTION_PLAN,
     );
 
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState(null);
+
     const isMounted = useRef(true);
 
     useEffect(() => {
@@ -678,6 +684,65 @@ export default function GenAiPaywallPage() {
             return false;
         };
 
+    const handleApplyCoupon = async () => {
+        if (
+            couponLoading ||
+            isPremiumLoading ||
+            !user
+        ) {
+            return;
+        }
+
+        const normalizedCode = couponCode.trim();
+
+        if (!normalizedCode) {
+            setCouponError("Enter a coupon code.");
+            setAppliedCoupon(null);
+            return;
+        }
+
+        setCouponLoading(true);
+        setCouponError(null);
+        setAppliedCoupon(null);
+
+        try {
+            const idToken = await user.getIdToken();
+
+            const result = await validateCoupon({
+                idToken,
+                couponCode: normalizedCode,
+                plan: selectedPlan,
+            });
+
+            if (!isMounted.current) return;
+
+            if (!result.valid) {
+                setCouponError(
+                    result.message ?? "This coupon is not valid.",
+                );
+                return;
+            }
+
+            setCouponCode(normalizedCode.toUpperCase());
+            setAppliedCoupon(result.coupon);
+        } catch (error) {
+            console.error(
+                "[GenAiPaywall] Coupon validation error:",
+                error,
+            );
+
+            if (isMounted.current) {
+                setCouponError(
+                    "Could not validate the coupon. Please try again.",
+                );
+            }
+        } finally {
+            if (isMounted.current) {
+                setCouponLoading(false);
+            }
+        }
+    };
+
     const handlePremium = async () => {
         if (isPremiumLoading || !user) {
             return;
@@ -698,11 +763,13 @@ export default function GenAiPaywallPage() {
              * Active and pending subscriptions
              * do not need the Razorpay script.
              */
-            const createResult =
-                await createSubscription({
-                    idToken,
-                    plan: selectedPlan,
-                });
+            const createResult = await createSubscription({
+                idToken,
+                plan: selectedPlan,
+                couponCode: appliedCoupon
+                    ? couponCode
+                    : undefined,
+            });
 
             if (
                 !createResult
@@ -1411,9 +1478,11 @@ export default function GenAiPaywallPage() {
                                     selectedPlan={
                                         selectedPlan
                                     }
-                                    onSelectPlan={
-                                        setSelectedPlan
-                                    }
+                                    onSelectPlan={(plan) => {
+                                        setSelectedPlan(plan);
+                                        setAppliedCoupon(null);
+                                        setCouponError(null);
+                                    }}
                                     disabled={
                                         isPremiumLoading
                                     }
@@ -1421,6 +1490,212 @@ export default function GenAiPaywallPage() {
                                         false
                                     }
                                 />
+                                <div
+                                    className="
+                                        mt-5
+                                        rounded-[18px]
+                                        border
+                                        border-[#19183B]/10
+                                        bg-[#FFFDF9]/70
+                                        p-3.5
+
+                                        sm:p-4
+                                    "
+                                >
+                                    <div
+                                        className="
+                                            mb-2.5
+                                            flex
+                                            items-center
+                                            justify-between
+                                            gap-3
+                                        "
+                                    >
+                                        <div>
+                                            <p
+                                                className="
+                                                    text-[11px]
+                                                    font-black
+                                                    uppercase
+                                                    tracking-[0.16em]
+                                                    text-[#19183B]
+                                                "
+                                            >
+                                                Have a coupon?
+                                            </p>
+
+                                            <p
+                                                className="
+                                                mt-0.5
+                                                text-[11px]
+                                                font-medium
+                                                text-[#19183B]/45
+                                                "
+                                            >
+                                                Apply it before checkout.
+                                            </p>
+                                        </div>
+
+                                        {appliedCoupon && (
+                                            <div
+                                                className="
+                                                flex
+                                                items-center
+                                                gap-1.5
+                                                rounded-full
+                                                bg-[#00A9FF]/10
+                                                px-2.5
+                                                py-1
+                                                text-[10px]
+                                                font-black
+                                                text-[#19183B]
+                                            "
+                                            >
+                                                <Check
+                                                    size={12}
+                                                    strokeWidth={3}
+                                                    className="text-[#00A9FF]"
+                                                />
+
+                                                Applied
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 sm:flex-row">
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(event) => {
+                                                setCouponCode(event.target.value);
+                                                setCouponError(null);
+                                                setAppliedCoupon(null);
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (event.key === "Enter") {
+                                                    event.preventDefault();
+                                                    handleApplyCoupon();
+                                                }
+                                            }}
+                                            placeholder="Enter coupon code"
+                                            aria-label="Coupon code"
+                                            disabled={
+                                                couponLoading ||
+                                                isPremiumLoading
+                                            }
+                                            className="
+                                                min-h-[46px]
+                                                flex-1
+
+                                                rounded-[14px]
+                                                border
+                                                border-[#19183B]/12
+                                                bg-white
+
+                                                px-3.5
+
+                                                text-sm
+                                                font-bold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#19183B]
+
+                                                outline-none
+
+                                                placeholder:normal-case
+                                                placeholder:font-medium
+                                                placeholder:tracking-normal
+                                                placeholder:text-[#19183B]/35
+
+                                                transition-[border-color,box-shadow]
+
+                                                focus:border-[#00A9FF]
+                                                focus:ring-2
+                                                focus:ring-[#00A9FF]/10
+
+                                                disabled:cursor-not-allowed
+                                                disabled:opacity-55
+                                            "
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyCoupon}
+                                            disabled={
+                                                couponLoading ||
+                                                isPremiumLoading ||
+                                                !couponCode.trim()
+                                            }
+                                            className="
+                                                min-h-[46px]
+
+                                                rounded-[14px]
+
+                                                border
+                                                border-[#19183B]/10
+                                                bg-[#19183B]
+
+                                                px-5
+
+                                                text-sm
+                                                font-black
+                                                text-white
+
+                                                transition-[transform,opacity]
+
+                                                hover:-translate-y-px
+
+                                                active:translate-y-px
+
+                                                disabled:cursor-not-allowed
+                                                disabled:opacity-40
+                                            "
+                                        >
+                                            {couponLoading ? (
+                                                <span className="flex items-center gap-2">
+                                                    <RotateCw
+                                                        size={14}
+                                                        className="animate-spin"
+                                                    />
+
+                                                    Applying
+                                                </span>
+                                            ) : (
+                                                "Apply"
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {appliedCoupon && (
+                                        <p
+                                            className="
+                                                mt-2.5
+                                                text-[11px]
+                                                font-semibold
+                                                text-[#19183B]/60
+                                            "
+                                        >
+                                            Coupon <span className="font-black text-[#19183B]">
+                                                {couponCode}
+                                            </span>{" "}
+                                            has been applied to this plan.
+                                        </p>
+                                    )}
+
+                                    {couponError && (
+                                        <p
+                                            role="alert"
+                                            className="
+                                                mt-2.5
+                                                text-[11px]
+                                                font-semibold
+                                                text-[#19183B]/65
+                                            "
+                                        >
+                                            {couponError}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* =============================================
