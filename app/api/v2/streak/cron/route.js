@@ -11,6 +11,8 @@ import {
 } from "@/lib/users/streak.service";
 import { sendRetentionEmail } from "@/lib/retention/resend.client";
 
+export const maxDuration = 300;
+
 if (!admin.apps.length) {
   try {
     const serviceAccount = require("@/features/notifications/credentials/serviceAccountKey.json");

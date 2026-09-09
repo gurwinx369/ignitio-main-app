@@ -23,7 +23,7 @@ import admin from "firebase-admin";
 
 const FIREBASE_UID = "i0k4EWsW2ggq8abHNoYyK9mpio13";
 const ROADMAP_SLUG = "gen-ai-internship";
-const DEV_BASE_URL = "http://localhost:5000";
+const DEV_BASE_URL = "https://app.ignitio.cloud";
 
 const WEB_API_KEY = "AIzaSyDIEt3oa0WdFy5YQyTC-Uf-cgTSHCIGVPc";
 

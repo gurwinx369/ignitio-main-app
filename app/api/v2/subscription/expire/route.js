@@ -14,6 +14,8 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/dbConfig/dbConnection";
 import { expireStaleSubscriptions } from "@/lib/subscription/subscription.service";
 
+export const maxDuration = 300;
+
 export async function GET(request) {
   // Step 1: Verify cron secret.
   const cronSecret = process.env.SUBSCRIPTION_EXPIRE_CRON_SECRET;
