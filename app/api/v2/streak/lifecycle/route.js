@@ -6,6 +6,8 @@ import {
     validateStreakLifecycleCronAuthorization,
 } from "@/lib/users/streak.lifecycle.service";
 
+export const maxDuration = 300;
+
 /**
  * GET /api/v2/streak/lifecycle
  *

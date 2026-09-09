@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/dbConfig/dbConnection';
 import { RetentionService } from '../../../../../lib/retention/retention.service';
 
+export const maxDuration = 300;
+
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization');
