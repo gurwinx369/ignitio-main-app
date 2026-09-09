@@ -14,7 +14,8 @@ export const CLIENT_SUBSCRIPTION_PLANS = [
         price: "₹599",
         period: "per month",
         checkoutDescription: "Ignitio Premium — Monthly",
-        badge: "Hot Pick",
+        badge: "Most Popular",
+        recommended: true,
         helper: null,
     },
     {
@@ -29,7 +30,7 @@ export const CLIENT_SUBSCRIPTION_PLANS = [
 ];
 
 export const DEFAULT_SUBSCRIPTION_PLAN =
-    "ignitio_three_monthly";
+    "ignitio_monthly";
 
 export function getClientSubscriptionPlan(slug) {
     return (

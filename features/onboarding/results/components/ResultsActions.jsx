@@ -15,7 +15,7 @@ export default function ResultsActions({ onContinue, isContinuing }) {
             <span>PROCESSING...</span>
           </>
         ) : (
-          <span>CONTINUE</span>
+          <span>START MY JOURNEY</span>
         )}
       </button>
     </div>

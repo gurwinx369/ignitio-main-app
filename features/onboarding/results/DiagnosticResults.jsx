@@ -244,11 +244,11 @@ export default function DiagnosticResults() {
       <div className="w-full max-w-[430px] mx-auto flex flex-col pt-12 pb-12 px-4 flex-grow">
         <header className="mb-10 text-center">
           <h1 className="mb-4 text-3xl font-bold sm:text-4xl text-white">
-            Your Diagnostic Results
+            Your transformation starts here.
           </h1>
 
           <p className="text-lg text-slate-300">
-            We've reviewed your skills. Here is how your learning recommendations are taking shape.
+            We analyzed how you think and learn. This path is built for you — no one else.
           </p>
         </header>
 
@@ -261,9 +261,20 @@ export default function DiagnosticResults() {
         <div className="w-full flex-grow mt-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-6 px-4 leading-tight">
             {(data.summary?.passedChecks ?? 0) > 0
-              ? "Your roadmap adapts around what you already know."
-              : "Your personalized roadmap is ready."}
+              ? "You're already ahead. Your roadmap skips what you've mastered."
+              : "Your path is clear. Every step is a level up."}
           </h2>
+
+          {(data.summary?.passedChecks ?? 0) > 0 && (
+            <div className="flex justify-center mb-6">
+              <div className="bg-[#102235] border border-slate-700/60 rounded-full px-4 py-2 inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#0EA5E9] animate-pulse"></span>
+                <span className="text-sm font-semibold text-[#E0F2FE]">
+                  You already know {data.summary.passedChecks} of {data.summary.totalChecks} topics
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Scroll Prompt */}
           <motion.div 
@@ -272,7 +283,7 @@ export default function DiagnosticResults() {
             transition={{ opacity: { delay: 1, duration: 1 }, y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
             className="flex flex-col items-center justify-center mb-10 text-[#0EA5E9]"
           >
-            <span className="text-xs uppercase tracking-widest font-semibold mb-1">Scroll to view full roadmap</span>
+            <span className="text-xs uppercase tracking-widest font-semibold mb-1">Scroll to see your transformation map</span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M19 12l-7 7-7-7"/>
             </svg>
@@ -366,14 +377,29 @@ export default function DiagnosticResults() {
                     <div
                       className={`absolute top-1/2 -translate-y-1/2 ${isLeft ? "left-[calc(100%+12px)] sm:left-[calc(100%+16px)]" : "right-[calc(100%+12px)] sm:right-[calc(100%+16px)]"}`}
                     >
-                      <span className="whitespace-nowrap text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
+                      <span className={`whitespace-nowrap text-[9px] font-semibold uppercase tracking-widest ${isPassed ? "text-[#0EA5E9]" : "text-slate-500"}`}>
                         {isPassed
-                          ? "skip"
+                          ? "already yours"
                           : area.status === "partial"
-                            ? "refresh"
-                            : "include"}
+                            ? "almost there"
+                            : "your next unlock"}
                       </span>
                     </div>
+
+                    {/* Celebration Star Burst for passed nodes */}
+                    {isPassed && (
+                      <motion.div 
+                        initial={{ scale: 0, opacity: 0, rotate: -45 }}
+                        whileInView={{ scale: [0, 1.2, 1], opacity: [0, 1, 0], rotate: 45 }}
+                        viewport={{ once: true, margin: "-50px" }}
+                        transition={{ duration: 0.8, delay: 0.3 }}
+                        className="absolute -top-3 -right-3 w-8 h-8 pointer-events-none"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z" fill="#0EA5E9"/>
+                        </svg>
+                      </motion.div>
+                    )}
                   </motion.div>
                 </div>
               );
@@ -382,21 +408,23 @@ export default function DiagnosticResults() {
 
           <div className="flex flex-col sm:flex-row gap-3 mt-8 pb-4 pt-6 border-t border-slate-700/40">
             {data.pacing?.label && (
-              <div className="flex-1 bg-[#102235] border border-slate-700/60 rounded-xl p-3 text-center">
-                <p className="text-[11px] font-semibold text-[#00A9FF] uppercase tracking-wide mb-1">
-                  Pacing
+              <div className="flex-1 bg-gradient-to-br from-[#102235] to-[#0A1622] border border-slate-700/60 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-[#0EA5E9] opacity-5 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                <p className="text-[10px] font-bold text-[#0EA5E9] uppercase tracking-widest mb-1.5 opacity-80">
+                  Your Pace
                 </p>
-                <p className="text-white text-sm font-bold">
+                <p className="text-white text-[15px] font-bold tracking-tight">
                   {data.pacing.label}
                 </p>
               </div>
             )}
             {data.goal?.label && (
-              <div className="flex-1 bg-[#102235] border border-slate-700/60 rounded-xl p-3 text-center">
-                <p className="text-[11px] font-semibold text-[#00A9FF] uppercase tracking-wide mb-1">
-                  Goal
+              <div className="flex-1 bg-gradient-to-br from-[#102235] to-[#0A1622] border border-slate-700/60 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#FCD34D] opacity-5 rounded-full blur-xl translate-y-1/2 -translate-x-1/2"></div>
+                <p className="text-[10px] font-bold text-[#FCD34D] uppercase tracking-widest mb-1.5 opacity-80">
+                  Your Target
                 </p>
-                <p className="text-white text-sm font-bold">
+                <p className="text-white text-[15px] font-bold tracking-tight">
                   {data.goal.label}
                 </p>
               </div>

@@ -33,11 +33,13 @@ import { createSubscription } from "./services/createSubscription";
 import { validateCoupon } from "./services/validateCoupon";
 import { verifyPayment } from "./services/verifyPayment";
 import { skipPremium } from "./services/skipPremium";
-import { loadRazorpay, openRazorpayCheckout } from "./hooks/useRazorpayCheckout";
+import {
+  loadRazorpay,
+  openRazorpayCheckout,
+} from "./hooks/useRazorpayCheckout";
 
 import PaywallHeader from "./components/PaywallHeader";
 import PremiumPlanCard from "./components/PremiumPlanCard";
-import PaywallActions from "./components/PaywallActions";
 import PaymentStatus from "./components/PaymentStatus";
 import PaymentExplainer from "./components/PaymentExplainer";
 import OnboardingShell from "../components/OnboardingShell";
@@ -68,12 +70,7 @@ export default function Paywall() {
   const [isSkipping, setIsSkipping] = useState(false);
   const [statusVariant, setStatusVariant] = useState("idle"); // "idle"|"dismissed"|"error"|"success"
   const [statusMessage, setStatusMessage] = useState(null);
-  const [
-    selectedPlan,
-    setSelectedPlan,
-  ] = useState(
-    DEFAULT_SUBSCRIPTION_PLAN,
-  );
+  const [selectedPlan, setSelectedPlan] = useState(DEFAULT_SUBSCRIPTION_PLAN);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState("");
@@ -85,7 +82,9 @@ export default function Paywall() {
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // ── On mount: reconcile server state ────────────────────────────────────────
@@ -100,7 +99,9 @@ export default function Paywall() {
         if (!isMounted.current) return;
 
         if (!res.success) {
-          setPageError(res.message ?? "Unable to load paywall. Please try again.");
+          setPageError(
+            res.message ?? "Unable to load paywall. Please try again.",
+          );
           setPageLoading(false);
           return;
         }
@@ -132,7 +133,9 @@ export default function Paywall() {
           return;
         }
 
-        setPageError("Your onboarding state is being synchronized. Please refresh and try again.");
+        setPageError(
+          "Your onboarding state is being synchronized. Please refresh and try again.",
+        );
         setPageLoading(false);
       } catch (err) {
         console.error("[Paywall] Reconciliation error:", err);
@@ -146,15 +149,9 @@ export default function Paywall() {
     reconcile();
   }, [user, router]);
 
-
   // ── Coupon validation ────────────────────────────────────────────────────────
   const handleApplyCoupon = async () => {
-    if (
-      couponLoading ||
-      isPremiumLoading ||
-      isSkipping ||
-      !user
-    ) {
+    if (couponLoading || isPremiumLoading || isSkipping || !user) {
       return;
     }
 
@@ -182,24 +179,17 @@ export default function Paywall() {
       if (!isMounted.current) return;
 
       if (!result.valid) {
-        setCouponError(
-          result.message ?? "This coupon is not valid.",
-        );
+        setCouponError(result.message ?? "This coupon is not valid.");
         return;
       }
 
       setCouponCode(normalizedCode.toUpperCase());
       setAppliedCoupon(result.coupon);
     } catch (err) {
-      console.error(
-        "[Paywall] Coupon validation error:",
-        err,
-      );
+      console.error("[Paywall] Coupon validation error:", err);
 
       if (isMounted.current) {
-        setCouponError(
-          "Could not validate the coupon. Please try again.",
-        );
+        setCouponError("Could not validate the coupon. Please try again.");
       }
     } finally {
       if (isMounted.current) {
@@ -224,14 +214,11 @@ export default function Paywall() {
       await loadRazorpay();
 
       // 3. Create the Razorpay subscription server-side.
-      const createRes =
-        await createSubscription({
-          idToken,
-          plan: selectedPlan,
-          couponCode: appliedCoupon
-            ? couponCode
-            : undefined,
-        });
+      const createRes = await createSubscription({
+        idToken,
+        plan: selectedPlan,
+        couponCode: appliedCoupon ? couponCode : undefined,
+      });
 
       if (!createRes.razorpaySubscriptionId) {
         // 409 with existingStatus means an active/pending subscription already exists.
@@ -240,14 +227,9 @@ export default function Paywall() {
           const statusRes = await getPaywallStatus(idToken);
           if (
             statusRes.success &&
-            PAYWALL_FORWARD_STEPS.has(
-              statusRes.nextStep,
-            )
+            PAYWALL_FORWARD_STEPS.has(statusRes.nextStep)
           ) {
-            const nextRoute =
-              ONBOARDING_ROUTES[
-              statusRes.nextStep
-              ];
+            const nextRoute = ONBOARDING_ROUTES[statusRes.nextStep];
 
             if (nextRoute) {
               router.replace(nextRoute);
@@ -258,16 +240,15 @@ export default function Paywall() {
 
         if (!isMounted.current) return;
         setStatusVariant("error");
-        setStatusMessage(createRes.message ?? "Could not start checkout. Please try again.");
+        setStatusMessage(
+          createRes.message ?? "Could not start checkout. Please try again.",
+        );
         setIsPremiumLoading(false);
         return;
       }
 
       const { razorpaySubscriptionId, keyId } = createRes;
-      const selectedPlanConfig =
-        getClientSubscriptionPlan(
-          selectedPlan,
-        );
+      const selectedPlanConfig = getClientSubscriptionPlan(selectedPlan);
 
       // 4. Open Razorpay Checkout.
       // Premium is NOT granted here — only after server-side verification.
@@ -276,14 +257,21 @@ export default function Paywall() {
         subscriptionId: razorpaySubscriptionId,
         name: "Ignitio",
         description:
-          selectedPlanConfig?.checkoutDescription ??
-          "Ignitio Premium",
-        onSuccess: async ({ razorpayPaymentId, razorpaySubscriptionId: rzpSubId, razorpaySignature }) => {
+          selectedPlanConfig?.checkoutDescription ?? "Ignitio Premium",
+        onSuccess: async ({
+          razorpayPaymentId,
+          razorpaySubscriptionId: rzpSubId,
+          razorpaySignature,
+        }) => {
           // 5. Verify server-side — never trust client callback alone.
           try {
             const freshToken = await user.getIdToken();
             const verifyRes = await verifyPayment(
-              { razorpayPaymentId, razorpaySubscriptionId: rzpSubId, razorpaySignature },
+              {
+                razorpayPaymentId,
+                razorpaySubscriptionId: rzpSubId,
+                razorpaySignature,
+              },
               freshToken,
             );
 
@@ -303,19 +291,13 @@ export default function Paywall() {
                * /payment/verify intentionally does not own or expose
                * the frontend routing contract.
                */
-              const statusRes =
-                await getPaywallStatus(freshToken);
+              const statusRes = await getPaywallStatus(freshToken);
 
               if (
                 statusRes.success &&
-                PAYWALL_FORWARD_STEPS.has(
-                  statusRes.nextStep,
-                )
+                PAYWALL_FORWARD_STEPS.has(statusRes.nextStep)
               ) {
-                const nextRoute =
-                  ONBOARDING_ROUTES[
-                  statusRes.nextStep
-                  ];
+                const nextRoute = ONBOARDING_ROUTES[statusRes.nextStep];
 
                 if (nextRoute) {
                   router.replace(nextRoute);
@@ -335,14 +317,19 @@ export default function Paywall() {
               setIsPremiumLoading(false);
             } else {
               setStatusVariant("error");
-              setStatusMessage(verifyRes.message ?? "Payment verification failed. Please contact support.");
+              setStatusMessage(
+                verifyRes.message ??
+                  "Payment verification failed. Please contact support.",
+              );
               setIsPremiumLoading(false);
             }
           } catch (err) {
             console.error("[Paywall] Verification error:", err);
             if (isMounted.current) {
               setStatusVariant("error");
-              setStatusMessage("Verification failed. Please contact support if your payment was charged.");
+              setStatusMessage(
+                "Verification failed. Please contact support if your payment was charged.",
+              );
               setIsPremiumLoading(false);
             }
           }
@@ -356,7 +343,6 @@ export default function Paywall() {
           setIsPremiumLoading(false);
         },
       });
-
     } catch (err) {
       console.error("[Paywall] Premium checkout error:", err);
       if (isMounted.current) {
@@ -364,7 +350,7 @@ export default function Paywall() {
         setStatusMessage(
           err.message?.includes("script")
             ? "Could not load the payment provider. Please check your connection and try again."
-            : "Something went wrong. Please try again."
+            : "Something went wrong. Please try again.",
         );
         setIsPremiumLoading(false);
       }
@@ -386,14 +372,9 @@ export default function Paywall() {
       if (!isMounted.current) return;
 
       if (res.success) {
-        const nextRoute =
-          PAYWALL_FORWARD_STEPS.has(
-            res.nextStep,
-          )
-            ? ONBOARDING_ROUTES[
-            res.nextStep
-            ]
-            : null;
+        const nextRoute = PAYWALL_FORWARD_STEPS.has(res.nextStep)
+          ? ONBOARDING_ROUTES[res.nextStep]
+          : null;
 
         if (!nextRoute) {
           setStatusVariant("error");
@@ -407,7 +388,9 @@ export default function Paywall() {
         router.replace(nextRoute);
       } else {
         setStatusVariant("error");
-        setStatusMessage(res.message ?? "Could not continue. Please try again.");
+        setStatusMessage(
+          res.message ?? "Could not continue. Please try again.",
+        );
         setIsSkipping(false);
       }
     } catch (err) {
@@ -430,7 +413,9 @@ export default function Paywall() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#fffaf3] p-6">
         <div className="bg-white border border-slate-200 text-slate-800 p-8 rounded-2xl max-w-md w-full text-center shadow-sm">
-          <h2 className="text-xl font-bold mb-4 text-red-600">Could not load Paywall</h2>
+          <h2 className="text-xl font-bold mb-4 text-red-600">
+            Could not load Paywall
+          </h2>
           <p className="text-slate-600 mb-6">{pageError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -469,107 +454,58 @@ export default function Paywall() {
                 className="text-[#001D32] hover:bg-slate-200/50 w-10 h-10 flex items-center justify-center rounded-full font-bold transition-colors"
                 aria-label="Back to explainer"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
               </button>
             </div>
 
-            <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-10">
-              <PaywallHeader />
+            <PaywallHeader />
 
-              <PremiumPlanCard
-                selectedPlan={selectedPlan}
-                onSelectPlan={(plan) => {
-                  setSelectedPlan(plan);
-                  setAppliedCoupon(null);
-                  setCouponError(null);
-                }}
-                disabled={isPremiumLoading || isSkipping}
-              />
+            <PremiumPlanCard
+              selectedPlan={selectedPlan}
+              onSelectPlan={(plan) => {
+                setSelectedPlan(plan);
+                setAppliedCoupon(null);
+                setCouponError(null);
+              }}
+              onContinue={handlePremium}
+              disabled={isPremiumLoading || isSkipping}
+              couponCode={couponCode}
+              onCouponChange={(val) => {
+                setCouponCode(val);
+                setAppliedCoupon(null);
+                setCouponError(null);
+              }}
+              onApplyCoupon={handleApplyCoupon}
+              couponLoading={couponLoading}
+              appliedCoupon={appliedCoupon}
+              couponError={couponError}
+              secondaryAction={
+                <button
+                  id="paywall-skip-btn"
+                  onClick={handleSkip}
+                  disabled={isPremiumLoading || isSkipping}
+                  className="text-[13px] text-slate-500 hover:text-[#001D32] underline underline-offset-4 decoration-slate-300 hover:decoration-[#001D32] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {isSkipping
+                    ? "Continuing…"
+                    : "Continue with Foundation (free, limited access)"}
+                </button>
+              }
+            />
 
-              <div className="mt-6 rounded-2xl border border-[#FFDCBC] bg-[#fffaf3] p-4">
-                <div className="mb-3">
-                  <p className="text-sm font-bold text-[#001D32]">
-                    Have a coupon code?
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Enter a creator or promotional code before checkout.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(event) => {
-                      setCouponCode(event.target.value.toUpperCase());
-                      setAppliedCoupon(null);
-                      setCouponError(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        handleApplyCoupon();
-                      }
-                    }}
-                    placeholder="e.g. HARRY20"
-                    maxLength={50}
-                    disabled={
-                      couponLoading ||
-                      isPremiumLoading ||
-                      isSkipping
-                    }
-                    aria-label="Coupon code"
-                    className="min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#001D32] outline-none transition-colors placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#00A9FF] disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    disabled={
-                      couponLoading ||
-                      isPremiumLoading ||
-                      isSkipping ||
-                      !couponCode.trim()
-                    }
-                    className="rounded-xl bg-[#001D32] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:bg-[#00304d] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {couponLoading ? "CHECKING..." : "APPLY"}
-                  </button>
-                </div>
-
-                {appliedCoupon && (
-                  <div className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-                    <p className="text-sm font-bold text-green-700">
-                      {appliedCoupon.code} applied
-                    </p>
-                    <p className="mt-1 text-xs text-green-600">
-                      Your promotional offer will be applied at checkout.
-                    </p>
-                  </div>
-                )}
-
-                {couponError && (
-                  <p
-                    role="alert"
-                    className="mt-3 text-xs font-semibold text-red-600"
-                  >
-                    {couponError}
-                  </p>
-                )}
-              </div>
-
-              <PaywallActions
-                isPremiumLoading={isPremiumLoading}
-                isSkipping={isSkipping}
-                onPremium={handlePremium}
-                onSkip={handleSkip}
-              />
-
-              <PaymentStatus
-                variant={statusVariant}
-                message={statusMessage}
-              />
-            </div>
+            <PaymentStatus variant={statusVariant} message={statusMessage} />
           </div>
         )}
       </div>

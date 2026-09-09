@@ -3,7 +3,7 @@
 import React from "react";
 import OnboardingProgress from "./OnboardingProgress";
 
-export const ONBOARDING_BACKGROUND = "#FCF5EE";
+export const ONBOARDING_BACKGROUND = "linear-gradient(180deg, #FFF6EE 0%, #FFE3CE 100%)";
 export const ONBOARDING_HEADING = "#001D32";
 
 export default function OnboardingShell({
@@ -16,7 +16,7 @@ export default function OnboardingShell({
   return (
     <div
       className="min-h-dvh flex flex-col items-center px-4 sm:px-6"
-      style={{ backgroundColor: ONBOARDING_BACKGROUND }}
+      style={{ background: ONBOARDING_BACKGROUND }}
     >
       {/* Container matching mobile width ~390-430px */}
       <div className="w-full max-w-[1100px] flex flex-col pt-6 pb-12">
