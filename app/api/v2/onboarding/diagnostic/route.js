@@ -30,7 +30,7 @@ export async function POST(req) {
 
     const firebaseUID = decodedToken.uid;
     const rawBody = await req.json().catch(() => ({}));
-    
+
     const evaluation = evaluateDiagnosticPayload(rawBody);
 
     if (!evaluation.success) {
@@ -46,22 +46,25 @@ export async function POST(req) {
     }
 
     await connectToDB();
-
-    const existingProfile = await UserProfile.findOne({
-      firebaseUID,
-    })
-      .select("_id onboardingState.step")
-      .lean();
+    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step").lean();
 
     if (!existingProfile) {
-      return NextResponse.json(
-        {
-          error: "User profile not found",
-        },
-        {
-          status: 404,
-        },
-      );
+      const tokenEmail = typeof decodedToken.email === "string" ? decodedToken.email.toLowerCase().trim() : "";
+      if (tokenEmail) {
+        existingProfile = await UserProfile.findOne({ email: tokenEmail }).select("_id onboardingState.step firebaseUID").lean();
+        if (existingProfile && existingProfile.firebaseUID !== firebaseUID) {
+          await UserProfile.updateOne({ _id: existingProfile._id }, { $set: { firebaseUID } }, { timestamps: false });
+        }
+      }
+      if (!existingProfile) {
+        existingProfile = await UserProfile.create({
+          firebaseUID,
+          email: tokenEmail,
+          onboardingComplete: false,
+          onboardingVersion: ONBOARDING_VERSIONS.V4,
+          onboardingState: { step: "diagnostic" },
+        });
+      }
     }
 
     const canonicalStep = existingProfile.onboardingState?.step;
