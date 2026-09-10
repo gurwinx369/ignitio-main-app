@@ -47,6 +47,7 @@ export async function POST(req) {
 
     await connectToDB();
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     const existingProfile = await UserProfile.findOne({
       firebaseUID,
@@ -55,6 +56,8 @@ export async function POST(req) {
       .lean();
 =======
     //fix
+=======
+>>>>>>> 5229f4a (next fix)
     let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step").lean();
 >>>>>>> 8f554cf (fix)
 
