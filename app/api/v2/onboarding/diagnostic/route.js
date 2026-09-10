@@ -30,7 +30,7 @@ export async function POST(req) {
 
     const firebaseUID = decodedToken.uid;
     const rawBody = await req.json().catch(() => ({}));
-    
+
     const evaluation = evaluateDiagnosticPayload(rawBody);
 
     if (!evaluation.success) {
@@ -46,12 +46,17 @@ export async function POST(req) {
     }
 
     await connectToDB();
+<<<<<<< HEAD
 
     const existingProfile = await UserProfile.findOne({
       firebaseUID,
     })
       .select("_id onboardingState.step")
       .lean();
+=======
+    //fix
+    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step").lean();
+>>>>>>> 8f554cf (fix)
 
     if (!existingProfile) {
       return NextResponse.json(
