@@ -38,17 +38,17 @@ const { default: connectDB } =
 // -----------------------------------------------------------------------------
 
 const COUPON = {
-    code: "ASHISH10",
+    code: "NEW100",
     discountType: "percentage",
-    discountValue: 10,
-    razorpayOfferId: "offer_TZsxPHtf3jIPzt",
+    discountValue: 99,
+    razorpayOfferId: "offer_TZtanaLOzQMDZz",
     applicablePlans: [
         "ignitio_weekly",
         "ignitio_monthly",
         "ignitio_three_monthly",
     ],
     active: true,
-    expiresAt: new Date("2026-11-09T18:29:59.999Z"),
+    expiresAt: new Date("2026-09-30T18:29:59.999Z"),
     maxRedemptions: null,
 };
 
