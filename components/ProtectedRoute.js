@@ -234,13 +234,15 @@ export default function ProtectedRoute({
         if (isOnboardingRoute(pathname)) {
             if (!profileObj) {
                 /*
-                 * The onboarding entry page owns
-                 * missing-profile recovery.
+                 * The onboarding entry and diagnostic pages
+                 * are accessible without a profile to allow
+                 * new users to start onboarding.
                  */
-                if (
-                    pathname !==
-                    ONBOARDING_PREFIX
-                ) {
+                const isAllowedWithoutProfile =
+                    pathname === ONBOARDING_PREFIX ||
+                    pathname === `${ONBOARDING_PREFIX}/diagnostic`;
+
+                if (!isAllowedWithoutProfile) {
                     router.replace(
                         ONBOARDING_PREFIX,
                     );
@@ -335,10 +337,11 @@ export default function ProtectedRoute({
         }
 
         if (!profileObj) {
-            if (
-                pathname !==
-                ONBOARDING_PREFIX
-            ) {
+            const isAllowedWithoutProfile =
+                pathname === ONBOARDING_PREFIX ||
+                pathname === `${ONBOARDING_PREFIX}/diagnostic`;
+
+            if (!isAllowedWithoutProfile) {
                 return null;
             }
         } else {
