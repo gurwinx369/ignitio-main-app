@@ -34,10 +34,11 @@ export async function POST(req) {
     }
 
     // Atomic state update: results -> paywall
+    // Also accepts "completed" step — fully-onboarded users activating GenAI
     const profile = await UserProfile.findOneAndUpdate(
       {
         firebaseUID,
-        "onboardingState.step": "results",
+        "onboardingState.step": { $in: ["results", "completed"] },
       },
       {
         $set: {
@@ -67,13 +68,8 @@ export async function POST(req) {
       return NextResponse.json({ success: true, nextStep: "paywall" });
     }
 
-    if (currentStep === "diagnostic") {
+    if (currentStep === "diagnostic" || currentStep === "role_selection") {
       return NextResponse.json({ success: false, message: "Diagnostic is not complete." }, { status: 409 });
-    }
-
-    if (currentStep === "role_selection" || currentStep === "completed") {
-      // Do not move backward
-      return NextResponse.json({ success: true, nextStep: currentStep });
     }
 
     return NextResponse.json({ success: false, message: "Invalid state transition." }, { status: 409 });

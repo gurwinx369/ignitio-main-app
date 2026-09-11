@@ -28,11 +28,12 @@ import { UserProfile } from "@/models/v2/user.profile.model";
 // Map of step → nextStep the client should route to.
 // Keeps routing decisions server-owned and consistent.
 const STEP_ROUTING = {
-  diagnostic:     "diagnostic",
-  results:        "results",
-  paywall:        "paywall",
-  role_selection: "role_selection",
-  completed:      "completed",
+  diagnostic:          "diagnostic",
+  results:             "results",
+  paywall:             "paywall",
+  // activation_pending: run activation to build GenAI roadmap
+  activation_pending:  "activation_pending",
+  completed:           "activation_pending",
 };
 
 export async function GET(request) {
@@ -68,14 +69,13 @@ export async function GET(request) {
   const entitled  = profile?.entitlements?.roadmaps?.genAi ?? false;
 
   // Step 4: Reconcile stuck-at-paywall-but-entitled case.
-  // If webhook granted entitlement before client verification completed,
-  // the user may be at "paywall" with entitled=true. Advance them safely.
+  // Advance to activation_pending so the client can trigger roadmap creation.
   if (currentStep === "paywall" && entitled) {
     await UserProfile.updateOne(
       { firebaseUID, "onboardingState.step": "paywall" },
-      { $set: { "onboardingState.step": "role_selection" } },
+      { $set: { "onboardingState.step": "activation_pending" } },
     );
-    currentStep = "role_selection";
+    currentStep = "activation_pending";
   }
 
   const nextStep = STEP_ROUTING[currentStep] ?? currentStep;
