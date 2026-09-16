@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ONBOARDING_ROUTES } from "@/features/onboarding/paywall/constants/routes";
 
 import { useAuth } from "@/features/context/AuthContext";
 import {
@@ -281,12 +282,12 @@ export default function DiagnosticAssessment({
         return;
       }
 
-      const nextStep =
-        result.nextStep || "results";
+      // ponytail: use the canonical route map — never interpolate nextStep into URL directly
+      const nextRoute =
+        ONBOARDING_ROUTES[result.nextStep] ??
+        ONBOARDING_ROUTES["results"];
 
-      router.push(
-        `/home/onboarding/${nextStep}`,
-      );
+      router.push(nextRoute);
     } catch (error) {
       console.error(
         "Diagnostic submission error:",

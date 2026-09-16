@@ -27,7 +27,8 @@ import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 
 // States that are ahead of paywall — preserve them and return idempotent success.
-const FORWARD_STATES = new Set(["role_selection", "completed"]);
+// ponytail: completed = fully-onboarded user in GenAI flow, skip is a no-op
+const FORWARD_STATES = new Set(["activation_pending", "completed"]);
 
 // States that are behind paywall — skip cannot be called from here.
 const BACKWARD_STATES = new Set(["diagnostic", "results"]);
@@ -82,16 +83,15 @@ export async function POST(request) {
     );
   }
 
-  // Step 6: Advance paywall → role_selection.
-  // Uses an atomic conditional update — never moves role_selection or completed backward.
+  // Step 6: Advance paywall → activation_pending.
   // Never touches entitlements — existing Premium access is preserved unchanged.
   await UserProfile.updateOne(
     { firebaseUID, "onboardingState.step": "paywall" },
-    { $set: { "onboardingState.step": "role_selection" } },
+    { $set: { "onboardingState.step": "activation_pending" } },
   );
 
   return NextResponse.json(
-    { success: true, nextStep: "role_selection" },
+    { success: true, nextStep: "activation_pending" },
     { status: 200 },
   );
 }

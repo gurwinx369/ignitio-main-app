@@ -628,7 +628,7 @@ export default function Dashboard({ isPreview = false }) {
                   handleRedirect("/home/premium/genai")
                 }
                 onNavigatePaywall={() =>
-                  handleRedirect("/home/premium/genai/paywall")
+                  handleRedirect("/home/onboarding/diagnostic")
                 }
               />
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
     Home,
@@ -111,6 +111,9 @@ export default function GenAiTierRoadmap({
         scheduleRetryKey,
         setScheduleRetryKey,
     ] = useState(0);
+
+    // ponytail: one-shot auto-retry for race-condition conflicts on first load
+    const conflictRetried = useRef(false);
 
     const {
         status,
@@ -278,6 +281,18 @@ export default function GenAiTierRoadmap({
         upgrade.upgradeStatus,
         router,
     ]);
+
+    // Auto-retry once on conflict — typically a race between activation and first load.
+    useEffect(() => {
+        if (
+            upgrade.status === "error" &&
+            upgrade.upgradeStatus === "conflict" &&
+            !conflictRetried.current
+        ) {
+            conflictRetried.current = true;
+            upgrade.retry();
+        }
+    }, [upgrade.status, upgrade.upgradeStatus, upgrade.retry]);
 
     useEffect(() => {
         if (

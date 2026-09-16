@@ -202,7 +202,7 @@ export default function OnboardingEntry() {
 
   const handleNext = () => {
     if (step === 0) setStep(1);
-    else router.push("/home/onboarding/diagnostic");
+    else router.push("/home/onboarding/role-selection");
   };
 
   if (step === 0) return <ValuePropScreen onNext={handleNext} />;

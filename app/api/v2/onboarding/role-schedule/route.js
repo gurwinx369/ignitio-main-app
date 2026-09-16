@@ -154,9 +154,8 @@ export async function POST(request) {
 
   const filter = {
     firebaseUID: decodedToken.uid,
-    "onboardingState.step": {
-      $in: ["role_selection", "activation_pending"],
-    },
+    // role_selection/diagnostic = first-time submit; completed = idempotent re-submit
+    "onboardingState.step": { $in: ["role_selection", "diagnostic", "completed"] },
   };
 
   const update = {
@@ -165,7 +164,9 @@ export async function POST(request) {
       "schedulePreference.timezone": normalizedTimezone,
       "schedulePreference.windows": normalizedWindows,
       "schedulePreference.isDefault": false,
-      "onboardingState.step": "activation_pending",
+      // Core onboarding ends here — GenAI activation happens separately
+      "onboardingState.step": "completed",
+      onboardingComplete: true,
     },
   };
 
@@ -179,7 +180,7 @@ export async function POST(request) {
   return NextResponse.json(
     {
       success: true,
-      nextStep: "activation_pending",
+      nextStep: "completed",
     },
     { status: 200 }
   );
