@@ -2,8 +2,8 @@
 import React from 'react';
 import { GraduationCap, PenTool, Palette, Code, Briefcase } from 'lucide-react';
 
-const OnboardingProfession = ({ onNext, selection, setSelection, isLoading }) => {
-  const options = [
+const OnboardingProfession = ({ onNext, selection, setSelection, isLoading, roadmap }) => {
+  let options = [
     {
       id: 'student',
       title: 'Student',
@@ -50,6 +50,10 @@ const OnboardingProfession = ({ onNext, selection, setSelection, isLoading }) =>
       cardInactive: 'bg-white border-[#ede8e1]',
     },
   ];
+
+  if (roadmap === 'dsa') {
+    options = options.filter(opt => ['developer', 'student', 'other'].includes(opt.id));
+  }
 
   return (
     <div className="w-full min-h-dvh max-w-md mx-auto flex flex-col bg-[#fcf5ee] font-sans relative">

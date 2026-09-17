@@ -25,6 +25,7 @@ import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
+import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
@@ -87,6 +88,7 @@ export default function Dashboard({ isPreview = false }) {
     requestedTab,
   ]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [pendingCertificate, setPendingCertificate] = useState(null);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -195,6 +197,20 @@ export default function Dashboard({ isPreview = false }) {
               );
             }
           }
+        }
+
+        // ponytail: consume the pending animation key written by PreviewCardLockedModal
+        // Do not remove it here to avoid StrictMode async race conditions. Remove it on close.
+        try {
+          const raw = localStorage.getItem("ignitio:pending_certificate_animation");
+          if (raw) {
+            const cert = JSON.parse(raw);
+            if (cert && cert.certificateKey) {
+              setPendingCertificate(cert);
+            }
+          }
+        } catch {
+          // ignore parsing errors
         }
       }
     };
@@ -638,6 +654,16 @@ export default function Dashboard({ isPreview = false }) {
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {pendingCertificate && (
+        <CertificateUnlockedModal
+          certificate={pendingCertificate}
+          onClose={() => {
+            setPendingCertificate(null);
+            localStorage.removeItem("ignitio:pending_certificate_animation");
+          }}
+        />
+      )}
     </div>
   );
 }

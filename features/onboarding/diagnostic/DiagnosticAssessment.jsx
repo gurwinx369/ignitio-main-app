@@ -254,7 +254,7 @@ export default function DiagnosticAssessment({
       return;
     }
 
-    if (!user) {
+    if (!user && mode !== "preview") {
       setError(
         "Your session has expired. Please sign in again.",
       );
@@ -269,7 +269,7 @@ export default function DiagnosticAssessment({
         buildDiagnosticPayload(answers);
 
       const idToken =
-        await user.getIdToken();
+        user ? await user.getIdToken() : null;
 
       const result =
         await submitAssessment(
