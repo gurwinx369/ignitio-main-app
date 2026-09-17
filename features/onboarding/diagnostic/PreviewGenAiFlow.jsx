@@ -13,8 +13,8 @@ export default function PreviewGenAiFlow() {
   };
 
   const handleSuccess = () => {
-    // Redirect to signup
-    router.push("/auth/signup");
+    // ponytail: unauth results page first, then signup
+    router.push("/preview/gen-ai/results");
   };
 
   return (

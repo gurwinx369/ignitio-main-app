@@ -25,6 +25,7 @@ import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
+import { submitDiagnostic } from "@/features/onboarding/diagnostic/services/submitDiagnostic";
 import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 
 // Layout Components
@@ -168,14 +169,12 @@ export default function Dashboard({ isPreview = false }) {
       setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
 
       if (!isPreview && user && typeof window !== "undefined") {
-        const previewPayload = localStorage.getItem(
-          "ignitio:preview_payload",
-        );
-
+        const previewPayload = localStorage.getItem("ignitio:preview_payload");
         if (previewPayload) {
+          // ponytail: sync lock to prevent Strict Mode / double-mount race conditions
+          localStorage.removeItem("ignitio:preview_payload");
           try {
             const parsedPayload = JSON.parse(previewPayload);
-
             if (
               parsedPayload &&
               typeof parsedPayload === "object" &&
@@ -186,13 +185,33 @@ export default function Dashboard({ isPreview = false }) {
                 roadmapSlug: parsedPayload.roadmapId,
                 payload: parsedPayload,
               });
-
-              localStorage.removeItem("ignitio:preview_payload");
             }
           } catch (error) {
+            localStorage.setItem("ignitio:preview_payload", previewPayload);
             if (process.env.NODE_ENV === "development") {
               console.error(
                 "Failed to migrate preview roadmap progress:",
+                error?.message || "unknown error",
+              );
+            }
+          }
+        }
+
+        // ponytail: migrate gen ai preview assessment to DB
+        const genAiPreview = localStorage.getItem("genai_preview_assessment");
+        if (genAiPreview) {
+          localStorage.removeItem("genai_preview_assessment");
+          try {
+            const parsedGenAi = JSON.parse(genAiPreview);
+            if (parsedGenAi) {
+              const currentToken = await user.getIdToken();
+              await submitDiagnostic(parsedGenAi, currentToken);
+            }
+          } catch (error) {
+            localStorage.setItem("genai_preview_assessment", genAiPreview);
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "Failed to migrate gen ai preview assessment:",
                 error?.message || "unknown error",
               );
             }
