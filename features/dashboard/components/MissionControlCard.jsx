@@ -65,7 +65,7 @@ export default function MissionControlCard({
           </svg>
           <div className="relative z-10 flex flex-col items-center justify-center mt-1">
             <Zap className="w-6 h-6 text-[#06b6d4] mb-1 animate-pulse" />
-            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Energy</span>
+            <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Energy</span>
           </div>
 
           {/* Orbiting particle */}

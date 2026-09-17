@@ -103,6 +103,8 @@ function CppExecCanvas() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
+        const SCALE = 1.15;
+
         function resize() {
             const dpr = Math.min(
                 window.devicePixelRatio || 1,
@@ -110,12 +112,12 @@ function CppExecCanvas() {
             );
             canvas.width = canvas.offsetWidth * dpr;
             canvas.height = canvas.offsetHeight * dpr;
-            ctx.scale(dpr, dpr);
+            ctx.scale(dpr * SCALE, dpr * SCALE);
         }
         resize();
 
-        const W = () => canvas.offsetWidth;
-        const H = () => canvas.offsetHeight;
+        const W = () => canvas.offsetWidth / SCALE;
+        const H = () => canvas.offsetHeight / SCALE;
 
         const PAD = 10;
         const CODE_X = () => PAD + 10;
@@ -656,8 +658,8 @@ export default function CppCourseCard({
 
                 minHeight:
                     variant === "home"
-                        ? 620
-                        : 540,
+                        ? 580
+                        : 560,
 
                 transform,
 
@@ -673,60 +675,61 @@ export default function CppCourseCard({
                 pointerEvents: isLocked
                     ? "none"
                     : "auto",
+                background: "#F2E0D0",
             }}
         >
             {/* HERO */}
-            <div
-                className="
-          relative
-          overflow-hidden
-          shrink-0
-        "
-                style={{
-                    height:
-                        variant === "home"
-                            ? 305
-                            : 250,
-                }}
-            >
-                <CppExecCanvas />
+            <div className="px-3 pt-3">
+                <div
+                    className="
+              relative
+              overflow-hidden
+              shrink-0
+              rounded-[18px]
+            "
+                    style={{
+                        height:
+                            variant === "home"
+                                ? 310
+                                : 300,
+                    }}
+                >
+                    <CppExecCanvas />
 
-                {isActive && (
-                    <div
-                        aria-hidden="true"
-                        className="
+                    {isActive && (
+                        <div
+                            aria-hidden="true"
+                            className="
               absolute
               inset-0
               pointer-events-none
             "
-                        style={{
-                            background: isSuccess
-                                ? "rgba(0,169,255,0.06)"
-                                : "rgba(25,24,59,0.05)",
-                        }}
-                    />
-                )}
+                            style={{
+                                background: isSuccess
+                                    ? "rgba(0,169,255,0.06)"
+                                    : "rgba(25,24,59,0.05)",
+                            }}
+                        />
+                    )}
 
-                <StatusBadge
-                    state={state}
-                    status={status}
-                />
+                    <StatusBadge
+                        state={state}
+                        status={status}
+                    />
+                </div>
             </div>
 
             {/* INFO */}
             <div
                 className="
           relative
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
           flex-grow
           flex
           flex-col
         "
-                style={{
-                    background: "#F2E0D0",
-                }}
             >
                 <CardInfoShimmer
                     state={state}
@@ -766,9 +769,10 @@ export default function CppCourseCard({
                     {cppRoadmapData.title}
                 </h3>
 
-                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3 line-clamp-2">
                     {cppRoadmapData.description ||
                         "Learn C++ from scratch — variables, functions, memory management, OOP, and how programs run at the hardware level."}
+                    <span className="text-[#00A9FF] font-bold ml-1">...more</span>
                 </p>
 
                 <p className="text-[11px] font-semibold text-[#19183B]/55">

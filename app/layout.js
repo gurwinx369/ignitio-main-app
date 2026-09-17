@@ -1,9 +1,9 @@
-import { Inter, Pixelify_Sans } from "next/font/google";
+import { Noto_Sans, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 import ClientLayoutWrapper from "./client-layout-wrapper";
 
-const inter = Inter({
-    variable: "--font-inter",
+const notoSans = Noto_Sans({
+    variable: "--font-noto-sans",
     display: "swap",
     subsets: ["latin"],
 });
@@ -71,7 +71,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-    const bodyClass = `${inter.variable} ${pixelifySans.variable} antialiased`;
+    const bodyClass = `${notoSans.variable} ${pixelifySans.variable} antialiased`;
 
     return (
         <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>

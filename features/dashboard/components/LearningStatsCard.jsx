@@ -20,7 +20,7 @@ export default function LearningStatsCard({ profileData, roadmapsData }) {
             <Star className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 uppercase">Levels</span>
           </div>
-          <span className="text-2xl font-black text-slate-900">{totalCompletedLevels}</span>
+          <span className="text-2xl font-pixelify font-black text-slate-900">{totalCompletedLevels}</span>
         </div>
 
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-center">
@@ -28,7 +28,7 @@ export default function LearningStatsCard({ profileData, roadmapsData }) {
             <Award className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 uppercase">Roadmaps</span>
           </div>
-          <span className="text-2xl font-black text-slate-900">{startedRoadmaps}</span>
+          <span className="text-2xl font-pixelify font-black text-slate-900">{startedRoadmaps}</span>
         </div>
         
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-center col-span-2 sm:col-span-1">
@@ -36,7 +36,7 @@ export default function LearningStatsCard({ profileData, roadmapsData }) {
             <Zap className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 uppercase">Progress</span>
           </div>
-          <span className="text-2xl font-black text-slate-900">{overallProgress}%</span>
+          <span className="text-2xl font-pixelify font-black text-slate-900">{overallProgress}%</span>
         </div>
       </div>
     </div>

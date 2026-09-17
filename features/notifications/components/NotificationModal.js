@@ -234,7 +234,7 @@ export default function NotificationModal() {
                 onClick={handleAccept}
                 disabled={loading}
                 autoFocus
-                className="flex-1 h-[42px] px-5 bg-[#00A9FF] hover:bg-[#0098E5] active:scale-[0.98] text-white text-[13.5px] font-bold rounded-xl transition-all shadow-md shadow-[#00A9FF]/20 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
+                className="btn-push-sm flex-1 h-[42px] px-5 bg-[#00A9FF] border-[#007bcc] hover:bg-[#0098E5] text-white text-[13.5px] font-bold rounded-xl disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
               >
                 {loading ? (
                   <>

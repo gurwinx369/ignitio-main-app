@@ -6,8 +6,7 @@ export default function ResultsActions({ onContinue, isContinuing }) {
       <button
         onClick={onContinue}
         disabled={isContinuing}
-        className="w-full max-w-md py-4 px-8 rounded-full bg-[#00A9FF] text-white text-lg font-bold uppercase tracking-wide transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-[#0096e6] active:translate-y-1"
-        style={{ boxShadow: isContinuing ? "none" : "0 4px 0 #004B74" }}
+        className="btn-push w-full max-w-md py-4 px-8 rounded-full bg-[#00A9FF] border-[#004B74] text-white text-lg font-bold uppercase tracking-wide disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-[#0096e6]"
       >
         {isContinuing ? (
           <>

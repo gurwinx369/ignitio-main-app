@@ -439,8 +439,7 @@ export default function Paywall() {
               <button
                 type="button"
                 onClick={() => setPaywallStep("plans")}
-                className="w-full bg-[#00A9FF] text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide transition-all hover:bg-[#0096e6] active:translate-y-1"
-                style={{ boxShadow: "0 4px 0 #004B74" }}
+                className="btn-push w-full bg-[#00A9FF] border-[#004B74] text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide hover:bg-[#0096e6]"
               >
                 CHOOSE MY PLAN
               </button>
@@ -451,7 +450,7 @@ export default function Paywall() {
             <div className="mb-6 px-4">
               <button
                 onClick={() => setPaywallStep("explainer")}
-                className="text-[#001D32] hover:bg-slate-200/50 w-10 h-10 flex items-center justify-center rounded-full font-bold transition-colors"
+                className="btn-push-sm text-[#001D32] bg-white border-[#ddd8d0] hover:bg-[#ede8e1] w-10 h-10 flex items-center justify-center rounded-xl font-bold"
                 aria-label="Back to explainer"
               >
                 <svg
