@@ -237,7 +237,7 @@ export async function POST(request) {
       onboardingComplete: false,
       onboardingVersion: ONBOARDING_VERSIONS.V4,
       onboardingState: {
-        step: "diagnostic",
+        step: "role_selection",
       },
     });
 

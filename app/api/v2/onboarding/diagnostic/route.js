@@ -46,7 +46,7 @@ export async function POST(req) {
     }
 
     await connectToDB();
-    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step").lean();
+    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step entitlements.roadmaps.genAi").lean();
 
     if (!existingProfile) {
       const tokenEmail = typeof decodedToken.email === "string" ? decodedToken.email.toLowerCase().trim() : "";
@@ -62,7 +62,9 @@ export async function POST(req) {
           email: tokenEmail,
           onboardingComplete: false,
           onboardingVersion: ONBOARDING_VERSIONS.V4,
-          onboardingState: { step: "diagnostic" },
+          // New users start at role_selection (core onboarding gate).
+          // The diagnostic is a feature-level activation, not a gating step.
+          onboardingState: { step: "role_selection" },
         });
       }
     }
@@ -80,10 +82,23 @@ export async function POST(req) {
       );
     }
 
-    if (!["diagnostic", "results"].includes(canonicalStep)) {
+    // Allow the diagnostic from these states:
+    // - "diagnostic" / "results": normal in-progress flow
+    // - "role_selection" / "completed": fully-onboarded user activating GenAI
+    const ELIGIBLE_STEPS = ["diagnostic", "results", "role_selection", "completed"];
+    if (!ELIGIBLE_STEPS.includes(canonicalStep)) {
       return NextResponse.json({
         success: true,
         nextStep: canonicalStep,
+        statePreserved: true,
+      });
+    }
+
+    // If already entitled, no need to re-run the diagnostic flow.
+    if (canonicalStep === "completed" && existingProfile.entitlements?.roadmaps?.genAi === true) {
+      return NextResponse.json({
+        success: true,
+        nextStep: "completed",
         statePreserved: true,
       });
     }
@@ -117,7 +132,9 @@ export async function POST(req) {
       {
         firebaseUID,
         "onboardingState.step": {
-          $in: ["diagnostic", "results"],
+          // diagnostic/results = original flow
+          // role_selection/completed = fully-onboarded user activating GenAI
+          $in: ["diagnostic", "results", "role_selection", "completed"],
         },
       },
       {

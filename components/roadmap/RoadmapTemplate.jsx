@@ -1479,6 +1479,13 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                 <PreviewCardLockedModal
                     certificate={previewCardData.certificate}
                     roadmapId={roadmapData.id}
+                    roadmapTitle={roadmapData.title || ""}
+                    totalLevels={allLevels.length}
+                    allLevelIds={allLevels.map((l) => l.id)}
+                    days={roadmapData.days.map((d) => ({
+                        id: d.id,
+                        levelIds: d.levels.map((l) => l.id),
+                    }))}
                     completedLevelId={previewCardData.completedLevelId}
                     completedLevels={previewCardData.completedLevels}
                     onClose={() => setPreviewCardData(null)}

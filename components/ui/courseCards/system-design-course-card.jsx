@@ -601,8 +601,8 @@ export default function SystemDesignCourseCard({
 
                 minHeight:
                     variant === "home"
-                        ? 620
-                        : 540,
+                        ? 580
+                        : 560,
 
                 transform,
 
@@ -618,26 +618,29 @@ export default function SystemDesignCourseCard({
                 pointerEvents: isLocked
                     ? "none"
                     : "auto",
+                background: "#F2E0D0",
             }}
         >
             {/* HERO */}
-            <div
-                className="
-          relative
-          overflow-hidden
-          shrink-0
-        "
-                style={{
-                    height:
-                        variant === "home"
-                            ? 305
-                            : 250,
+            <div className="px-3 pt-3">
+                <div
+                    className="
+              relative
+              overflow-hidden
+              shrink-0
+              rounded-[18px]
+            "
+                    style={{
+                        height:
+                            variant === "home"
+                                ? 310
+                                : 300,
 
-                    background:
-                        "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-                }}
-            >
-                <SystemDesignCanvas />
+                        background:
+                            "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+                    }}
+                >
+                    <SystemDesignCanvas />
 
                 {isActive && (
                     <div
@@ -659,22 +662,20 @@ export default function SystemDesignCourseCard({
                     state={state}
                     status={status}
                 />
+                </div>
             </div>
 
             {/* INFO */}
             <div
                 className="
           relative
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
           flex-grow
           flex
           flex-col
         "
-                style={{
-                    background: "#F2E0D0",
-                }}
             >
                 <CardInfoShimmer
                     state={state}
@@ -716,9 +717,10 @@ export default function SystemDesignCourseCard({
                         "System Design"}
                 </h3>
 
-                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3 line-clamp-2">
                     {systemDesignRoadmapData.description ||
                         "Master scalable system design — databases, caching, load balancing, CAP theorem, and message queues."}
+                    <span className="text-[#00A9FF] font-bold ml-1">...more</span>
                 </p>
 
                 <p className="text-[11px] font-semibold text-[#19183B]/55">

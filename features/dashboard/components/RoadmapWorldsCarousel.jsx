@@ -509,7 +509,7 @@ export default function RoadmapWorldsCarousel({
 
           flex
           items-stretch
-          gap-4
+          gap-6
 
           overflow-x-auto
           overflow-y-visible
@@ -561,7 +561,7 @@ export default function RoadmapWorldsCarousel({
             >
               <div
                 className="
-                  h-[590px]
+                  h-[580px]
                   w-full
 
                   [&>*]:h-full

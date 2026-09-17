@@ -57,6 +57,10 @@ const popIn = {
 export default function PreviewCardLockedModal({
   certificate,
   roadmapId,
+  roadmapTitle,
+  totalLevels,
+  allLevelIds,
+  days,
   completedLevelId,
   completedLevels,
   onClose,
@@ -82,9 +86,13 @@ export default function PreviewCardLockedModal({
         "ignitio:preview_payload",
         JSON.stringify({
           roadmapId,
-          completedLevelId,
+          roadmapTitle,
+          totalLevels,
+          allLevelIds,
+          days,
+          lastActiveLevelId: completedLevelId,
           completedLevels,
-          profession: localStorage.getItem("profession") || "other",
+          role: localStorage.getItem("profession") || "other",
           savedAt: Date.now(),
         }),
       );

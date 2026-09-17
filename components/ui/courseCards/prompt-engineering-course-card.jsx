@@ -368,8 +368,8 @@ export default function PromptEngineeringCourseCard({
 
                 minHeight:
                     variant === "home"
-                        ? 620
-                        : 540,
+                        ? 580
+                        : 560,
 
                 transform,
 
@@ -385,25 +385,28 @@ export default function PromptEngineeringCourseCard({
                 pointerEvents: isLocked
                     ? "none"
                     : "auto",
+                background: "#F2E0D0",
             }}
         >
             {/* HERO / ANIMATION AREA */}
-            <div
-                className="
-                    relative
-                    overflow-hidden
-                    shrink-0
-                "
-                style={{
-                    height:
-                        variant === 'home'
-                            ? 305
-                            : 250,
+            <div className="px-3 pt-3">
+                <div
+                    className="
+                        relative
+                        overflow-hidden
+                        shrink-0
+                        rounded-[18px]
+                    "
+                    style={{
+                        height:
+                            variant === 'home'
+                                ? 310
+                                : 300,
 
-                    background: '#FFFDF9',
-                }}
-            >
-                <PromptEngineeringCanvas />
+                        background: '#FFFDF9',
+                    }}
+                >
+                    <PromptEngineeringCanvas />
 
                 {isActive && (
                     <div
@@ -421,21 +424,19 @@ export default function PromptEngineeringCourseCard({
                     state={state}
                     status={status}
                 />
+                </div>
             </div>
 
             {/* INFO AREA */}
             <div
                 className="
                     relative
-                    px-5
-                    pt-[18px]
-                    pb-5
+                    px-6
+                    pt-5
+                    pb-6
                     flex-grow
                     flex flex-col
                 "
-                style={{
-                    background: "#F2E0D0",
-                }}
             >
                 <CardInfoShimmer state={state} />
 
@@ -493,12 +494,14 @@ export default function PromptEngineeringCourseCard({
                         font-medium
                         leading-[1.5]
                         mb-3
+                        line-clamp-2
                     "
                     style={{
                         color: '#19183B',
                     }}
                 >
                     {roadmapData.description}
+                    <span className="text-[#00A9FF] font-bold ml-1">...more</span>
                 </p>
 
                 {/* TEXT ONLY — no boxes, no progress bar */}

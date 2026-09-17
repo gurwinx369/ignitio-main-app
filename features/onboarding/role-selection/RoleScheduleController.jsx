@@ -75,8 +75,19 @@ export default function RoleScheduleController() {
   const [errorMsg, setErrorMsg] =
     useState("");
 
-  const [role, setRole] =
-    useState("");
+  const [role, setRole] = useState("");
+  const [hasPrefilledRole, setHasPrefilledRole] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedRole = localStorage.getItem("profession");
+      if (savedRole) {
+        setRole(savedRole);
+        setStep("schedule");
+        setHasPrefilledRole(true);
+      }
+    }
+  }, []);
 
   const availableTimezones =
     useMemo(() => {
@@ -348,16 +359,18 @@ export default function RoleScheduleController() {
       subtitle="When is the best time for you to learn?"
     >
       <div className="w-full max-w-md mx-auto">
-        <button
-          type="button"
-          onClick={() => {
-            setErrorMsg("");
-            setStep("role");
-          }}
-          className="mb-6 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
-        >
-          &larr; Back to roles
-        </button>
+        {!hasPrefilledRole && (
+          <button
+            type="button"
+            onClick={() => {
+              setErrorMsg("");
+              setStep("role");
+            }}
+            className="mb-6 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
+          >
+            &larr; Back to roles
+          </button>
+        )}
 
         <div className="flex flex-col gap-6">
           <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 sm:p-8">

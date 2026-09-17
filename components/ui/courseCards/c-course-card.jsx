@@ -727,8 +727,8 @@ export default function CCourseCard({
 
         minHeight:
           variant === "home"
-            ? 620
-            : 540,
+            ? 580
+            : 560,
 
         transform,
 
@@ -744,25 +744,28 @@ export default function CCourseCard({
         pointerEvents: isLocked
           ? "none"
           : "auto",
+        background: "#F2E0D0",
       }}
     >
       {/* HERO */}
-      <div
-        className="
-          relative
-          overflow-hidden
-          shrink-0
-        "
-        style={{
-          height:
-            variant === "home"
-              ? 305
-              : 250,
-          background:
-            "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-        }}
-      >
-        <CCodeVisual />
+      <div className="px-3 pt-3">
+        <div
+          className="
+            relative
+            overflow-hidden
+            shrink-0
+            rounded-[18px]
+          "
+          style={{
+            height:
+              variant === "home"
+                ? 310
+                : 300,
+            background:
+              "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          }}
+        >
+          <CCodeVisual />
 
         {isActive && (
           <div
@@ -784,22 +787,20 @@ export default function CCourseCard({
           state={state}
           status={status}
         />
+        </div>
       </div>
 
       {/* INFO */}
       <div
         className="
           relative
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
           flex-grow
           flex
           flex-col
         "
-        style={{
-          background: "#F2E0D0",
-        }}
       >
         <CardInfoShimmer
           state={state}
@@ -839,9 +840,10 @@ export default function CCourseCard({
           {clangBeginnerRoadmapData.title}
         </h3>
 
-        <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+        <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3 line-clamp-2">
           {clangBeginnerRoadmapData.description ||
             "Learn C programming from scratch — variables, logic, loops, memory management, and pointers for software development."}
+          <span className="text-[#00A9FF] font-bold ml-1">...more</span>
         </p>
 
         <p className="text-[11px] font-semibold text-[#19183B]/55">

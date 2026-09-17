@@ -40,7 +40,7 @@ function HeaderMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
+        className="btn-push-sm w-10 h-10 flex items-center justify-center bg-white border-[#e2e8f0] rounded-xl text-slate-700 hover:bg-slate-50"
         aria-label="Toggle menu"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -97,7 +97,7 @@ export default function HomeHeader({ displayName, onOpenFeedback }) {
       <div className="flex gap-2 shrink-0">
         <button
           onClick={onOpenFeedback}
-          className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex transition-all duration-150 hover:-translate-y-[1px] active:translate-y-[2px] active:scale-[0.98] active:shadow-none"
+          className="btn-push-sm flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-1.5 bg-white border-[#e2e8f0] rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 flex"
         >
           <MessageSquare className="w-4 h-4 shrink-0" />
           <span className="truncate">Feedback</span>

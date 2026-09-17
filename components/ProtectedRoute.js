@@ -23,8 +23,17 @@ const PROTECTED_PREFIXES = [
 
 const PROTECTED_EXACT = ["/home"];
 
-// Routes belonging to onboarding.
+// Routes belonging to core onboarding (role selection).
 const ONBOARDING_PREFIX = "/home/onboarding";
+
+// GenAI activation routes — accessible to BOTH incomplete AND complete users.
+// They are no longer gated by core onboarding completion.
+const GENAI_ACTIVATION_PREFIXES = [
+    "/home/onboarding/diagnostic",
+    "/home/onboarding/results",
+    "/home/onboarding/paywall",
+    "/home/onboarding/activation",
+];
 
 function isProtectedRoute(pathname) {
     if (PROTECTED_EXACT.includes(pathname)) {
@@ -44,6 +53,15 @@ function isOnboardingRoute(pathname) {
         pathname.startsWith(
             `${ONBOARDING_PREFIX}/`,
         )
+    );
+}
+
+// GenAI activation routes pass through regardless of onboarding state.
+function isGenAiActivationRoute(pathname) {
+    return GENAI_ACTIVATION_PREFIXES.some(
+        (prefix) =>
+            pathname === prefix ||
+            pathname.startsWith(`${prefix}/`),
     );
 }
 
@@ -230,19 +248,20 @@ export default function ProtectedRoute({
             }
         }
 
+        // GenAI activation routes are open to all authenticated users.
+        // Skip all onboarding enforcement for them.
+        if (isGenAiActivationRoute(pathname)) {
+            return;
+        }
+
         // Canonical onboarding-step enforcement.
         if (isOnboardingRoute(pathname)) {
             if (!profileObj) {
                 /*
-                 * The onboarding entry and diagnostic pages
-                 * are accessible without a profile to allow
-                 * new users to start onboarding.
+                 * The onboarding entry page is accessible without a
+                 * profile to allow new users to start onboarding.
                  */
-                const isAllowedWithoutProfile =
-                    pathname === ONBOARDING_PREFIX ||
-                    pathname === `${ONBOARDING_PREFIX}/diagnostic`;
-
-                if (!isAllowedWithoutProfile) {
+                if (pathname !== ONBOARDING_PREFIX) {
                     router.replace(
                         ONBOARDING_PREFIX,
                     );
@@ -265,11 +284,7 @@ export default function ProtectedRoute({
                     profileObj,
                 );
 
-            const isDiagnosticGateway =
-                pathname === ONBOARDING_PREFIX &&
-                canonicalStep === `${ONBOARDING_PREFIX}/diagnostic`;
-
-            if (pathname !== canonicalStep && !isDiagnosticGateway) {
+            if (pathname !== canonicalStep) {
                 router.replace(
                     canonicalStep,
                 );
@@ -327,6 +342,11 @@ export default function ProtectedRoute({
         }
     }
 
+    // GenAI activation routes — always render for authenticated users.
+    if (isGenAiActivationRoute(pathname)) {
+        return <>{children}</>;
+    }
+
     // Suppress incorrect onboarding content.
     if (isOnboardingRoute(pathname)) {
         if (
@@ -337,11 +357,7 @@ export default function ProtectedRoute({
         }
 
         if (!profileObj) {
-            const isAllowedWithoutProfile =
-                pathname === ONBOARDING_PREFIX ||
-                pathname === `${ONBOARDING_PREFIX}/diagnostic`;
-
-            if (!isAllowedWithoutProfile) {
+            if (pathname !== ONBOARDING_PREFIX) {
                 return null;
             }
         } else {
@@ -350,14 +366,7 @@ export default function ProtectedRoute({
                     profileObj,
                 );
 
-            const isDiagnosticGateway =
-                pathname === ONBOARDING_PREFIX &&
-                canonicalStep === `${ONBOARDING_PREFIX}/diagnostic`;
-
-            if (
-                pathname !== canonicalStep &&
-                !isDiagnosticGateway
-            ) {
+            if (pathname !== canonicalStep) {
                 return null;
             }
         }

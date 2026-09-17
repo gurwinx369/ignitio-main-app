@@ -19,7 +19,7 @@ const ProgressHeader = ({ currentStep, codingLevel, onBack }) => {
       {onBack && (
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#ede8e1] transition-colors shrink-0"
+          className="btn-push-sm w-10 h-10 flex items-center justify-center rounded-xl bg-white border-[#ddd8d0] hover:bg-[#ede8e1] shrink-0"
           aria-label="Go back"
         >
           <ArrowLeft className="text-[#19183b]" size={22} />

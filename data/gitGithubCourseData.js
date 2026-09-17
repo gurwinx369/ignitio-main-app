@@ -100,7 +100,7 @@ export const courseDataAdvanced = {
 export const gitGithubRoadmapData = {
     id: "git-github",
     title: "Git & GitHub",
-    description: "Master version control workflows.",
+    description: "Master version control workflows, branching strategies, repository management, and collaboration patterns for software teams.",
     days: [
         {
             id: "day1",

@@ -3,6 +3,8 @@
 
 @custom-variant dark (&:is(.dark *));
 @theme inline {
+    --font-sans: var(--font-noto-sans), "Noto Sans", sans-serif;
+    --font-pixelify: var(--font-pixelify), "Pixelify Sans", sans-serif;
     --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1 var(--delay, 0ms);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -203,7 +205,16 @@ html {
 body {
     color: var(--color-secondary-900);
     background: var(--color-primary-50);
-    font-family: Inter, sans-serif;
+    font-family: var(--font-noto-sans), "Noto Sans", sans-serif;
+}
+
+/* Hide scrollbars globally for a seamless, app-like experience */
+::-webkit-scrollbar {
+    display: none;
+}
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .dark {
@@ -312,5 +323,16 @@ body {
   .diag-continue-btn,
   .ob-press-btn {
     transition: none;
+  }
+}
+
+/* ── Global Push Button Utilities (Apple Design / Tactile) ─────────────────── */
+@layer components {
+  .btn-push {
+    @apply cursor-pointer transition-all border-b-[4px] hover:-translate-y-[1px] hover:border-b-[6px] active:border-b-[2px] active:translate-y-[2px];
+  }
+
+  .btn-push-sm {
+    @apply cursor-pointer transition-all border-b-[2px] hover:-translate-y-[1px] hover:border-b-[3px] active:border-b-0 active:translate-y-[2px];
   }
 }

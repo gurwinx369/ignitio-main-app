@@ -177,48 +177,31 @@ export function SuccessIcon({ size = 14, color = '#2ecc8a' }) {
 
 // ─── StatusBadge ─────────────────────────────────────────────────
 /**
- * The bottom-left pill on the card.
- * Idle   → shows the `status` prop (e.g. "Not Started")
- * Loading→ pulsing dot + "Loading…"
- * Success→ green pill + "Opening…"
+ * The top-left pill on the card displaying active learners.
  */
-export function StatusBadge({ state, status = 'Not Started' }) {
-    const isLoading = state === LOAD_STATE.LOADING;
-    const isSuccess = state === LOAD_STATE.SUCCESS;
-    const isActive  = isLoading || isSuccess || state === LOAD_STATE.PRESSING;
-
-    const bg    = isSuccess ? '#2ecc8a' : '#fff';
-    const color = isSuccess ? '#fff'    : '#1a1a1a';
-    const label = isSuccess ? 'Opening…' : isActive ? 'Loading…' : status;
-
+export function StatusBadge() {
     return (
         <span
-            className="absolute bottom-3.5 left-3.5 text-[11px] font-bold tracking-[0.03em] px-[13px] py-[6px] rounded-full flex items-center gap-[5px]"
+            className="absolute top-3.5 left-3.5 text-[11px] font-bold tracking-[0.03em] px-[13px] py-[6px] rounded-full flex items-center gap-[6px] bg-white text-[#1a1a1a]"
             style={{
-                background:  bg,
-                color:       color,
-                boxShadow:   isSuccess
-                    ? '0 2px 14px rgba(46,204,138,0.40)'
-                    : '0 2px 8px rgba(0,0,0,0.12)',
-                transition:  'background 0.28s ease, box-shadow 0.28s ease, color 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                zIndex: 10,
             }}
         >
-      {/* Pulse dot — visible only while loading */}
-            {isLoading && (
-                <span
-                    style={{
-                        display:       'inline-block',
-                        width:         6,
-                        height:        6,
-                        borderRadius:  '50%',
-                        background:    '#1e1a18',
-                        flexShrink:    0,
-                        animation:     '_ignitio_dot_pulse 0.75s ease-in-out infinite',
-                    }}
-                />
-            )}
-            {label}
-    </span>
+            {/* Green dot */}
+            <span
+                style={{
+                    display: 'inline-block',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#2ecc8a',
+                    flexShrink: 0,
+                    boxShadow: '0 0 6px rgba(46,204,138,0.6)',
+                }}
+            />
+            500+ learners
+        </span>
     );
 }
 

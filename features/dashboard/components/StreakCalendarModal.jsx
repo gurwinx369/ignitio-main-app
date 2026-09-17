@@ -739,7 +739,7 @@ export default function StreakCalendarModal({
 
                             <h2
                                 id="streak-calendar-title"
-                                className="text-lg font-black text-slate-900"
+                                className="text-lg font-bold text-slate-900"
                             >
                                 Streak Calendar
                             </h2>
@@ -766,7 +766,7 @@ export default function StreakCalendarModal({
                     {/* Stats */}
                     <div className="mb-5 grid grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-                            <p className="text-2xl font-black text-slate-900">
+                            <p className="text-2xl font-pixelify font-black text-slate-900">
                                 {
                                     currentCount
                                 }
@@ -778,7 +778,7 @@ export default function StreakCalendarModal({
                         </div>
 
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                            <p className="text-2xl font-black text-slate-900">
+                            <p className="text-2xl font-pixelify font-black text-slate-900">
                                 {
                                     longestCount
                                 }

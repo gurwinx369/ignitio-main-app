@@ -240,6 +240,10 @@ export default function StreakStatusCard({
       : `Complete ${lessonsLeft} lessons in the next 48 hours to restore your ${streak.earnBack.countAtRisk}-day streak.`;
   })();
 
+  const visibleWeek = streak?.week ? streak.week.slice(firstActiveWeekIndex) : null;
+  const visibleCount = visibleWeek ? visibleWeek.length : 0;
+  const lineInset = visibleCount > 0 ? 100 / (2 * visibleCount) : 0;
+
   return (
     <div className="flex flex-col gap-2.5 w-full">
 
@@ -416,6 +420,7 @@ export default function StreakStatusCard({
                     className={[
                       "text-2xl",
                       "sm:text-[28px]",
+                      "font-pixelify",
                       "font-black",
                       "leading-none",
                       "text-[#19183B]",
@@ -548,7 +553,7 @@ export default function StreakStatusCard({
                 ))}
               </div>
 
-            ) : streak?.week ? (
+            ) : visibleWeek ? (
 
               <div
                 className="relative px-0.5 pt-0.5"
@@ -556,54 +561,55 @@ export default function StreakStatusCard({
                 aria-label="This week's streak"
               >
                 {/* BLUE LINE BEHIND CUPS */}
-                <div
-                  aria-hidden="true"
-                  className="
-                    absolute
-                    left-[7%]
-                    right-[7%]
+                {visibleCount > 1 && (
+                  <>
+                    <div
+                      aria-hidden="true"
+                      className="
+                        absolute
+                        top-[31px]
+                        sm:top-[34px]
+                        h-[2px]
+                        rounded-full
+                        bg-[#19183B]/8
+                      "
+                      style={{
+                        left: `${lineInset}%`,
+                        right: `${lineInset}%`,
+                      }}
+                    />
 
-                    top-[31px]
-                    sm:top-[34px]
-
-                    h-[2px]
-
-                    rounded-full
-                    bg-[#19183B]/8
-                  "
-                />
-
-                <div
-                  aria-hidden="true"
-                  className="
-                    absolute
-                    right-[7%]
-
-                    top-[31px]
-                    sm:top-[34px]
-
-                    h-[2px]
-
-                    rounded-full
-                    bg-[#00A9FF]/55
-                  "
-                  style={{
-                    left: `${7 + firstActiveWeekIndex * (86 / 6)}%`,
-                  }}
-                />
+                    <div
+                      aria-hidden="true"
+                      className="
+                        absolute
+                        top-[31px]
+                        sm:top-[34px]
+                        h-[2px]
+                        rounded-full
+                        bg-[#00A9FF]/55
+                      "
+                      style={{
+                        left: `${lineInset}%`,
+                        right: `${lineInset}%`,
+                      }}
+                    />
+                  </>
+                )}
 
                 <div
                   className="
                   relative
                   z-10
                   grid
-                  grid-cols-7
                   gap-0.5
-
                   sm:gap-2
                 "
+                  style={{
+                    gridTemplateColumns: `repeat(${visibleCount}, minmax(0, 1fr))`,
+                  }}
                 >
-                  {streak.week.map((day, idx) => {
+                  {visibleWeek.map((day, idx) => {
                     const { src } =
                       getDayCupSrc(day.status);
 
@@ -748,7 +754,7 @@ export default function StreakStatusCard({
                             "h-3",
                             "text-[7px]",
                             "sm:text-[9px]",
-                            "font-extrabold",
+                            "font-bold",
                             "uppercase",
                             "tracking-wide",
 

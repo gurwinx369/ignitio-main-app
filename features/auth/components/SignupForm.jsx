@@ -95,9 +95,16 @@ export default function SignupForm() {
             const hasPreview =
               typeof window !== "undefined" &&
               !!localStorage.getItem("ignitio:preview_payload");
+            
+            // ponytail: gen ai preview flows to paywall directly
+            const isGenAiPreview = 
+              typeof window !== "undefined" && 
+              new URLSearchParams(window.location.search).get("from") === "genai_preview";
 
             router.replace(
-              hasPreview
+              isGenAiPreview
+                ? "/home/onboarding/paywall"
+                : hasPreview
                 ? "/home/onboarding?from=preview"
                 : "/home/onboarding"
             );
@@ -138,8 +145,14 @@ export default function SignupForm() {
               typeof window !== "undefined" &&
               !!localStorage.getItem("ignitio:preview_payload");
 
+            const isGenAiPreview = 
+              typeof window !== "undefined" && 
+              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+
             router.replace(
-              hasPreview
+              isGenAiPreview
+                ? "/home/onboarding/paywall"
+                : hasPreview
                 ? "/home/onboarding?from=preview"
                 : "/home/onboarding"
             );

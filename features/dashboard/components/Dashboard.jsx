@@ -25,6 +25,8 @@ import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
 import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
+import { submitDiagnostic } from "@/features/onboarding/diagnostic/services/submitDiagnostic";
+import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
@@ -87,6 +89,7 @@ export default function Dashboard({ isPreview = false }) {
     requestedTab,
   ]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [pendingCertificate, setPendingCertificate] = useState(null);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -166,14 +169,12 @@ export default function Dashboard({ isPreview = false }) {
       setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
 
       if (!isPreview && user && typeof window !== "undefined") {
-        const previewPayload = localStorage.getItem(
-          "ignitio:preview_payload",
-        );
-
+        const previewPayload = localStorage.getItem("ignitio:preview_payload");
         if (previewPayload) {
+          // ponytail: sync lock to prevent Strict Mode / double-mount race conditions
+          localStorage.removeItem("ignitio:preview_payload");
           try {
             const parsedPayload = JSON.parse(previewPayload);
-
             if (
               parsedPayload &&
               typeof parsedPayload === "object" &&
@@ -184,10 +185,9 @@ export default function Dashboard({ isPreview = false }) {
                 roadmapSlug: parsedPayload.roadmapId,
                 payload: parsedPayload,
               });
-
-              localStorage.removeItem("ignitio:preview_payload");
             }
           } catch (error) {
+            localStorage.setItem("ignitio:preview_payload", previewPayload);
             if (process.env.NODE_ENV === "development") {
               console.error(
                 "Failed to migrate preview roadmap progress:",
@@ -195,6 +195,41 @@ export default function Dashboard({ isPreview = false }) {
               );
             }
           }
+        }
+
+        // ponytail: migrate gen ai preview assessment to DB
+        const genAiPreview = localStorage.getItem("genai_preview_assessment");
+        if (genAiPreview) {
+          localStorage.removeItem("genai_preview_assessment");
+          try {
+            const parsedGenAi = JSON.parse(genAiPreview);
+            if (parsedGenAi) {
+              const currentToken = await user.getIdToken();
+              await submitDiagnostic(parsedGenAi, currentToken);
+            }
+          } catch (error) {
+            localStorage.setItem("genai_preview_assessment", genAiPreview);
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "Failed to migrate gen ai preview assessment:",
+                error?.message || "unknown error",
+              );
+            }
+          }
+        }
+
+        // ponytail: consume the pending animation key written by PreviewCardLockedModal
+        // Do not remove it here to avoid StrictMode async race conditions. Remove it on close.
+        try {
+          const raw = localStorage.getItem("ignitio:pending_certificate_animation");
+          if (raw) {
+            const cert = JSON.parse(raw);
+            if (cert && cert.certificateKey) {
+              setPendingCertificate(cert);
+            }
+          }
+        } catch {
+          // ignore parsing errors
         }
       }
     };
@@ -628,7 +663,7 @@ export default function Dashboard({ isPreview = false }) {
                   handleRedirect("/home/premium/genai")
                 }
                 onNavigatePaywall={() =>
-                  handleRedirect("/home/premium/genai/paywall")
+                  handleRedirect("/home/onboarding/diagnostic")
                 }
               />
             </div>
@@ -638,6 +673,16 @@ export default function Dashboard({ isPreview = false }) {
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {pendingCertificate && (
+        <CertificateUnlockedModal
+          certificate={pendingCertificate}
+          onClose={() => {
+            setPendingCertificate(null);
+            localStorage.removeItem("ignitio:pending_certificate_animation");
+          }}
+        />
+      )}
     </div>
   );
 }

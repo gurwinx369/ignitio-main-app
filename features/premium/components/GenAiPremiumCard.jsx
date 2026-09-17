@@ -852,7 +852,7 @@ export default function GenAiPremiumCard({
         flex-col
       "
             style={{
-                minHeight: 540,
+                minHeight: 600,
                 borderRadius: 24,
                 boxShadow: shadow,
                 transform,
@@ -870,17 +870,20 @@ export default function GenAiPremiumCard({
                     isInteractionLocked
                         ? "none"
                         : "auto",
+                background: "#F2E0D0",
             }}
         >
             {/* HERO */}
-            <div
-                className="
-          relative
-          h-[250px]
-          shrink-0
-          overflow-hidden
-        "
-            >
+            <div className="px-3 pt-3">
+                <div
+                    className="
+              relative
+              h-[310px]
+              shrink-0
+              overflow-hidden
+              rounded-[18px]
+            "
+                >
                 <GenAiWorldVisual />
 
                 {isVisualActive && (
@@ -904,6 +907,7 @@ export default function GenAiPremiumCard({
                     state={visualState}
                     status={statusLabel}
                 />
+                </div>
             </div>
 
             {/* INFO */}
@@ -913,13 +917,10 @@ export default function GenAiPremiumCard({
           flex
           flex-grow
           flex-col
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
         "
-                style={{
-                    background: "#F2E0D0",
-                }}
             >
                 <CardInfoShimmer
                     state={visualState}
@@ -1007,11 +1008,13 @@ export default function GenAiPremiumCard({
             leading-[1.5]
             text-[#19183B]
             mb-3
+            line-clamp-2
           "
                 >
                     Build production-ready AI systems
                     through prompting, RAG, APIs, and
                     agentic workflows.
+                    <span className="text-[#00A9FF] font-bold ml-1">...more</span>
                 </p>
 
                 <p

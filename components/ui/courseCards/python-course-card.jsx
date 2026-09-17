@@ -776,8 +776,8 @@ export default function PythonCourseCard({
 
         minHeight:
           variant === "home"
-            ? 620
-            : 540,
+            ? 580
+            : 560,
 
         transform,
 
@@ -793,18 +793,20 @@ export default function PythonCourseCard({
         pointerEvents: isLocked
           ? "none"
           : "auto",
+        background: "#F2E0D0",
       }}
     >
       {/* HERO */}
-      <div
-        className="relative overflow-hidden shrink-0"
-        style={{
-          height: variant === "home" ? 305 : 250,
-          background:
-            "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
-        }}
-      >
-        <PythonCodeVisual />
+      <div className="px-3 pt-3">
+        <div
+          className="relative overflow-hidden shrink-0 rounded-[18px]"
+          style={{
+            height: variant === "home" ? 310 : 300,
+            background:
+              "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          }}
+        >
+          <PythonCodeVisual />
 
         {isActive && (
           <div
@@ -819,22 +821,20 @@ export default function PythonCourseCard({
         )}
 
         <StatusBadge state={state} status={status} />
+        </div>
       </div>
 
       {/* INFO */}
       <div
         className="
           relative
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
           flex-grow
           flex
           flex-col
         "
-        style={{
-          background: "#F2E0D0",
-        }}
       >
         <CardInfoShimmer state={state} />
 
@@ -868,9 +868,10 @@ export default function PythonCourseCard({
           {pythonBeginnerRoadmapData.title}
         </h3>
 
-        <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+        <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3 line-clamp-2">
           {pythonBeginnerRoadmapData.description ||
             "Learn Python from scratch — variables, functions, OOP, and industry-ready skills for AI, ML, and software development."}
+          <span className="text-[#00A9FF] font-bold ml-1">...more</span>
         </p>
 
         <p className="text-[11px] font-semibold text-[#19183B]/55">

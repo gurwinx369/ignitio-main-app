@@ -659,7 +659,7 @@ export const cppCourseDataAdvanced = {
 export const cppRoadmapData = {
   id: "cpp",
   title: "C++ Programming",
-  description: "Master core C++ concepts.",
+  description: "Master core C++ concepts, object-oriented programming, memory management, and high-performance system design.",
   days: [
     {
       id: "day1",

@@ -360,8 +360,8 @@ export default function DsaCourseCard({
 
                 minHeight:
                     variant === "home"
-                        ? 620
-                        : 540,
+                        ? 580
+                        : 560,
 
                 transform,
 
@@ -377,24 +377,27 @@ export default function DsaCourseCard({
                 pointerEvents: isLocked
                     ? "none"
                     : "auto",
+                background: "#F2E0D0",
             }}
         >
             {/* HERO */}
-            <div
-                className="
-          relative
-          overflow-hidden
-          shrink-0
-          bg-slate-900
-        "
-                style={{
-                    height:
-                        variant === "home"
-                            ? 305
-                            : 250,
-                }}
-            >
-                <DsaVisualizerCanvas />
+            <div className="px-3 pt-3">
+                <div
+                    className="
+              relative
+              overflow-hidden
+              shrink-0
+              bg-slate-900
+              rounded-[18px]
+            "
+                    style={{
+                        height:
+                            variant === "home"
+                                ? 310
+                                : 300,
+                    }}
+                >
+                    <DsaVisualizerCanvas />
 
                 {isActive && (
                     <div
@@ -416,22 +419,20 @@ export default function DsaCourseCard({
                     state={state}
                     status={status}
                 />
+                </div>
             </div>
 
             {/* INFO */}
             <div
                 className="
           relative
-          px-5
-          pt-[18px]
-          pb-5
+          px-6
+          pt-5
+          pb-6
           flex-grow
           flex
           flex-col
         "
-                style={{
-                    background: "#F2E0D0",
-                }}
             >
                 <CardInfoShimmer
                     state={state}
@@ -470,9 +471,10 @@ export default function DsaCourseCard({
                         "Data Structures & Algorithms"}
                 </h3>
 
-                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3">
+                <p className="text-[14px] font-medium leading-[1.5] text-[#19183B] mb-3 line-clamp-2">
                     {roadmapData?.description ||
                         "Learn Data Structures and Algorithms through practical visual problem solving."}
+                    <span className="text-[#00A9FF] font-bold ml-1">...more</span>
                 </p>
 
                 <p className="text-[11px] font-semibold text-[#19183B]/55">
