@@ -1,14 +1,10 @@
 "use client";
 
-import React, {
-  useMemo,
-  useState,
-} from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Clock,
-  Globe,
   Loader2,
   GraduationCap,
   PenTool,
@@ -89,34 +85,16 @@ export default function RoleScheduleController() {
     }
   }, []);
 
-  const availableTimezones =
-    useMemo(() => {
-      try {
-        return Intl.supportedValuesOf(
-          "timeZone",
-        );
-      } catch {
-        return ["UTC"];
-      }
-    }, []);
-
-  const [timezone, setTimezone] =
-    useState(() => {
-      try {
-        const detectedTimezone =
-          Intl.DateTimeFormat()
-            .resolvedOptions()
-            .timeZone;
-
-        if (detectedTimezone) {
-          return detectedTimezone;
-        }
-      } catch {
-        // The user can select a timezone manually.
-      }
-
-      return "";
-    });
+  // Timezone is auto-detected from the browser; no UI dropdown needed.
+  const [timezone] = useState(() => {
+    try {
+      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detectedTimezone) return detectedTimezone;
+    } catch {
+      // fall through
+    }
+    return "UTC";
+  });
 
   const [period, setPeriod] =
     useState("MORNING");
@@ -173,15 +151,8 @@ export default function RoleScheduleController() {
       return;
     }
 
-    if (
-      !timezone ||
-      !period ||
-      !startTime ||
-      !endTime
-    ) {
-      setErrorMsg(
-        "Please complete your schedule preferences.",
-      );
+    if (!period || !startTime || !endTime) {
+      setErrorMsg("Please complete your schedule preferences.");
       return;
     }
 
@@ -373,49 +344,6 @@ export default function RoleScheduleController() {
         )}
 
         <div className="flex flex-col gap-6">
-          <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 sm:p-8">
-            <div className="mb-4 flex items-center gap-2 text-[#001D32]">
-              <Globe size={20} className="text-[#00A9FF]" />
-              <h3 className="text-base font-bold">Timezone</h3>
-            </div>
-
-            <select
-              value={timezone}
-              onChange={(event) => {
-                setTimezone(
-                  event.target.value,
-                );
-
-                setErrorMsg("");
-              }}
-              className="h-12 w-full rounded-xl border-2 border-[#FFDCBC] bg-white px-4 text-sm text-[#001D32] font-medium outline-none focus:border-[#4EC3FF] focus:ring-0 transition-colors"
-            >
-              <option
-                value=""
-                disabled
-              >
-                Select timezone
-              </option>
-
-              {availableTimezones.map(
-                (timezoneOption) => (
-                  <option
-                    key={
-                      timezoneOption
-                    }
-                    value={
-                      timezoneOption
-                    }
-                  >
-                    {
-                      timezoneOption
-                    }
-                  </option>
-                ),
-              )}
-            </select>
-          </div>
-
           <div className="rounded-3xl border-2 border-[#FFDCBC] bg-white p-6 sm:p-8">
             <div className="mb-5 flex items-center gap-2 text-[#001D32]">
               <Clock size={20} className="text-[#00A9FF]" />
