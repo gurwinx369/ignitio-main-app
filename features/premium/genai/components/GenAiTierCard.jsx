@@ -1039,15 +1039,17 @@ export default function GenAiTierCard({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={{ minHeight: 580 }}
     >
       {/* Hero */}
-      <div
-        className={[
-          "relative overflow-hidden",
-          "bg-gradient-to-br",
-          theme.heroBg,
-        ].join(" ")}
-      >
+      <div className="px-3 pt-3">
+        <div
+          className={[
+            "relative overflow-hidden rounded-[18px] h-[310px]",
+            "bg-gradient-to-br",
+            theme.heroBg,
+          ].join(" ")}
+        >
         <div className="absolute left-4 right-4 top-4 z-20 flex items-center justify-between">
           <span
             className={[
@@ -1071,13 +1073,14 @@ export default function GenAiTierCard({
           )}
         </div>
 
-        <div className="px-3 pb-2 pt-[42px]">
+        <div className="px-3 pb-2 pt-[42px] h-full flex items-center justify-center">
           <HeroComponent />
+        </div>
         </div>
       </div>
 
       {/* Information */}
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col px-6 pt-5 pb-6">
         <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400">
           {duration}
         </p>

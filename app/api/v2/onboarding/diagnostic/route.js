@@ -46,12 +46,12 @@ export async function POST(req) {
     }
 
     await connectToDB();
-    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingState.step entitlements.roadmaps.genAi").lean();
+    let existingProfile = await UserProfile.findOne({ firebaseUID }).select("_id onboardingComplete onboardingState.step entitlements.roadmaps.genAi").lean();
 
     if (!existingProfile) {
       const tokenEmail = typeof decodedToken.email === "string" ? decodedToken.email.toLowerCase().trim() : "";
       if (tokenEmail) {
-        existingProfile = await UserProfile.findOne({ email: tokenEmail }).select("_id onboardingState.step firebaseUID").lean();
+        existingProfile = await UserProfile.findOne({ email: tokenEmail }).select("_id onboardingComplete onboardingState.step firebaseUID").lean();
         if (existingProfile && existingProfile.firebaseUID !== firebaseUID) {
           await UserProfile.updateOne({ _id: existingProfile._id }, { $set: { firebaseUID } }, { timestamps: false });
         }
@@ -69,17 +69,18 @@ export async function POST(req) {
       }
     }
 
-    const canonicalStep = existingProfile.onboardingState?.step;
+    let canonicalStep = existingProfile.onboardingState?.step;
 
     if (!canonicalStep) {
-      return NextResponse.json(
-        {
-          error: "User onboarding state is missing",
-        },
-        {
-          status: 409,
-        },
+      // Heal old user records that are missing the new onboardingState subdocument
+      canonicalStep = existingProfile.onboardingComplete ? "completed" : "diagnostic";
+      await UserProfile.updateOne(
+        { _id: existingProfile._id },
+        { $set: { "onboardingState.step": canonicalStep } },
+        { timestamps: false }
       );
+      if (!existingProfile.onboardingState) existingProfile.onboardingState = {};
+      existingProfile.onboardingState.step = canonicalStep;
     }
 
     // Allow the diagnostic from these states:
@@ -158,7 +159,7 @@ export async function POST(req) {
     const latestProfile = await UserProfile.findOne({
       firebaseUID,
     })
-      .select("onboardingState.step")
+      .select("onboardingComplete onboardingState.step")
       .lean();
 
     if (!latestProfile) {
@@ -172,17 +173,15 @@ export async function POST(req) {
       );
     }
 
-    const latestCanonicalStep =
+    let latestCanonicalStep =
       latestProfile.onboardingState?.step;
 
     if (!latestCanonicalStep) {
-      return NextResponse.json(
-        {
-          error: "User onboarding state is missing",
-        },
-        {
-          status: 409,
-        },
+      latestCanonicalStep = latestProfile.onboardingComplete ? "completed" : "diagnostic";
+      await UserProfile.updateOne(
+        { _id: latestProfile._id },
+        { $set: { "onboardingState.step": latestCanonicalStep } },
+        { timestamps: false }
       );
     }
 
