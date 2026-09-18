@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Clock,
@@ -60,6 +60,8 @@ const ROLE_OPTIONS = [
 
 export default function RoleScheduleController() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isGenAiPreview = searchParams.get("from") === "genai_preview";
   const { user } = useAuth();
 
   const [step, setStep] =
@@ -75,6 +77,24 @@ export default function RoleScheduleController() {
   const [hasPrefilledRole, setHasPrefilledRole] = useState(false);
 
   React.useEffect(() => {
+    // For logged-in users, prefill role from DB and skip role step
+    if (user) {
+      user.getIdToken().then((token) => {
+        fetch("/api/v2/user", { headers: { Authorization: `Bearer ${token}` } })
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            const existingRole = data?.user?.role;
+            if (existingRole) {
+              setRole(existingRole);
+              setStep("schedule");
+              setHasPrefilledRole(true);
+            }
+          })
+          .catch(() => {});
+      });
+      return;
+    }
+    // Preview path: role stored in localStorage
     if (typeof window !== "undefined") {
       const savedRole = localStorage.getItem("profession");
       if (savedRole) {
@@ -83,7 +103,7 @@ export default function RoleScheduleController() {
         setHasPrefilledRole(true);
       }
     }
-  }, []);
+  }, [user]);
 
   // Timezone is auto-detected from the browser; no UI dropdown needed.
   const [timezone] = useState(() => {
@@ -216,6 +236,40 @@ export default function RoleScheduleController() {
         );
 
         setLoading(false);
+        return;
+      }
+
+      // Gen-AI preview: submit stored diagnostic then route to paywall.
+      if (isGenAiPreview) {
+        const stored = typeof window !== "undefined"
+          ? localStorage.getItem("genai_preview_assessment")
+          : null;
+
+        if (stored) {
+          let payload;
+          try { payload = JSON.parse(stored); } catch { payload = null; }
+
+          if (payload) {
+            const idToken2 = await user.getIdToken();
+
+            // step → results
+            const diagRes = await fetch("/api/v2/onboarding/diagnostic", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken2}` },
+              body: JSON.stringify(payload),
+            }).then(r => r.json()).catch(() => null);
+
+            // step → paywall (silent fallback — paywall reconciles on mount)
+            if (diagRes?.success) {
+              await fetch("/api/v2/onboarding/results/continue", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${idToken2}`, "Content-Type": "application/json" },
+              }).catch(() => null);
+            }
+          }
+        }
+
+        router.push("/home/onboarding/paywall");
         return;
       }
 
