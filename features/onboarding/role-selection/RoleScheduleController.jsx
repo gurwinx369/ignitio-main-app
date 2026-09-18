@@ -197,6 +197,35 @@ export default function RoleScheduleController() {
       const idToken =
         await user.getIdToken();
 
+      // Gen-AI preview: submit stored diagnostic BEFORE advancing state to activation_pending
+      if (isGenAiPreview) {
+        const stored = typeof window !== "undefined"
+          ? localStorage.getItem("genai_preview_assessment")
+          : null;
+
+        if (stored) {
+          let payload;
+          try { payload = JSON.parse(stored); } catch { payload = null; }
+
+          if (payload) {
+            // step → results
+            const diagRes = await fetch("/api/v2/onboarding/diagnostic", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+              body: JSON.stringify(payload),
+            }).then(r => r.json()).catch(() => null);
+
+            // step → paywall (silent fallback — paywall reconciles on mount)
+            if (diagRes?.success) {
+              await fetch("/api/v2/onboarding/results/continue", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+              }).catch(() => null);
+            }
+          }
+        }
+      }
+
       const response = await fetch(
         "/api/v2/onboarding/role-schedule",
         {
@@ -239,36 +268,7 @@ export default function RoleScheduleController() {
         return;
       }
 
-      // Gen-AI preview: submit stored diagnostic then route to paywall.
       if (isGenAiPreview) {
-        const stored = typeof window !== "undefined"
-          ? localStorage.getItem("genai_preview_assessment")
-          : null;
-
-        if (stored) {
-          let payload;
-          try { payload = JSON.parse(stored); } catch { payload = null; }
-
-          if (payload) {
-            const idToken2 = await user.getIdToken();
-
-            // step → results
-            const diagRes = await fetch("/api/v2/onboarding/diagnostic", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken2}` },
-              body: JSON.stringify(payload),
-            }).then(r => r.json()).catch(() => null);
-
-            // step → paywall (silent fallback — paywall reconciles on mount)
-            if (diagRes?.success) {
-              await fetch("/api/v2/onboarding/results/continue", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${idToken2}`, "Content-Type": "application/json" },
-              }).catch(() => null);
-            }
-          }
-        }
-
         router.push("/home/onboarding/paywall");
         return;
       }
