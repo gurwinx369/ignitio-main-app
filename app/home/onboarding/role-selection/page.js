@@ -1,6 +1,10 @@
-import React from "react";
+import React, { Suspense } from "react";
 import RoleScheduleController from "@/features/onboarding/role-selection/RoleScheduleController";
 
 export default function RoleSelectionPage() {
-  return <RoleScheduleController />;
+  return (
+    <Suspense>
+      <RoleScheduleController />
+    </Suspense>
+  );
 }

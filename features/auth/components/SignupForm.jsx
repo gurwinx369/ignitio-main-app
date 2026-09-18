@@ -96,14 +96,14 @@ export default function SignupForm() {
               typeof window !== "undefined" &&
               !!localStorage.getItem("ignitio:preview_payload");
             
-            // ponytail: gen ai preview flows to paywall directly
             const isGenAiPreview = 
               typeof window !== "undefined" && 
               new URLSearchParams(window.location.search).get("from") === "genai_preview";
 
+            // ponytail: gen-ai preview → role+schedule first, then diagnostic → paywall
             router.replace(
               isGenAiPreview
-                ? "/home/onboarding/paywall"
+                ? "/home/onboarding/role-selection?from=genai_preview"
                 : hasPreview
                 ? "/home/onboarding?from=preview"
                 : "/home/onboarding"
@@ -151,7 +151,7 @@ export default function SignupForm() {
 
             router.replace(
               isGenAiPreview
-                ? "/home/onboarding/paywall"
+                ? "/home/onboarding/role-selection?from=genai_preview"
                 : hasPreview
                 ? "/home/onboarding?from=preview"
                 : "/home/onboarding"

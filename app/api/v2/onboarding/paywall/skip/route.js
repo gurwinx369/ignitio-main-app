@@ -83,15 +83,15 @@ export async function POST(request) {
     );
   }
 
-  // Step 6: Advance paywall → activation_pending.
+  // Step 6: Advance paywall → role_selection.
   // Never touches entitlements — existing Premium access is preserved unchanged.
   await UserProfile.updateOne(
     { firebaseUID, "onboardingState.step": "paywall" },
-    { $set: { "onboardingState.step": "activation_pending" } },
+    { $set: { "onboardingState.step": "role_selection" } },
   );
 
   return NextResponse.json(
-    { success: true, nextStep: "activation_pending" },
+    { success: true, nextStep: "role_selection" },
     { status: 200 },
   );
 }
