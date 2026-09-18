@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import { useCalibrationStatus } from "@/features/premium/calibration/useCalibrationStatus";
 import Loader from "@/layout/Loader";
 import GenAiTierCard from "@/features/premium/genai/components/GenAiTierCard";
+import GenAiViewToggle from "@/features/premium/genai/components/GenAiViewToggle";
+import GenAiProjectsGrid from "@/features/premium/genai/components/GenAiProjectsGrid";
 import Profile from "@/layout/Profile";
 import { ArrowLeft, RotateCw, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { GENAI_TIERS } from "@/features/premium/genai/config/genAiTiers";
@@ -58,6 +60,7 @@ function VerificationError({
 
 export default function GenAiTierHub() {
     const router = useRouter();
+    const [activeView, setActiveView] = useState("levels");
 
     const {
         status,
@@ -144,52 +147,66 @@ export default function GenAiTierHub() {
                     </div>
                     
                     <main className="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 md:pt-16">
-                        <div className="mb-8 text-center md:text-left">
-                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0891b2] mb-3">
-                                GENAI LEARNING PATH
-                            </p>
-                            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
-                                Choose your next level
-                            </h1>
-                            <p className="text-[17px] text-slate-600 max-w-2xl mx-auto md:mx-0">
-                                Build from AI foundations to production-ready agentic systems.
-                            </p>
+                        <div className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                            <div className="text-center md:text-left">
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0891b2] mb-3">
+                                    GENAI LEARNING PATH
+                                </p>
+                                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
+                                    Choose your next level
+                                </h1>
+                                <p className="text-[17px] text-slate-600 max-w-2xl mx-auto md:mx-0">
+                                    Build from AI foundations to production-ready agentic systems.
+                                </p>
+                            </div>
+                            <div className="flex justify-center md:justify-end shrink-0 mt-1">
+                                <GenAiViewToggle
+                                    activeView={activeView}
+                                    onChange={setActiveView}
+                                />
+                            </div>
                         </div>
                         
-                        {/* Desktop: three balanced columns */}
-                        <div className="hidden lg:grid grid-cols-3 gap-6">
-                            <GenAiTierCard
-                                tierName="BEGINNER"
-                                subtitle="Foundation"
-                                duration="Weeks 1–4"
-                                topics={["Prompt Engineering", "Python", "Files & Git", "LangChain"]}
-                                project="Roastify"
-                                state={GENAI_TIERS.beginner.released ? "unlocked" : "locked"}
-                                ctaText={GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next"}
-                                onClick={() => GENAI_TIERS.beginner.released && router.push(GENAI_TIERS.beginner.route)}
-                            />
-                            <GenAiTierCard
-                                tierName="INTERMEDIATE"
-                                subtitle="RAG Engineering"
-                                duration="Weeks 5–8"
-                                topics={["RAG", "Evaluation", "FastAPI", "Structured Outputs"]}
-                                state={GENAI_TIERS.intermediate.released ? "unlocked" : "locked"}
-                                ctaText={GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next"}
-                                onClick={() => GENAI_TIERS.intermediate.released && router.push(GENAI_TIERS.intermediate.route)}
-                            />
-                            <GenAiTierCard
-                                tierName="ADVANCED"
-                                subtitle="Agentic Systems"
-                                duration="Weeks 9–12"
-                                topics={["LangGraph", "Observability", "Portfolio", "Interview"]}
-                                state={GENAI_TIERS.advanced.released ? "unlocked" : "locked"}
-                                ctaText={GENAI_TIERS.advanced.released ? "Start Advanced" : "Coming next"}
-                                onClick={() => GENAI_TIERS.advanced.released && router.push(GENAI_TIERS.advanced.route)}
-                            />
-                        </div>
+                        {activeView === "levels" ? (
+                            <>
+                                {/* Desktop: three balanced columns */}
+                                <div className="hidden lg:grid grid-cols-3 gap-6">
+                                    <GenAiTierCard
+                                        tierName="BEGINNER"
+                                        subtitle="Foundation"
+                                        duration="Weeks 1–4"
+                                        topics={["Prompt Engineering", "Python", "Files & Git", "LangChain"]}
+                                        project="Roastify"
+                                        state={GENAI_TIERS.beginner.released ? "unlocked" : "locked"}
+                                        ctaText={GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next"}
+                                        onClick={() => GENAI_TIERS.beginner.released && router.push(GENAI_TIERS.beginner.route)}
+                                    />
+                                    <GenAiTierCard
+                                        tierName="INTERMEDIATE"
+                                        subtitle="RAG Engineering"
+                                        duration="Weeks 5–8"
+                                        topics={["RAG", "Evaluation", "FastAPI", "Structured Outputs"]}
+                                        state={GENAI_TIERS.intermediate.released ? "unlocked" : "locked"}
+                                        ctaText={GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next"}
+                                        onClick={() => GENAI_TIERS.intermediate.released && router.push(GENAI_TIERS.intermediate.route)}
+                                    />
+                                    <GenAiTierCard
+                                        tierName="ADVANCED"
+                                        subtitle="Agentic Systems"
+                                        duration="Weeks 9–12"
+                                        topics={["LangGraph", "Observability", "Portfolio", "Interview"]}
+                                        state={GENAI_TIERS.advanced.released ? "unlocked" : "locked"}
+                                        ctaText={GENAI_TIERS.advanced.released ? "Start Advanced" : "Coming next"}
+                                        onClick={() => GENAI_TIERS.advanced.released && router.push(GENAI_TIERS.advanced.route)}
+                                    />
+                                </div>
 
-                        {/* Mobile/Tablet: horizontal scroll-snap rail */}
-                        <GenAiTierRail router={router} />
+                                {/* Mobile/Tablet: horizontal scroll-snap rail */}
+                                <GenAiTierRail router={router} />
+                            </>
+                        ) : (
+                            <GenAiProjectsGrid />
+                        )}
                     </main>
                 </div>
             );
