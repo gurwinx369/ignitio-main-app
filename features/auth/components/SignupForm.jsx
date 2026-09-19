@@ -105,8 +105,8 @@ export default function SignupForm() {
               isGenAiPreview
                 ? "/home/onboarding/role-selection?from=genai_preview"
                 : hasPreview
-                ? "/home/onboarding?from=preview"
-                : "/home/onboarding"
+                ? "/home/onboarding/role-selection?from=preview"
+                : "/home/onboarding/role-selection"
             );
           } else {
             router.replace(getOnboardingRoute(profile));
@@ -153,8 +153,8 @@ export default function SignupForm() {
               isGenAiPreview
                 ? "/home/onboarding/role-selection?from=genai_preview"
                 : hasPreview
-                ? "/home/onboarding?from=preview"
-                : "/home/onboarding"
+                ? "/home/onboarding/role-selection?from=preview"
+                : "/home/onboarding/role-selection"
             );
           } else {
             router.replace(getOnboardingRoute(profile));
