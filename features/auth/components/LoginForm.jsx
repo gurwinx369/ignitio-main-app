@@ -106,27 +106,17 @@ export default function LoginForm() {
       const result = await loginWithGoogle();
 
       if (result.success) {
-        try {
-          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
-          if (result.authMode === "new_signup") {
-            const hasPreview =
-              typeof window !== "undefined" &&
-              !!localStorage.getItem("ignitio:preview_payload");
-            
-            const isGenAiPreview = 
-              typeof window !== "undefined" && 
-              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+        if (result.authMode === "new_signup") {
+          await result.user.delete().catch(() => {});
+          isHandlingAuthActionRef.current = false;
+          setError("No account found. Please sign up first.");
+          setLoading(false);
+          return;
+        }
 
-            router.replace(
-              isGenAiPreview
-                ? "/home/onboarding/role-selection?from=genai_preview"
-                : hasPreview
-                ? "/home/onboarding/role-selection?from=preview"
-                : "/home/onboarding/role-selection"
-            );
-          } else {
-            router.replace(getOnboardingRoute(profile));
-          }
+        try {
+          const profile = await ensureUserProfile(result.user);
+          router.replace(getOnboardingRoute(profile));
         } catch (err) {
           isHandlingAuthActionRef.current = false;
           setError(err.message || "Failed to provision user profile");
