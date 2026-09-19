@@ -1,64 +1,151 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
+import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
+
+async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
+  const idToken = await firebaseUser.getIdToken();
+
+  const response = await fetch("/api/v2/user", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
+      email: firebaseUser.email,
+      initializeLegalConsent,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      "Failed to provision user profile"
+    );
+  }
+
+  return data.user;
+}
 
 export default function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [focusedInput, setFocusedInput] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isHandlingAuthActionRef = useRef(false);
+  const isResumingRef = useRef(false);
 
   const { login, loginWithGoogle, user } = useAuth();
   const router = useRouter();
+
   useEffect(() => {
-    if (user) {
-      router.push("/home/");
+    if (user && !isHandlingAuthActionRef.current && !isResumingRef.current) {
+      isResumingRef.current = true;
+      setLoading(true);
+      ensureUserProfile(user)
+        .then((profile) => {
+          router.replace(getOnboardingRoute(profile));
+        })
+        .catch(() => {
+          isResumingRef.current = false;
+          setLoading(false);
+          setError("Could not load your profile. Please try again.");
+        });
     }
   }, [user, router]);
 
-  if (user) {
+  if (user && !isHandlingAuthActionRef.current && !isResumingRef.current) {
     return <Loader />;
   }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await login(form.email, form.password);
+    try {
+      isHandlingAuthActionRef.current = true;
+      const result = await login(form.email, form.password);
 
-    if (result.success) {
-      router.replace("/home");
-    } else {
-      setError(result.error || "Check your email or password.");
+      if (result.success) {
+        try {
+          const profile = await ensureUserProfile(result.user);
+          router.replace(getOnboardingRoute(profile));
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
+        }
+      } else {
+        isHandlingAuthActionRef.current = false;
+        setError(result.error || "Check your email or password.");
+        setLoading(false);
+      }
+    } catch {
+      isHandlingAuthActionRef.current = false;
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
 
-    const result = await loginWithGoogle();
+    try {
+      isHandlingAuthActionRef.current = true;
+      const result = await loginWithGoogle();
 
-    if (result.success) {
-      if (result.authMode === "new_signup") {
-        router.replace("/home/onboarding");
+      if (result.success) {
+        try {
+          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
+          if (result.authMode === "new_signup") {
+            const hasPreview =
+              typeof window !== "undefined" &&
+              !!localStorage.getItem("ignitio:preview_payload");
+            
+            const isGenAiPreview = 
+              typeof window !== "undefined" && 
+              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+
+            router.replace(
+              isGenAiPreview
+                ? "/home/onboarding/role-selection?from=genai_preview"
+                : hasPreview
+                ? "/home/onboarding/role-selection?from=preview"
+                : "/home/onboarding/role-selection"
+            );
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
+        } catch (err) {
+          isHandlingAuthActionRef.current = false;
+          setError(err.message || "Failed to provision user profile");
+          setLoading(false);
+        }
+      } else if (result.error === null) {
+        isHandlingAuthActionRef.current = false;
+        setLoading(false);
+        return;
       } else {
-        router.replace("/home");
+        isHandlingAuthActionRef.current = false;
+        setError(result.error || "Failed to sign in with Google");
+        setLoading(false);
       }
-    } else if (result.error === null) {
-      // Cancelled popup
+    } catch {
+      isHandlingAuthActionRef.current = false;
+      setError("Something went wrong. Please try again.");
       setLoading(false);
-      return;
-    } else {
-      setError(result.error || "Failed to sign in with Google");
     }
-    setLoading(false);
   };
 
   const handleKeyPress = (e) => {

@@ -261,10 +261,9 @@ export default function ProtectedRoute({
                  * The onboarding entry page is accessible without a
                  * profile to allow new users to start onboarding.
                  */
-                if (pathname !== ONBOARDING_PREFIX) {
-                    router.replace(
-                        ONBOARDING_PREFIX,
-                    );
+                const entryStep = "/home/onboarding/role-selection";
+                if (pathname !== entryStep) {
+                    router.replace(entryStep);
                 }
 
                 return;
@@ -357,7 +356,8 @@ export default function ProtectedRoute({
         }
 
         if (!profileObj) {
-            if (pathname !== ONBOARDING_PREFIX) {
+            const entryStep = "/home/onboarding/role-selection";
+            if (pathname !== entryStep) {
                 return null;
             }
         } else {
