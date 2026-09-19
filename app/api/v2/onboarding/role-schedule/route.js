@@ -154,8 +154,6 @@ export async function POST(request) {
 
   const filter = {
     firebaseUID: decodedToken.uid,
-    // role_selection/diagnostic = first-time submit; completed = idempotent re-submit; activation_pending = fix stranded users
-    "onboardingState.step": { $in: ["role_selection", "diagnostic", "completed", "activation_pending"] },
   };
 
   const update = {

@@ -94,7 +94,8 @@ export default function RoleScheduleController() {
           })
           .then((data) => {
             const existingRole = data?.user?.role;
-            if (existingRole) {
+            const currentStep = data?.user?.onboardingState?.step;
+            if (existingRole && currentStep !== "role_selection") {
               setRole(existingRole);
               setStep("schedule");
               setHasPrefilledRole(true);
