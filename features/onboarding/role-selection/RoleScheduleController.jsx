@@ -81,7 +81,17 @@ export default function RoleScheduleController() {
     if (user) {
       user.getIdToken().then((token) => {
         fetch("/api/v2/user", { headers: { Authorization: `Bearer ${token}` } })
-          .then((res) => res.ok ? res.json() : null)
+          .then((res) => {
+            if (res.status === 404) {
+              fetch("/api/v2/user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ email: user.email })
+              }).catch(() => {});
+              return null;
+            }
+            return res.ok ? res.json() : null;
+          })
           .then((data) => {
             const existingRole = data?.user?.role;
             if (existingRole) {
