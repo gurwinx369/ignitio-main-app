@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { CheckCircle, XCircle, AlertCircle, RefreshCcw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
 function normalizeAnswer(value) {
@@ -151,35 +151,31 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#FAF9F6] w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-4">
+            <div className="bg-[#fffaf3] w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="px-6 py-5 border-b-2 border-[#e5d5c5]/50 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
                         <Image
                             src="/kyle/kyle.svg"
                             alt="Kyle"
-                            width={48}
-                            height={48}
+                            width={40}
+                            height={40}
                             className="w-full h-full rounded-full object-cover"
                         />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900">Knowledge Check</h3>
-                        <p className="text-sm text-gray-500">Alright. Let&apos;s see if you were actually watching.</p>
+                        <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Knowledge Check</h3>
+                        <p className="text-[#7775a5] font-semibold text-sm">Let's see if you were paying attention.</p>
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="p-6 md:p-8 flex-1 overflow-y-auto max-h-[70vh]">
                     {status === 'loading' && (
-                        <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                            <div className="flex space-x-2">
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce"></div>
-                            </div>
-                            <p className="text-gray-600 font-medium">Kyle is preparing your checkpoint...</p>
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            <p className="text-gray-500 font-medium tracking-tight">Kyle is preparing your checkpoint...</p>
                         </div>
                     )}
 
@@ -190,13 +186,13 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                             <div className="flex flex-col gap-3 w-full mt-4">
                                 <button 
                                     onClick={handleRetry}
-                                    className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2"
+                                    className="btn-push w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] flex items-center justify-center gap-2"
                                 >
                                     <RefreshCcw size={18} /> Try Again
                                 </button>
                                 <button 
                                     onClick={handleBypass}
-                                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-2xl transition-colors"
+                                    className="btn-push-sm w-full py-3.5 rounded-2xl text-[#4A5568] font-bold text-[15px] uppercase tracking-wide bg-white border-[#e8e8f0] hover:text-[#001D32]"
                                 >
                                     Continue without quiz for now
                                 </button>
@@ -205,13 +201,13 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                     )}
 
                     {status === 'already-attempted' && (
-                        <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-                            <CheckCircle className="w-16 h-16 text-blue-500" />
-                            <h4 className="text-xl font-bold text-gray-900">Already Answered</h4>
-                            <p className="text-gray-600">You already answered this quiz. You can continue the lesson.</p>
+                        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4 px-6">
+                            <CheckCircle className="w-16 h-16 text-[#10b981]" />
+                            <h4 className="text-2xl font-extrabold text-[#19183b]">Already Answered</h4>
+                            <p className="text-[#7775a5] font-medium text-[15px]">You already answered this quiz. You can continue the lesson.</p>
                             <button 
                                 onClick={onCloseAfterAnswered}
-                                className="w-full mt-4 py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95"
+                                className="btn-push w-full mt-4 py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6]"
                             >
                                 Continue
                             </button>
@@ -219,73 +215,77 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                     )}
 
                     {(status === 'ready' || status === 'submitting') && quiz && (
-                        <div className="space-y-6">
-                            <h4 className="text-lg font-bold text-gray-800 leading-snug">
+                        <div className="space-y-6 px-6 pt-2 pb-6">
+                            <h4 className="text-[20px] font-extrabold text-[#19183b] tracking-tight leading-snug">
                                 {quiz.question}
                             </h4>
-                            <div className="space-y-3">
-                                {Object.entries(quiz.options).map(([key, text]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => status !== 'submitting' && setSelectedOption(key)}
-                                        disabled={status === 'submitting'}
-                                        className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 ${
-                                            selectedOption === key
-                                                ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-sm'
-                                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold mt-0.5 ${
-                                                selectedOption === key ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
-                                            }`}>
-                                                {key}
-                                            </span>
-                                            <span className="leading-relaxed font-medium">
-                                                {text}
-                                            </span>
-                                        </div>
-                                    </button>
-                                ))}
+                            <div className="flex flex-col gap-3">
+                                {Object.entries(quiz.options).map(([key, text]) => {
+                                    const isSelected = selectedOption === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => status !== 'submitting' && setSelectedOption(key)}
+                                            disabled={status === 'submitting'}
+                                            className={[
+                                                "w-full text-left px-5 py-4 rounded-2xl border-2 cursor-pointer select-none font-semibold text-[15px] leading-snug",
+                                                "transition-[border-color,background-color,box-shadow,transform] duration-100",
+                                                isSelected
+                                                    ? "active:translate-y-[3px] active:shadow-none"
+                                                    : "active:translate-y-[3px] active:shadow-none",
+                                                isSelected
+                                                    ? "border-[#00a9ff] bg-[#ddf2ff] text-[#001d32] shadow-[0_3px_0_#3081AD]"
+                                                    : "border-[#e5d5c5] bg-white text-[#1a2a3a] shadow-[0_3px_0_#FFDCBC]",
+                                            ].join(" ")}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold mt-0.5 border ${
+                                                    isSelected ? 'bg-[#00a9ff] text-white border-[#007bcc]' : 'bg-[#fcf5ee] text-[#7775a5] border-[#e5d5c5]'
+                                                }`}>
+                                                    {key}
+                                                </span>
+                                                <span className={`leading-relaxed ${isSelected ? 'text-[#001d32]' : ''}`}>
+                                                    {text}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                             
                             <button
                                 onClick={handleSubmit}
                                 disabled={!selectedOption || status === 'submitting'}
-                                className="w-full mt-2 py-3.5 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center"
+                                className="btn-push w-full mt-2 py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
                             >
-                                {status === 'submitting' ? 'Submitting...' : 'Submit Answer'}
+                                {status === 'submitting' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Answer'}
                             </button>
                         </div>
                     )}
 
                     {status === 'result' && quiz && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="flex flex-col items-center text-center space-y-3">
-                                {isCorrect ? (
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                                        <CheckCircle className="w-10 h-10 text-green-500" />
-                                    </div>
-                                ) : (
-                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                                        <XCircle className="w-10 h-10 text-red-500" />
-                                    </div>
-                                )}
-                                <h4 className={`text-2xl font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                                    {isCorrect ? 'Correct!' : 'Not quite'}
-                                </h4>
-                            </div>
-
-                            <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm">
-                                <h5 className="font-bold text-gray-800 mb-2">Explanation</h5>
-                                <p className="text-gray-600 leading-relaxed">
-                                    {quiz.explanation}
-                                </p>
+                        <div className="space-y-6 px-6 pt-2 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="flex flex-col space-y-3">
+                                <div className="flex items-center gap-3 mb-2">
+                                    {isCorrect ? (
+                                        <CheckCircle className="w-10 h-10 text-[#10b981]" />
+                                    ) : (
+                                        <XCircle className="w-10 h-10 text-[#ef4444]" />
+                                    )}
+                                    <h4 className="text-3xl font-extrabold text-[#19183b] tracking-tight">
+                                        {isCorrect ? 'Correct!' : 'Not quite'}
+                                    </h4>
+                                </div>
+                                <div className="bg-white border-2 border-[#e5d5c5] p-5 rounded-2xl shadow-[0_3px_0_#FFDCBC]">
+                                    <p className="text-[#1a2a3a] leading-relaxed font-semibold text-[15px]">
+                                        {quiz.explanation}
+                                    </p>
+                                </div>
                             </div>
 
                             <button
                                 onClick={onCloseAfterAnswered}
-                                className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all shadow-md active:scale-95"
+                                className="btn-push w-full mt-4 py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6]"
                             >
                                 Continue to lesson
                             </button>

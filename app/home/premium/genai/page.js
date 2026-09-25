@@ -11,6 +11,7 @@ import GenAiProjectsGrid from "@/features/premium/genai/components/GenAiProjects
 import Profile from "@/layout/Profile";
 import { ArrowLeft, RotateCw, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { GENAI_TIERS } from "@/features/premium/genai/config/genAiTiers";
+import { useGenAiTierStatus } from "@/features/premium/genai/hooks/useGenAiTierStatus";
 
 function VerificationError({
     message,
@@ -77,6 +78,12 @@ export default function GenAiTierHub() {
             enabled: calibrationEnabled,
         });
 
+    // Only enabled once we know the user is premium + calibrated
+    const tierStatusEnabled =
+        calibrationEnabled && calibration.status === "ready";
+
+    const tierStatus = useGenAiTierStatus({ enabled: tierStatusEnabled });
+
     useEffect(() => {
         if (status === "foundation") {
             router.replace("/home/premium/genai/paywall");
@@ -130,6 +137,29 @@ export default function GenAiTierHub() {
         }
 
         if (calibration.status === "ready") {
+            // Derive card states from real user data
+            // rerender-derived-state: computed during render, not stored in state
+            const beginnerState = tierStatus.beginnerSkipped ? "skipped"
+                : tierStatus.beginnerCompleted ? "completed"
+                : "unlocked";
+
+            const intermediateUnlocked =
+                GENAI_TIERS.intermediate.released &&
+                (tierStatus.intermediateUnlocked || tierStatus.status === "error");
+            // Fallback to locked if tier-status is still loading
+            const intermediateState = !GENAI_TIERS.intermediate.released ? "locked"
+                : tierStatus.status === "loading" || tierStatus.status === "idle" ? "locked"
+                : intermediateUnlocked ? "unlocked"
+                : "prerequisite_locked";
+
+            const beginnerCtaText = tierStatus.beginnerSkipped ? "View Beginner"
+                : tierStatus.beginnerCompleted ? "Review"
+                : GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next";
+
+            const intermediateCtaText = intermediateState === "prerequisite_locked"
+                ? "Complete Beginner first"
+                : GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next";
+
             return (
                 <div className="min-h-screen bg-[var(--color-primary)] bg-[#FFF8EF] pb-24 font-sans relative">
                     <div className="sticky top-0 z-50 py-4 px-4 sm:px-6 lg:px-8 bg-[#FFF8EF]/80 backdrop-blur-md border-b border-gray-200/50">
@@ -177,8 +207,8 @@ export default function GenAiTierHub() {
                                         duration="Weeks 1–4"
                                         topics={["Prompt Engineering", "Python", "Files & Git", "LangChain"]}
                                         project="Roastify"
-                                        state={GENAI_TIERS.beginner.released ? "unlocked" : "locked"}
-                                        ctaText={GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next"}
+                                        state={GENAI_TIERS.beginner.released ? beginnerState : "locked"}
+                                        ctaText={GENAI_TIERS.beginner.released ? beginnerCtaText : "Coming next"}
                                         onClick={() => GENAI_TIERS.beginner.released && router.push(GENAI_TIERS.beginner.route)}
                                     />
                                     <GenAiTierCard
@@ -186,9 +216,9 @@ export default function GenAiTierHub() {
                                         subtitle="RAG Engineering"
                                         duration="Weeks 5–8"
                                         topics={["RAG", "Evaluation", "FastAPI", "Structured Outputs"]}
-                                        state={GENAI_TIERS.intermediate.released ? "unlocked" : "locked"}
-                                        ctaText={GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next"}
-                                        onClick={() => GENAI_TIERS.intermediate.released && router.push(GENAI_TIERS.intermediate.route)}
+                                        state={intermediateState}
+                                        ctaText={intermediateCtaText}
+                                        onClick={() => intermediateState === "unlocked" && router.push(GENAI_TIERS.intermediate.route)}
                                     />
                                     <GenAiTierCard
                                         tierName="ADVANCED"
@@ -202,7 +232,13 @@ export default function GenAiTierHub() {
                                 </div>
 
                                 {/* Mobile/Tablet: horizontal scroll-snap rail */}
-                                <GenAiTierRail router={router} />
+                                <GenAiTierRail
+                                    router={router}
+                                    beginnerState={GENAI_TIERS.beginner.released ? beginnerState : "locked"}
+                                    beginnerCtaText={GENAI_TIERS.beginner.released ? beginnerCtaText : "Coming next"}
+                                    intermediateState={intermediateState}
+                                    intermediateCtaText={intermediateCtaText}
+                                />
                             </>
                         ) : (
                             <GenAiProjectsGrid />
@@ -217,7 +253,7 @@ export default function GenAiTierHub() {
 }
 
 // ─── Mobile scroll-snap rail ──────────────────────────────────────────────────
-function GenAiTierRail({ router }) {
+function GenAiTierRail({ router, beginnerState, beginnerCtaText, intermediateState, intermediateCtaText }) {
   const scrollRef = useRef(null);
 
   const scrollByCard = (direction) => {
@@ -253,18 +289,18 @@ function GenAiTierRail({ router }) {
       duration: "Weeks 1–4",
       topics: ["Prompt Engineering", "Python", "Files & Git", "LangChain"],
       project: "Roastify",
-      state: GENAI_TIERS.beginner.released ? "unlocked" : "locked",
-      ctaText: GENAI_TIERS.beginner.released ? "Start Beginner" : "Coming next",
-      onClick: () => GENAI_TIERS.beginner.released && router.push(GENAI_TIERS.beginner.route),
+      state: beginnerState ?? "unlocked",
+      ctaText: beginnerCtaText ?? "Start Beginner",
+      onClick: () => (beginnerState === "unlocked" || beginnerState === "completed") && router.push(GENAI_TIERS.beginner.route),
     },
     {
       tierName: "INTERMEDIATE",
       subtitle: "RAG Engineering",
       duration: "Weeks 5–8",
       topics: ["RAG", "Evaluation", "FastAPI", "Structured Outputs"],
-      state: GENAI_TIERS.intermediate.released ? "unlocked" : "locked",
-      ctaText: GENAI_TIERS.intermediate.released ? "Start Intermediate" : "Coming next",
-      onClick: () => GENAI_TIERS.intermediate.released && router.push(GENAI_TIERS.intermediate.route),
+      state: intermediateState ?? "locked",
+      ctaText: intermediateCtaText ?? "Coming next",
+      onClick: () => intermediateState === "unlocked" && router.push(GENAI_TIERS.intermediate.route),
     },
     {
       tierName: "ADVANCED",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { User, AlertCircle, Send, X } from 'lucide-react';
+import { User, AlertCircle, Send, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
 function renderBasicMarkdown(text) {
@@ -193,19 +193,19 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}></div>
+      <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}></div>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-[#FAF9F6] w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200 pointer-events-auto">
+        <div className="bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200 pointer-events-auto">
 
         {/* Header */}
-        <div className="bg-white px-6 py-4 border-b border-orange-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b-2 border-[#e5d5c5]/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-cyan-50 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-12 h-12 rounded-full bg-white p-1 flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
               <Image src="/kyle/kyle.svg" alt="Kyle" width={40} height={40} className="w-full h-full rounded-full object-cover" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900">Ask Kyle</h3>
-              <p className="text-xs text-slate-500">Your Global AI Mentor</p>
+              <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kyle</h3>
+              <p className="text-[#7775a5] font-semibold text-[13px]">Your Global AI Mentor</p>
             </div>
           </div>
           <button
@@ -221,13 +221,13 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 ${msg.role === 'user' ? 'bg-cyan-100 text-cyan-700' : 'bg-orange-100 p-0.5 overflow-hidden'
+                <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 border-2 ${msg.role === 'user' ? 'bg-[#ddf2ff] text-[#007bcc] border-[#00a9ff] shadow-sm' : 'bg-white p-0.5 overflow-hidden border-[#e5d5c5] shadow-sm'
                   }`}>
-                  {msg.role === 'user' ? <User size={16} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
+                  {msg.role === 'user' ? <User size={18} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
                 </div>
-                <div className={`px-5 py-3.5 shadow-sm text-sm sm:text-base leading-relaxed ${msg.role === 'user'
-                  ? 'bg-cyan-600 text-white rounded-2xl rounded-tr-sm'
-                  : 'bg-white text-slate-800 border border-slate-100 rounded-2xl rounded-tl-sm whitespace-pre-wrap'
+                <div className={`px-5 py-4 text-[15px] font-semibold leading-relaxed border-2 ${msg.role === 'user'
+                  ? 'bg-[#ddf2ff] text-[#001d32] border-[#00a9ff] shadow-[0_3px_0_#3081AD] rounded-2xl rounded-tr-sm'
+                  : 'bg-white text-[#1a2a3a] border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC] rounded-2xl rounded-tl-sm whitespace-pre-wrap'
                   }`}>
                   {msg.role === 'kyle' ? renderBasicMarkdown(msg.text) : msg.text}
                 </div>
@@ -238,16 +238,12 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
                   <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
-                <div className="px-5 py-4 shadow-sm bg-white text-slate-500 border border-slate-100 rounded-2xl rounded-tl-sm flex items-center gap-2">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"></div>
-                  </div>
-                  <span className="text-sm italic ml-1">Kyle is thinking...</span>
+                <div className="px-5 py-4 bg-white text-[#7775a5] font-semibold border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC] rounded-2xl rounded-tl-sm flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#7775a5]" />
+                  <span className="text-[15px] italic ml-1">Kyle is thinking...</span>
                 </div>
               </div>
             </div>
@@ -257,14 +253,14 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
           {isHighDemand && !isThinking && (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-1 bg-orange-100 p-0.5 overflow-hidden">
+                <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
                   <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
-                <div className="bg-white border border-orange-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
+                <div className="bg-white border-2 border-[#ef4444]/30 shadow-[0_3px_0_rgba(239,68,68,0.2)] rounded-2xl rounded-tl-sm px-5 py-4 flex flex-col gap-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-orange-500 mt-0.5 shrink-0" />
-                    <p className="text-sm text-slate-700 leading-snug">
-                      Kyle is experiencing <span className="font-semibold text-orange-600">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
+                    <AlertCircle size={18} className="text-[#ef4444] mt-0.5 shrink-0" />
+                    <p className="text-[15px] font-semibold text-[#19183b] leading-snug">
+                      Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
                     </p>
                   </div>
                   <button
@@ -293,9 +289,9 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
         </div>
 
         {/* Input Area */}
-        <div className="bg-white p-4 sm:p-6 border-t border-slate-100">
-          <form onSubmit={handleSubmit} className="relative flex items-end gap-2">
-            <div className="relative flex-1 bg-slate-50 rounded-2xl overflow-hidden border border-transparent focus-within:border-cyan-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-cyan-100/50 transition-all">
+        <div className="bg-white p-4 sm:p-6 border-t-2 border-[#e5d5c5]/50">
+          <form onSubmit={handleSubmit} className="relative flex items-end gap-3">
+            <div className="relative flex-1 bg-white border-2 border-[#e5d5c5] rounded-2xl shadow-[0_3px_0_#FFDCBC] overflow-hidden focus-within:border-[#00a9ff] focus-within:shadow-[0_3px_0_#3081AD] transition-all">
               <textarea
                 value={question}
                 onChange={(e) => {
@@ -305,19 +301,19 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask Kyle anything..."
-                className="w-full max-h-32 min-h-[56px] py-3.5 pl-4 pr-12 bg-transparent resize-none outline-none text-slate-800 text-sm sm:text-base scrollbar-thin"
+                className="w-full max-h-32 min-h-[56px] py-4 pl-5 pr-12 bg-transparent resize-none outline-none text-[#19183b] font-semibold text-[15px] scrollbar-thin"
                 rows={1}
               />
-              <div className="absolute bottom-2 right-3 text-[10px] text-slate-400">
+              <div className="absolute bottom-3 right-4 text-[12px] font-bold text-[#7775a5]">
                 {question.length}/500
               </div>
             </div>
             <button
               type="submit"
               disabled={!question.trim() || isThinking}
-              className="shrink-0 h-14 px-5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="btn-push shrink-0 h-14 w-14 bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold rounded-2xl flex items-center justify-center shadow-none"
             >
-              <Send size={18} />
+              <Send size={20} />
             </button>
           </form>
           <div className="text-center mt-3">

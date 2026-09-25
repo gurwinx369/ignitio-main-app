@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../../lib/firebase/firebase";
 import posthog from "posthog-js";
+import { scheduleIdleTask } from "@/lib/utils/idleTask";
 
 const AuthContext = createContext({});
 
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             if (user) {
                 const storedUid = localStorage.getItem("ignitio:active_uid");
                 if (storedUid && storedUid !== user.uid) {
-                    clearTargetedStorage();
+                    scheduleIdleTask(() => clearTargetedStorage(), { timeout: 5000 });
                     localStorage.setItem("ignitio:active_uid", user.uid);
                 } else if (!storedUid) {
                     localStorage.setItem("ignitio:active_uid", user.uid);

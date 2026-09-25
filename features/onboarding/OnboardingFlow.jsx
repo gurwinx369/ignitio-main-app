@@ -85,7 +85,6 @@ export default function OnboardingFlow() {
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedFields, setSelectedFields] = useState([]);
     const [projectDescription, setProjectDescription] = useState("");
-    const [progressWidth, setProgressWidth] = useState(50);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     //accessing user info from the context provider
@@ -98,7 +97,6 @@ export default function OnboardingFlow() {
             setCurrentStep(data.currentStep || 1);
             setSelectedFields(data.selectedFields || []);
             setProjectDescription(data.projectDescription || "");
-            setProgressWidth(data.currentStep === 1 ? 50 : 100);
         }
     }, []);
 
@@ -111,29 +109,6 @@ export default function OnboardingFlow() {
         };
         localStorage.setItem("onboarding_progress", JSON.stringify(data));
     }, [currentStep, selectedFields, projectDescription]);
-
-    // Animate progress bar
-    useEffect(() => {
-        const targetWidth = currentStep === 1 ? 50 : 100;
-        const duration = 800;
-        const steps = 60;
-        const increment = (targetWidth - progressWidth) / steps;
-        let current = 0;
-
-        const timer = setInterval(() => {
-            current++;
-            setProgressWidth((prev) => {
-                const newWidth = prev + increment;
-                if (current >= steps) {
-                    clearInterval(timer);
-                    return targetWidth;
-                }
-                return newWidth;
-            });
-        }, duration / steps);
-
-        return () => clearInterval(timer);
-    }, [currentStep, progressWidth]);
 
     const toggleField = (field) => {
         if (selectedFields.includes(field)) {
@@ -294,9 +269,9 @@ export default function OnboardingFlow() {
                                 style={{ backgroundColor: "#E0E0E0" }}
                             >
                                 <div
-                                    className="h-full rounded-full transition-all duration-800 ease-out"
+                                    className="h-full rounded-full transition-[width] duration-700 ease-out"
                                     style={{
-                                        width: `${progressWidth}%`,
+                                        width: `${currentStep === 1 ? 50 : 100}%`,
                                         backgroundColor: "#F4B63C",
                                         boxShadow:
                                             "0 2px 8px rgba(244, 182, 60, 0.4)",

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Lock } from "lucide-react";
+import { Lock, SkipForward, CheckCircle2 } from "lucide-react";
 
 /*
  * Tier hero animations intentionally contain no learning/business state.
@@ -1007,6 +1007,30 @@ const TIER_THEME = {
    CARD
 ========================================================= */
 
+// Module-level: badge config per state (rendering-hoist-jsx — no per-render allocation)
+const STATE_BADGE = {
+  locked: {
+    icon: Lock,
+    label: "Locked",
+    className: "border-white/5 bg-white/10 text-white/65",
+  },
+  prerequisite_locked: {
+    icon: Lock,
+    label: "Complete Beginner first",
+    className: "border-amber-200/30 bg-amber-400/10 text-amber-200",
+  },
+  skipped: {
+    icon: SkipForward,
+    label: "Skipped",
+    className: "border-slate-200/30 bg-slate-400/10 text-slate-300",
+  },
+  completed: {
+    icon: CheckCircle2,
+    label: "Completed",
+    className: "border-emerald-200/30 bg-emerald-400/10 text-emerald-300",
+  },
+};
+
 export default function GenAiTierCard({
   tierName,
   subtitle,
@@ -1017,7 +1041,10 @@ export default function GenAiTierCard({
   ctaText,
   onClick,
 }) {
-  const isLocked = state === "locked";
+  // Treat prerequisite_locked the same as locked for interaction/hover purposes
+  const isLocked = state === "locked" || state === "prerequisite_locked";
+  const isSkipped = state === "skipped";
+  const isCompleted = state === "completed";
 
   const theme =
     TIER_THEME[tierName] ??
@@ -1034,7 +1061,7 @@ export default function GenAiTierCard({
         "transition-[transform,box-shadow] duration-200",
         theme.cardBg,
         theme.border,
-        !isLocked &&
+        !isLocked && !isSkipped &&
         "hover:-translate-y-[3px] hover:shadow-lg",
       ]
         .filter(Boolean)
@@ -1061,16 +1088,15 @@ export default function GenAiTierCard({
             {tierName}
           </span>
 
-          {isLocked && (
-            <div className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/65">
-              <Lock
-                size={11}
-                aria-hidden="true"
-              />
-
-              Locked
-            </div>
-          )}
+          {STATE_BADGE[state] && (() => {
+            const { icon: BadgeIcon, label, className } = STATE_BADGE[state];
+            return (
+              <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${className}`}>
+                <BadgeIcon size={11} aria-hidden="true" />
+                {label}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="px-3 pb-2 pt-[42px] h-full flex items-center justify-center">
@@ -1133,37 +1159,34 @@ export default function GenAiTierCard({
         <div className="mt-auto pt-2">
           <button
             type="button"
-            onClick={
-              !isLocked
-                ? onClick
-                : undefined
-            }
-            disabled={isLocked}
-            aria-disabled={isLocked}
+            onClick={!isLocked && !isSkipped ? onClick : undefined}
+            disabled={isLocked || isSkipped}
+            aria-disabled={isLocked || isSkipped}
             className={[
               "flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3",
               "text-[14px] font-bold",
               "transition-[transform,box-shadow] duration-150",
               isLocked
                 ? theme.lockedBg
-                : [
-                  theme.ctaBg,
-                  "shadow-sm",
-                  "active:translate-y-[2px]",
-                  "active:scale-[0.98]",
-                  "active:shadow-none",
-                ].join(
-                  " ",
-                ),
+                : isSkipped
+                  ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                  : isCompleted
+                    ? [
+                      "bg-emerald-600 text-white hover:bg-emerald-500",
+                      "shadow-sm active:translate-y-[2px] active:scale-[0.98] active:shadow-none",
+                    ].join(" ")
+                    : [
+                      theme.ctaBg,
+                      "shadow-sm",
+                      "active:translate-y-[2px]",
+                      "active:scale-[0.98]",
+                      "active:shadow-none",
+                    ].join(" "),
             ].join(" ")}
           >
-            {isLocked && (
-              <Lock
-                size={13}
-                aria-hidden="true"
-              />
-            )}
-
+            {isLocked && <Lock size={13} aria-hidden="true" />}
+            {isSkipped && <SkipForward size={13} aria-hidden="true" />}
+            {isCompleted && !isLocked && !isSkipped && <CheckCircle2 size={13} aria-hidden="true" />}
             {ctaText}
           </button>
         </div>

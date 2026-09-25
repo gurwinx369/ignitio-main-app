@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
+import { scheduleIdleTask } from '@/lib/utils/idleTask';
 
 const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
     const thresholdCalledRef = useRef(false);
@@ -58,6 +59,40 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
     // Derived: total watched seconds from intervals
     const watchedSeconds = calculateWatchedSeconds(watchedIntervals);
 
+    const intervalsRef = useRef(watchedIntervals);
+    useEffect(() => {
+        intervalsRef.current = watchedIntervals;
+    }, [watchedIntervals]);
+
+    const workerRef = useRef(null);
+    useEffect(() => {
+        try {
+            workerRef.current = new Worker('/workers/intervalWorker.js');
+            workerRef.current.onmessage = (e) => {
+                const { type, merged } = e.data;
+                if (type === 'RESULT') {
+                    setWatchedIntervals(merged);
+                    intervalsRef.current = merged;
+                }
+            };
+            workerRef.current.onerror = (err) => {
+                console.warn("Worker error (likely 404 if server wasn't restarted). Falling back to main thread.", err);
+                workerRef.current = null;
+                setWatchedIntervals(() => mergeIntervals(intervalsRef.current));
+            };
+        } catch (err) {
+            console.warn("Failed to initialize intervalWorker", err);
+            setWatchedIntervals(() => mergeIntervals(intervalsRef.current));
+        }
+
+        return () => {
+            if (workerRef.current) {
+                workerRef.current.terminate();
+                workerRef.current = null;
+            }
+        };
+    }, [mergeIntervals]);
+
     // Lazy initialization for isLoaded
     const [isLoaded, setIsLoaded] = useState(() => isSegmentBased);
 
@@ -79,8 +114,10 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
     // Save watch intervals to localStorage whenever they change
     useEffect(() => {
         if (isSegmentBased && watchedIntervals.length > 0) {
-            localStorage.setItem(watchIntervalsKey, JSON.stringify(watchedIntervals));
-            localStorage.setItem(watchTimeKey, watchedSeconds.toString());
+            scheduleIdleTask(() => {
+                localStorage.setItem(watchIntervalsKey, JSON.stringify(watchedIntervals));
+                localStorage.setItem(watchTimeKey, watchedSeconds.toString());
+            });
 
             // Call onThresholdMet only once when threshold is first crossed
             if (watchedSeconds >= watchThreshold && !thresholdCalledRef.current && !hasWatched) {
@@ -101,11 +138,15 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
         // If we don't have currentTime, fall back to delta-only mode (less accurate)
         if (currentTime === null || currentTime === undefined) {
             if (delta <= 0) return;
-            setWatchedIntervals(prev => {
-                const currentEnd = prev.length > 0 ? prev[prev.length - 1].end : level.startSec;
-                const newInterval = { start: currentEnd, end: currentEnd + delta };
-                return mergeIntervals([...prev, newInterval]);
-            });
+            const currentEnd = intervalsRef.current.length > 0 ? intervalsRef.current[intervalsRef.current.length - 1].end : level.startSec;
+            const newInterval = { start: currentEnd, end: currentEnd + delta };
+            intervalsRef.current = [...intervalsRef.current, newInterval];
+
+            if (workerRef.current) {
+                workerRef.current.postMessage({ type: 'MERGE_AND_ADD', intervals: intervalsRef.current });
+            } else {
+                setWatchedIntervals(prev => mergeIntervals([...prev, newInterval]));
+            }
             return;
         }
 
@@ -118,10 +159,14 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
         const intervalEnd = Math.min(level.endSec, clampedTime);
 
         if (intervalEnd > intervalStart) {
-            setWatchedIntervals(prev => {
-                const newInterval = { start: intervalStart, end: intervalEnd };
-                return mergeIntervals([...prev, newInterval]);
-            });
+            const newInterval = { start: intervalStart, end: intervalEnd };
+            intervalsRef.current = [...intervalsRef.current, newInterval];
+
+            if (workerRef.current) {
+                workerRef.current.postMessage({ type: 'MERGE_AND_ADD', intervals: intervalsRef.current });
+            } else {
+                setWatchedIntervals(prev => mergeIntervals([...prev, newInterval]));
+            }
         }
     }, [isSegmentBased, level.startSec, level.endSec, mergeIntervals]);
 
@@ -210,21 +255,19 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                         </span>
                         <button
                             onClick={() => setFeedback('positive')}
-                            className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${
-                                feedback === 'positive'
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
+                            className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${feedback === 'positive'
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
                         >
                             <ThumbsUp className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                         <button
                             onClick={() => setFeedback('negative')}
-                            className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${
-                                feedback === 'negative'
-                                    ? 'bg-red-100 text-red-600'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
+                            className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${feedback === 'negative'
+                                ? 'bg-red-100 text-red-600'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
                         >
                             <ThumbsDown className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
@@ -250,9 +293,8 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
 
                         <iframe
                             src={level.videoUrl}
-                            className={`absolute top-0 left-0 w-full h-full transition-opacity duration-300 ${
-                                isLoaded ? 'opacity-100' : 'opacity-0'
-                            }`}
+                            className={`absolute top-0 left-0 w-full h-full transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
+                                }`}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             title={level.title}
@@ -306,21 +348,19 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                     </span>
                     <button
                         onClick={() => setFeedback('positive')}
-                        className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${
-                            feedback === 'positive'
-                                ? 'bg-green-100 text-green-600'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${feedback === 'positive'
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
                     >
                         <ThumbsUp className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <button
                         onClick={() => setFeedback('negative')}
-                        className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${
-                            feedback === 'negative'
-                                ? 'bg-red-100 text-red-600'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${feedback === 'negative'
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
                     >
                         <ThumbsDown className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
