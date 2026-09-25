@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 
 // C++ syntax highlighting tokens
 const CPP_TOKENS = {
@@ -158,6 +158,9 @@ export default function CodeEditor({
   const textareaRef = useRef(null);
   const highlightRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
+  const workerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+  const pendingCodeRef = useRef('');
 
   const defaultValue = `#include <iostream>
 using namespace std;
@@ -168,6 +171,59 @@ int main() {
 }`;
 
   const code = value || defaultValue;
+  const [highlightedCode, setHighlightedCode] = useState(() => highlightCpp(code));
+  
+  // React hook to handle worker initialization
+  useEffect(() => {
+    try {
+      workerRef.current = new Worker('/workers/syntaxWorker.js');
+      workerRef.current.onmessage = (e) => {
+        // Only update if this matches the latest code
+        if (e.data.code === pendingCodeRef.current) {
+          setHighlightedCode(e.data.tokens);
+        }
+      };
+      workerRef.current.onerror = (err) => {
+        console.warn('Syntax worker failed, falling back to main thread', err);
+      };
+    } catch (err) {
+      console.warn('Failed to initialize syntax worker', err);
+    }
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, []);
+
+  // Update highlighting when code changes (debounced for long code, sync for short)
+  useEffect(() => {
+    pendingCodeRef.current = code;
+
+    // Synchronous execution for short code or if worker is unavailable
+    if (code.length < 500 || !workerRef.current) {
+      setHighlightedCode(highlightCpp(code));
+      return;
+    }
+
+    // Debounce worker for longer code to prevent keystroke lag
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
+      if (workerRef.current) {
+        workerRef.current.postMessage({ code });
+      }
+    }, 150);
+    
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [code]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && highlightRef.current) {
@@ -203,7 +259,6 @@ int main() {
   }, [code, onChange]);
 
   const lineNumbers = code.split('\n').map((_, i) => i + 1);
-  const highlightedCode = highlightCpp(code);
 
   return (
     <div

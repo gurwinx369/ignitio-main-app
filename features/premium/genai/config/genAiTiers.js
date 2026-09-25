@@ -8,7 +8,7 @@ export const GENAI_TIERS = {
     },
     intermediate: {
         key: "intermediate",
-        released: false,
+        released: true,
         minWeek: 5,
         maxWeek: 8,
         route: "/home/premium/genai/intermediate",

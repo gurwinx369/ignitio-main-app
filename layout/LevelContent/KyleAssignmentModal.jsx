@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -174,26 +174,26 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#FAF9F6] w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-4">
+            <div className="bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="bg-white px-6 py-5 border-b border-orange-50 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="px-6 py-5 border-b-2 border-[#e5d5c5]/50 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
                             <Image
                                 src="/kyle/kyle.svg"
                                 alt="Kyle"
-                                width={48}
-                                height={48}
+                                width={40}
+                                height={40}
                                 className="w-full h-full rounded-full object-cover"
                             />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-gray-900">Day {dayNumber} &middot; Assignment</h3>
-                            <p className="text-sm text-gray-500">You&apos;ve finished today&apos;s lessons.</p>
+                            <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Day {dayNumber} &middot; Assignment</h3>
+                            <p className="text-sm text-[#7775a5] font-semibold">Kyle is reviewing your code.</p>
                         </div>
                     </div>
-                    <span className="bg-orange-50 text-orange-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                    <span className="bg-[#ddf2ff] text-[#007bcc] text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider border border-[#80d4ff]">
                         {normalizeRole(role)}
                     </span>
                 </div>
@@ -202,23 +202,15 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 <div className="p-6 md:p-8 flex-1 overflow-y-auto max-h-[75vh]">
                     {status === 'loading' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <div className="flex space-x-2">
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce"></div>
-                            </div>
-                            <p className="text-gray-600 font-medium">Kyle is preparing your Day {dayNumber} assignment...</p>
+                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            <p className="text-gray-500 font-medium tracking-tight">Kyle is preparing your Day {dayNumber} assignment...</p>
                         </div>
                     )}
                     
                     {status === 'scoring' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <div className="flex space-x-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-                            </div>
-                            <p className="text-gray-600 font-medium">Kyle is evaluating your response...</p>
+                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            <p className="text-gray-500 font-medium tracking-tight">Kyle is evaluating your response...</p>
                         </div>
                     )}
 
@@ -230,21 +222,21 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                                 {assignmentPrompt ? (
                                     <button 
                                         onClick={handleRetryAnswer}
-                                        className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2"
+                                        className="btn-push w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] flex items-center justify-center gap-2"
                                     >
                                         <RefreshCcw size={18} /> Retry Answer
                                     </button>
                                 ) : (
                                     <button 
                                         onClick={handleRetryGenerate}
-                                        className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2"
+                                        className="btn-push w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] flex items-center justify-center gap-2"
                                     >
                                         <RefreshCcw size={18} /> Try Again
                                     </button>
                                 )}
                                 <button 
                                     onClick={onClose}
-                                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-2xl transition-colors"
+                                    className="btn-push-sm w-full py-3.5 rounded-2xl text-[#4A5568] font-bold text-[15px] uppercase tracking-wide bg-white border-[#e8e8f0] hover:text-[#001D32]"
                                 >
                                     Back to Roadmap
                                 </button>
@@ -263,7 +255,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                             </p>
                             <button 
                                 onClick={onClose}
-                                className="w-full max-w-sm mt-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-2xl transition-colors"
+                                className="btn-push-sm w-full max-w-sm mt-4 py-3.5 rounded-2xl text-[#4A5568] font-bold text-[15px] uppercase tracking-wide bg-white border-[#e8e8f0] hover:text-[#001D32]"
                             >
                                 Back to Roadmap
                             </button>
@@ -271,13 +263,13 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     )}
 
                     {status === 'already-passed' && (
-                        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-                            <CheckCircle className="w-16 h-16 text-blue-500" />
-                            <h4 className="text-xl font-bold text-gray-900">Already Passed</h4>
-                            <p className="text-gray-600">You already passed this assignment.</p>
+                        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4 px-6">
+                            <CheckCircle className="w-16 h-16 text-[#10b981]" />
+                            <h4 className="text-2xl font-extrabold text-[#19183b]">Already Passed</h4>
+                            <p className="text-[#7775a5] font-medium text-[15px]">You already passed this assignment.</p>
                             <button 
                                 onClick={onPassed}
-                                className="w-full max-w-sm mt-4 py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-2xl transition-all shadow-md active:scale-95"
+                                className="btn-push w-full max-w-sm mt-4 py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6]"
                             >
                                 Continue
                             </button>
@@ -285,22 +277,22 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     )}
 
                     {status === 'ready' && (
-                        <div className="space-y-6">
-                            <div className="bg-white border border-orange-100 p-5 rounded-2xl shadow-sm">
-                                <p className="text-gray-800 leading-relaxed font-medium whitespace-pre-wrap">
+                        <div className="space-y-6 px-6 pt-2 pb-6">
+                            <div className="bg-white p-5 rounded-2xl shadow-[0_3px_0_#FFDCBC] border-2 border-[#e5d5c5]">
+                                <p className="text-[#1a2a3a] leading-relaxed font-semibold text-[15px] whitespace-pre-wrap">
                                     {assignmentPrompt}
                                 </p>
                             </div>
                             
                             <div className="space-y-2">
                                 <textarea 
-                                    className="w-full h-48 p-4 bg-white border border-gray-200 rounded-2xl shadow-inner focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none leading-relaxed text-gray-800"
+                                    className="w-full h-48 p-5 bg-white border-2 border-[#e5d5c5] rounded-2xl focus:bg-white focus:outline-none focus:border-[#00a9ff] shadow-[0_3px_0_#FFDCBC] focus:shadow-[0_3px_0_#3081AD] resize-none leading-relaxed text-[#1a2a3a] transition-all text-[15px] font-semibold"
                                     placeholder="Write your answer here. No word limit — think it through."
                                     value={userResponse}
                                     onChange={(e) => setUserResponse(e.target.value)}
                                 ></textarea>
-                                <p className="text-xs text-gray-500 font-medium px-2 flex justify-between">
-                                    <span>Kyle will read and score your answer out of 10</span>
+                                <p className="text-[13px] text-[#7775a5] font-bold px-2 flex justify-between tracking-tight">
+                                    <span>Kyle will review and score your answer out of 10</span>
                                     <span>Required: {requiredScore}/10</span>
                                 </p>
                             </div>
@@ -308,7 +300,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                             <button
                                 onClick={handleSubmit}
                                 disabled={!userResponse.trim()}
-                                className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center text-lg"
+                                className="btn-push w-full mt-4 py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
                             >
                                 Submit Answer
                             </button>
@@ -316,45 +308,37 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     )}
 
                     {(status === 'result_pass' || status === 'result_fail') && scoreData && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="flex flex-col items-center text-center space-y-3">
-                                {status === 'result_pass' ? (
-                                    <div className="w-20 h-20 bg-green-100 rounded-full flex flex-col items-center justify-center shadow-inner">
-                                        <span className="text-2xl font-black text-green-600">{scoreData.score}</span>
-                                        <span className="text-xs font-bold text-green-500 uppercase tracking-widest mt-[-2px]">Score</span>
-                                    </div>
-                                ) : (
-                                    <div className="w-20 h-20 bg-orange-100 rounded-full flex flex-col items-center justify-center shadow-inner">
-                                        <span className="text-2xl font-black text-orange-600">{scoreData.score}</span>
-                                        <span className="text-xs font-bold text-orange-500 uppercase tracking-widest mt-[-2px]">Score</span>
-                                    </div>
-                                )}
-                                <h4 className={`text-2xl font-extrabold ${status === 'result_pass' ? 'text-green-600' : 'text-orange-600'}`}>
-                                    {status === 'result_pass' ? 'Great work' : 'Needs improvement'}
+                        <div className="space-y-8 px-6 pt-2 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="flex flex-col items-center text-center space-y-1">
+                                <h4 className={`text-3xl font-extrabold tracking-tight ${status === 'result_pass' ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                                    {status === 'result_pass' ? 'Great work!' : 'Needs improvement'}
                                 </h4>
-                                <p className="text-gray-500 font-medium">Required: {requiredScore}/10 to unlock the next day</p>
+                                <div className="text-6xl font-black text-[#19183b] mt-2">
+                                    {scoreData.score}<span className="text-3xl text-[#7775a5] font-bold">/10</span>
+                                </div>
+                                <p className="text-[#7775a5] font-bold mt-2 text-[15px]">Required: {requiredScore}/10 to unlock the next day</p>
                             </div>
 
-                            <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm">
-                                <h5 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                    <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center overflow-hidden rounded-full">
+                            <div className="bg-white p-6 rounded-2xl border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC]">
+                                <h5 className="font-extrabold text-[#19183b] text-[18px] mb-3 flex items-center gap-2 tracking-tight">
+                                    <div className="w-6 h-6 shrink-0 flex items-center justify-center overflow-hidden rounded-full border border-[#e5d5c5]">
                                         <Image
                                             src="/kyle/kyle.svg"
                                             alt="Kyle"
-                                            width={18}
-                                            height={18}
+                                            width={20}
+                                            height={20}
                                             className="w-full h-full rounded-full object-cover"
                                         />
                                     </div> Feedback from Kyle
                                 </h5>
-                                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">
                                     {scoreData.feedback}
                                 </p>
                                 
                                 {scoreData.weaknesses && scoreData.weaknesses.length > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100">
-                                        <h6 className="font-semibold text-gray-700 text-sm mb-2">Areas to improve:</h6>
-                                        <ul className="list-disc pl-5 text-gray-600 text-sm space-y-1">
+                                    <div className="mt-6 pt-6 border-t border-gray-200">
+                                        <h6 className="font-semibold text-gray-900 text-sm mb-3 tracking-tight">Areas to improve:</h6>
+                                        <ul className="list-disc pl-5 text-gray-600 space-y-2">
                                             {scoreData.weaknesses.map((w, i) => (
                                                 <li key={i}>{w}</li>
                                             ))}
@@ -367,25 +351,25 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                                 {status === 'result_pass' ? (
                                     <button
                                         onClick={onPassed}
-                                        className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 text-lg flex items-center justify-center gap-2"
+                                        className="btn-push w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] flex items-center justify-center gap-2"
                                     >
                                         {isFinalDay ? (
-                                            <>Finish Roadmap <Home size={20} /></>
+                                            <>Finish Roadmap <Home size={18} /></>
                                         ) : (
-                                            <>Continue to Day {dayNumber + 1} <ArrowRight size={20} /></>
+                                            <>Continue to Day {dayNumber + 1} <ArrowRight size={18} /></>
                                         )}
                                     </button>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {scoreData.attemptsRemaining > 0 ? (
                                             <>
                                                 <button
                                                     onClick={() => setStatus('ready')}
-                                                    className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 text-lg flex items-center justify-center gap-2"
+                                                    className="btn-push w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide bg-[#00A9FF] border-[#007bcc] hover:bg-[#0096e6] flex items-center justify-center gap-2"
                                                 >
-                                                    <RefreshCcw size={20} /> Retry Answer
+                                                    <RefreshCcw size={18} /> Retry Answer
                                                 </button>
-                                                <p className="text-center text-sm text-gray-500 font-medium">
+                                                <p className="text-center text-sm text-[#7775a5] font-bold">
                                                     {scoreData.attemptsRemaining} attempt(s) remaining before a 6-hour cooldown.
                                                 </p>
                                             </>
@@ -393,7 +377,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                                             <>
                                                 <button
                                                     onClick={onClose}
-                                                    className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all"
+                                                    className="btn-push-sm w-full py-4 rounded-2xl text-[#4A5568] font-bold text-[15px] uppercase tracking-wide bg-white border-[#e8e8f0] hover:text-[#001D32]"
                                                 >
                                                     Back to Roadmap
                                                 </button>

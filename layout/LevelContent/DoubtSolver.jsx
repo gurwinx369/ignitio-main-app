@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import Image from 'next/image';
 import { Send, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
@@ -101,7 +101,9 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
             }
 
             const answer = data?.data?.answer || data?.answer || "Kyle responded, but no answer text was returned.";
-            setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
+            startTransition(() => {
+                setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
+            });
         } catch (err) {
             setError(err.message || 'Failed to connect to Kyle.');
         } finally {

@@ -23,6 +23,7 @@ import { saveUnlockedCertificate, hasUnlockedCertificate } from '@/features/cert
 import { useBehaviorQuiz } from '@/features/kyle/behavior-quiz/useBehaviorQuiz';
 import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
 import PreviewCardLockedModal from "@/features/onboarding/PreviewCardLockedModal";
+import { scheduleIdleTask } from "@/lib/utils/idleTask";
 
 export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPreview = false }) {
     const router = useRouter();
@@ -114,9 +115,9 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
     }, [roadmapData.days]);
 
     useEffect(() => {
-        const timer = setTimeout(async () => {
-            setIsMounted(true);
-
+        setIsMounted(true);
+        
+        const loadProgress = async () => {
             if (!user) {
                 // Premium GenAI progress is server-owned in the authenticated app.
                 // Preview mode intentionally uses local progress for the demo flow.
@@ -246,9 +247,8 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                 });
             }
 
-        }, 1000);
-
-        return () => clearTimeout(timer);
+        };
+        loadProgress();
     }, [roadmapData.id, allLevels, user, roadmapData.days, roadmapData.title, progressRetryKey, isPreview]);
 
     useEffect(() => {
@@ -257,7 +257,9 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
         prevCompletedCount.current = completedLevels.length;
 
         // Optionally store total globally like old code
-        localStorage.setItem("completedLevels", JSON.stringify(completedLevels.length));
+        scheduleIdleTask(() => {
+            localStorage.setItem("completedLevels", JSON.stringify(completedLevels.length));
+        });
     }, [completedLevels, isMounted]);
 
     const activeDay = roadmapData.days[activeDayIndex];
@@ -295,45 +297,49 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
 
         certificateBackfillRan.current = true;
 
-        const eligibleCertificates = getEligibleCertificates({
-            roadmapData,
-            completedLevels,
-            assignmentPassedDays,
-        });
-
-        eligibleCertificates.forEach((certificate) => {
-            if (hasUnlockedCertificate(certificate.certificateKey, certificate.roadmapFamily)) {
-                return;
-            }
-
-            const milestoneLevels = certificate.milestoneLevels || [];
-            const durationMinutes = milestoneLevels.reduce(
-                (acc, lvl) => acc + Number(lvl.durationInMinutes || 0),
-                0
-            );
-            const quizCompletedCount = milestoneLevels.length;
-
-            const dateObj = new Date(certificate.unlockedAt);
-            const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString("default", { month: "long" })} ${dateObj.getFullYear()}`;
-
-            saveUnlockedCertificate({
-                ...certificate,
-                quizCompletedCount,
-                durationMinutes,
-                providedOn,
+        scheduleIdleTask(() => {
+            const eligibleCertificates = getEligibleCertificates({
+                roadmapData,
+                completedLevels,
+                assignmentPassedDays,
             });
-        });
+
+            eligibleCertificates.forEach((certificate) => {
+                if (hasUnlockedCertificate(certificate.certificateKey, certificate.roadmapFamily)) {
+                    return;
+                }
+
+                const milestoneLevels = certificate.milestoneLevels || [];
+                const durationMinutes = milestoneLevels.reduce(
+                    (acc, lvl) => acc + Number(lvl.durationInMinutes || 0),
+                    0
+                );
+                const quizCompletedCount = milestoneLevels.length;
+
+                const dateObj = new Date(certificate.unlockedAt);
+                const providedOn = `${dateObj.getDate()} ${dateObj.toLocaleString("default", { month: "long" })} ${dateObj.getFullYear()}`;
+
+                saveUnlockedCertificate({
+                    ...certificate,
+                    quizCompletedCount,
+                    durationMinutes,
+                    providedOn,
+                });
+            });
+        }, { timeout: 3000 });
     }, [isMounted, roadmapData, completedLevels, assignmentPassedDays, assignmentStateLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !roadmapData?.id) return;
 
-        localStorage.setItem("ignitio:last_active_roadmap", JSON.stringify({
-            id: roadmapData.id,
-            title: roadmapData.title,
-            route: window.location.pathname,
-            updatedAt: Date.now(),
-        }));
+        scheduleIdleTask(() => {
+            localStorage.setItem("ignitio:last_active_roadmap", JSON.stringify({
+                id: roadmapData.id,
+                title: roadmapData.title,
+                route: window.location.pathname,
+                updatedAt: Date.now(),
+            }));
+        });
     }, [roadmapData.id, roadmapData.title]);
 
     const arePreviousAssignmentsPassed = (dayIndex) => {
@@ -1046,7 +1052,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                     {activeDay && (
                         <div ref={roadmapViewportRef} className="relative transition-all duration-700 opacity-100">
                             {(!isMounted || !isRoadmapReady) ? (
-                                <RoadmapSkeleton color={activeDay.color} />
+                                <RoadmapSkeleton color={activeDay.color} nodeCount={activeDay.levels?.length ?? 7} />
                             ) : (
                                 <div className="w-full overflow-hidden">
                                     {/* We map activeDay to difficulty prop just so background layers work if they still rely on it, but use color dynamically */}
