@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { runOnboarding } from "@/lib/onboarding/onboarding.service";
-import { error } from "three/src/utils.js";
 import {
   validateTimeWithinPeriod,
 } from "@/lib/onboarding/schedule-periods";
