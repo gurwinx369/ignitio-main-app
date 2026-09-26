@@ -79,9 +79,9 @@ export default function DashboardBottomNav({ activeTab, setActiveTab }) {
               onPointerEnter={() => setHoveredItem(item.id)}
               onClick={() => handleClick(item)}
               className={[
-                "group relative flex min-h-[44px] items-center justify-center gap-1.5 rounded-[13px]",
-                isHighlighted ? "px-3.5 sm:px-4" : "px-2.5 sm:px-3",
-                "text-[11px] sm:text-xs font-extrabold text-[#19183B]",
+                "group relative flex min-h-[40px] sm:min-h-[44px] items-center justify-center gap-1 sm:gap-1.5 rounded-[13px]",
+                isHighlighted ? "px-3 sm:px-4" : "px-2 sm:px-3",
+                "text-[10px] sm:text-xs font-extrabold text-[#19183B]",
                 "transition-[padding] duration-200 ease-out",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F0CAA8]",
                 "active:translate-y-[2px] active:scale-[0.98]",

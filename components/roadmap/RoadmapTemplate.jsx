@@ -25,9 +25,30 @@ import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
 import PreviewCardLockedModal from "@/features/onboarding/PreviewCardLockedModal";
 import { scheduleIdleTask } from "@/lib/utils/idleTask";
 
+// Hoisted to module level — prevents re-allocation on every render cycle.
+// Vercel best practice: rendering-hoist-jsx
+const ROADMAP_SKELETON_MIN_MS = 450;
+
 export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPreview = false }) {
     const router = useRouter();
     const { user } = useAuth();
+    // Reactive profession — reads localStorage once at mount, then stays in sync
+    // via the native 'storage' event if the user changes it in another tab or
+    // from a profile settings page mid-session.
+    const [userProfession, setUserProfession] = useState(
+        () => (typeof window !== "undefined" && localStorage.getItem("profession")) || "other"
+    );
+
+    useEffect(() => {
+        const handleStorage = (e) => {
+            if (e.key === "profession") {
+                setUserProfession(e.newValue || "other");
+            }
+        };
+        window.addEventListener("storage", handleStorage);
+        return () => window.removeEventListener("storage", handleStorage);
+    }, []);
+
     const [isMounted, setIsMounted] = useState(false);
 
     // Behavior quiz ΓÇö fires after every 3rd concept completion across all roadmaps
@@ -80,8 +101,6 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
     const roadmapViewportRef = useRef(null);
     const dayTabsContainerRef = useRef(null);
     const dayButtonRefs = useRef([]);
-
-    const ROADMAP_SKELETON_MIN_MS = 450;
 
     const completionToastTimerRef = useRef(null);
 
@@ -191,7 +210,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
 
                     const migrationPayload = {
                         roadmapTitle: roadmapData.title || "",
-                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        role: userProfession,
                         totalLevels: allLevels.length,
                         allLevelIds: allLevels.map(l => l.id),
                         days: roadmapData.days.map(d => ({ id: d.id, levelIds: d.levels.map(l => l.id) })),
@@ -351,41 +370,6 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
             .every(day => assignmentPassedDays[day.id]);
     };
 
-    const getUnlockState = (level) => {
-        if (!level) return { isUnlocked: false, lockedReason: "Not available" };
-
-        let globalUnlocked = false;
-        if (completedLevels.includes(level.id)) {
-            globalUnlocked = true;
-        } else {
-            const globalIndex = allLevels.findIndex(l => l.id === level.id);
-            if (globalIndex <= 0) {
-                globalUnlocked = true;
-            } else {
-                const prevLevel = allLevels[globalIndex - 1];
-                globalUnlocked = completedLevels.includes(prevLevel.id);
-            }
-        }
-
-        if (!globalUnlocked) {
-            return { isUnlocked: false, lockedReason: "Complete Previous Lesson First" };
-        }
-
-        if (hasAssignmentGate) {
-            const dayIndex = roadmapData.days.findIndex(d => d.levels.some(l => l.id === level.id));
-            if (dayIndex > 0) {
-                const prevPassed = arePreviousAssignmentsPassed(dayIndex);
-                if (!prevPassed) {
-                    const prevDay = roadmapData.days[dayIndex - 1];
-                    const prevDayNumber = Number(String(prevDay?.id || "").match(/\d+/)?.[0]) || dayIndex;
-                    return { isUnlocked: false, lockedReason: `Complete Day ${prevDayNumber} assignment first` };
-                }
-            }
-        }
-
-        return { isUnlocked: true, lockedReason: null };
-    };
-
     const getUnlockStateWithCompleted = (level, currentCompletedLevels) => {
         if (!level) return { isUnlocked: false, lockedReason: "Not available" };
 
@@ -482,7 +466,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                     payload: {
                         action: "start_lesson",
                         roadmapTitle: roadmapData.title || "",
-                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        role: userProfession,
                         totalLevels: allLevels.length,
                         allLevelIds: allLevels.map(l => l.id),
                         levelId: level.id
@@ -661,7 +645,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                     payload: {
                         action: "complete_level",
                         roadmapTitle: roadmapData.title || "",
-                        role: (typeof window !== "undefined" && localStorage.getItem("profession")) || "other",
+                        role: userProfession,
                         totalLevels: allLevels.length,
                         allLevelIds: allLevels.map(l => l.id),
                         days: roadmapData.days.map(d => ({
@@ -1072,7 +1056,7 @@ export default function RoadmapTemplate({ roadmapData, backHref = "/home", isPre
                                 const isPopupLevelInActiveDay = activeDay?.levels?.some(level => level.id === popupLevel.id);
                                 if (!isPopupLevelInActiveDay) return null;
 
-                                const unlockState = getUnlockState(popupLevel);
+                                const unlockState = getUnlockStateWithCompleted(popupLevel, completedLevels);
                                 return (
                                     <LessonPopup
                                         level={popupLevel}
