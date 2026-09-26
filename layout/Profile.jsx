@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { LogOut, X, User, UserCircle, Gamepad2, CreditCard } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import Image from "next/image";
@@ -31,38 +32,36 @@ export default function ProfileDropdown({ compact = false }) {
     const displayName = user?.displayName;
     const router = useRouter();
 
-    const [profileData, setProfileData] = useState(null);
+    const fetcher = async (url) => {
+        if (!user) return null;
+        const token = await user.getIdToken();
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        const data = await res.json();
+        return data.profile;
+    };
+
+    const { data: profileData, mutate: mutateProfile } = useSWR(
+        user ? "/api/v2/profile" : null,
+        fetcher,
+        {
+            revalidateOnFocus: false, // Prevent excessive fetches when switching tabs
+        }
+    );
 
     useEffect(() => {
-        let isMounted = true;
-        async function fetchProfile() {
-            if (!user) return;
-            try {
-                const token = await user.getIdToken();
-                const res = await fetch("/api/v2/profile", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (isMounted) setProfileData(data.profile);
-                }
-            } catch (err) {
-                console.error("Failed to fetch profile", err);
-            }
-        }
-        fetchProfile();
-
         const handleProfileUpdated = () => {
-            fetchProfile();
+            mutateProfile();
         };
 
         window.addEventListener("profileUpdated", handleProfileUpdated);
 
         return () => {
-            isMounted = false;
             window.removeEventListener("profileUpdated", handleProfileUpdated);
         };
-    }, [user]);
+    }, [mutateProfile]);
 
     const toggleDropdown = () => {
         setIsOpen(!isOpen);

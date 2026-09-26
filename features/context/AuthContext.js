@@ -64,7 +64,9 @@ export const AuthProvider = ({ children }) => {
         // Set persistence to LOCAL
         setPersistence(auth, browserLocalPersistence)
             .then(() => {
-                console.log("Auth persistence set to LOCAL");
+                if (process.env.NODE_ENV === "development") {
+                    console.log("Auth persistence set to LOCAL");
+                }
             })
             .catch((error) => {
                 console.error("Error setting persistence:", error);

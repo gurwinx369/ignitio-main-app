@@ -15,7 +15,3 @@ export function isKyleEnabledRoadmap(roadmapType) {
 export function isAssignmentGatedRoadmap(roadmapType) {
     return isKyleEnabledRoadmap(roadmapType);
 }
-
-export function usesPracticeTab(roadmapType) {
-    return !isKyleEnabledRoadmap(roadmapType);
-}
