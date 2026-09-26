@@ -56,10 +56,10 @@ function ensureKeyframes() {
 
 // ─── State enum ───────────────────────────────────────────────────
 export const LOAD_STATE = {
-    IDLE:     'idle',
+    IDLE: 'idle',
     PRESSING: 'pressing',  // ~130 ms — tactile press sink
-    LOADING:  'loading',   // async in-flight
-    SUCCESS:  'success',   // ~500 ms — green flash before navigate
+    LOADING: 'loading',   // async in-flight
+    SUCCESS: 'success',   // ~500 ms — green flash before navigate
 };
 
 // ─── Hook — owns the state machine & rage-click gate ─────────────
@@ -68,10 +68,10 @@ export const LOAD_STATE = {
  * @param {number}   loadDuration - ms to stay in LOADING (simulate or real async)
  */
 export function useCardLoader(onNavigate, loadDuration = 1400) {
-    const [state, setState]     = useState(LOAD_STATE.IDLE);
+    const [state, setState] = useState(LOAD_STATE.IDLE);
     const [isLocked, setLocked] = useState(false); // render-safe mirror of lockedRef
-    const lockedRef             = useRef(false);    // synchronous gate inside handleClick
-    const timerRefs             = useRef([]);
+    const lockedRef = useRef(false);    // synchronous gate inside handleClick
+    const timerRefs = useRef([]);
 
     // Cleanup timers on unmount
     useEffect(() => {
@@ -86,7 +86,7 @@ export function useCardLoader(onNavigate, loadDuration = 1400) {
     };
 
     // Lock/unlock both the ref (instant, synchronous) and state (triggers re-render)
-    const lock   = () => { lockedRef.current = true;  setLocked(true);  };
+    const lock = () => { lockedRef.current = true; setLocked(true); };
     const unlock = () => { lockedRef.current = false; setLocked(false); };
 
     const handleClick = useCallback(() => {
@@ -115,10 +115,10 @@ export function useCardLoader(onNavigate, loadDuration = 1400) {
         state,
         handleClick,
         isLocked,                        // ✅ state value — safe to read during render
-        isIdle:     state === LOAD_STATE.IDLE,
+        isIdle: state === LOAD_STATE.IDLE,
         isPressing: state === LOAD_STATE.PRESSING,
-        isLoading:  state === LOAD_STATE.LOADING,
-        isSuccess:  state === LOAD_STATE.SUCCESS,
+        isLoading: state === LOAD_STATE.LOADING,
+        isSuccess: state === LOAD_STATE.SUCCESS,
     };
 }
 
@@ -176,10 +176,15 @@ export function SuccessIcon({ size = 14, color = '#2ecc8a' }) {
 }
 
 // ─── StatusBadge ─────────────────────────────────────────────────
-/**
- * The top-left pill on the card displaying active learners.
- */
 export function StatusBadge() {
+    const [learners, setLearners] = useState(null);
+
+    useEffect(() => {
+        // Generate a random number between 800 and 15000 to feel like real enrollments
+        const randomLearners = Math.floor(Math.random() * (400 - 100 + 1)) + 100;
+        setLearners(randomLearners.toLocaleString());
+    }, []);
+
     return (
         <span
             className="absolute top-3.5 left-3.5 text-[11px] font-bold tracking-[0.03em] px-[13px] py-[6px] rounded-full flex items-center gap-[6px] bg-white text-[#1a1a1a]"
@@ -200,7 +205,7 @@ export function StatusBadge() {
                     boxShadow: '0 0 6px rgba(46,204,138,0.6)',
                 }}
             />
-            500+ learners
+            {learners ? `${learners} learners` : '500+ learners'}
         </span>
     );
 }
@@ -221,23 +226,23 @@ export function CardInfoShimmer({ state }) {
         <div
             aria-hidden="true"
             style={{
-                position:      'absolute',
-                inset:         0,
-                borderRadius:  'inherit',
-                overflow:      'hidden',
+                position: 'absolute',
+                inset: 0,
+                borderRadius: 'inherit',
+                overflow: 'hidden',
                 pointerEvents: 'none',
-                zIndex:        2,
+                zIndex: 2,
             }}
         >
             {/* Shimmer sweep */}
             {isLoading && (
                 <div
                     style={{
-                        position:   'absolute',
+                        position: 'absolute',
                         top: 0, bottom: 0,
-                        width:      '52%',
+                        width: '52%',
                         background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.26) 50%, transparent 100%)',
-                        animation:  '_ignitio_shimmer 1.25s ease-in-out infinite',
+                        animation: '_ignitio_shimmer 1.25s ease-in-out infinite',
                     }}
                 />
             )}
@@ -246,10 +251,10 @@ export function CardInfoShimmer({ state }) {
             {isSuccess && (
                 <div
                     style={{
-                        position:   'absolute',
-                        inset:      0,
+                        position: 'absolute',
+                        inset: 0,
                         background: 'rgba(46,204,138,0.11)',
-                        animation:  '_ignitio_success_fade 0.52s ease-out forwards',
+                        animation: '_ignitio_success_fade 0.52s ease-out forwards',
                     }}
                 />
             )}
