@@ -954,7 +954,28 @@ export async function PATCH(request, { params }) {
     }
 
     if (!progressPersistedAtomically) {
-      await progress.save();
+      try {
+        await progress.save();
+      } catch (saveErr) {
+        // Ponytail: Race condition where another request created the progress doc first.
+        // Fallback to update so we don't drop the 'start_lesson' state changes or throw a 500.
+        if (saveErr.code === 11000) {
+          const fallbackUpdates = {
+            status: progress.status,
+            lastActiveLevelId: progress.lastActiveLevelId,
+          };
+          if (progress.startedAt) fallbackUpdates.startedAt = progress.startedAt;
+          if (meaningfulLearningActivity) fallbackUpdates.lastLearningActiveAt = progress.lastLearningActiveAt;
+          
+          progress = await RoadmapProgress.findOneAndUpdate(
+            { firebaseUID: decodedToken.uid, roadmapSlug },
+            { $set: fallbackUpdates },
+            { new: true }
+          );
+        } else {
+          throw saveErr;
+        }
+      }
     }
 
     await UserProfile.updateOne({ _id: user._id }, { $set: userActivityUpdates }, { timestamps: false });

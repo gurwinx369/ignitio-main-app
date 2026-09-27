@@ -10,6 +10,7 @@ export const QuizAttemptSchema = new Schema(
     concept: { type: String, required: true },
     dayNumber: { type: Number, required: true },
     levelId: { type: String, required: true },
+    gateType: { type: String, default: "50" }, // "50" or "80"
     question: { type: String, required: true },
     selectedOption: { type: String, required: true },
     wasCorrect: { type: Boolean, required: true },

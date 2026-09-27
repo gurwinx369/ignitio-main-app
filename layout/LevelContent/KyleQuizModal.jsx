@@ -7,7 +7,7 @@ function normalizeAnswer(value) {
     return String(value || "").trim().toUpperCase().charAt(0);
 }
 
-const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, onAnswered, onCloseAfterAnswered }) => {
+const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, gateType, onAnswered, onCloseAfterAnswered }) => {
     const { user } = useAuth();
     
     // States
@@ -23,8 +23,9 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
     useEffect(() => {
         if (!open) return;
         
-        // Prevent double fetching due to strict mode or remounts
-        if (hasFetched.current && quiz) {
+        // Prevent double fetching due to strict mode or concurrent re-renders.
+        // We only check hasFetched.current so we don't fire a second request while the first is pending.
+        if (hasFetched.current) {
             return;
         }
         
@@ -44,6 +45,16 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                     normalizedRole = "other";
                 }
 
+                // Gate-specific focus: enrich concept so the LLM generates a distinct question per gate.
+                // 50% gate → basic recall/definition (what is X, what does Y mean)
+                // 80% gate → applied understanding (how/why/what-if, deeper synthesis)
+                const baseConcept = level.concept || level.title || level.name;
+                const enrichedConcept = gateType === '50'
+                    ? `${baseConcept} [Focus: ask a basic recall or definition question about this topic]`
+                    : gateType === '80'
+                        ? `${baseConcept} [Focus: ask an applied or synthesis question — how, why, or what would happen if]`
+                        : baseConcept;
+
                 const response = await fetch('/api/v2/kyle/quiz/generate', {
                     method: 'POST',
                     headers: {
@@ -51,11 +62,12 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                         'Authorization': `Bearer ${idToken}`
                     },
                     body: JSON.stringify({
-                        concept: level.concept || level.title || level.name,
+                        concept: enrichedConcept,
                         transcript: level.transcript || level.description,
                         role: normalizedRole
                     })
                 });
+
 
                 const data = await response.json();
                 if (!response.ok) {
@@ -105,6 +117,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                 body: JSON.stringify({
                     levelId: level.id,
                     dayNumber: dayNumber,
+                    gateType: gateType || "50", // pass gateType so backend knows which quiz this is
                     concept: level.concept || level.title || level.name,
                     question: quiz.question,
                     selectedOption: selectedKey,
@@ -144,7 +157,11 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
     };
 
     const handleBypass = () => {
-        sessionStorage.setItem(`quiz_gate_bypassed_${roadmapType}_${level.id}`, "true");
+        // Use gate-specific bypass key so bypassing one gate doesn't affect the other
+        const bypassKey = gateType
+            ? `quiz_gate_${gateType}_bypassed_${roadmapType}_${level.id}`
+            : `quiz_gate_bypassed_${roadmapType}_${level.id}`; // fallback safety
+        sessionStorage.setItem(bypassKey, "true");
         onCloseAfterAnswered();
     };
 
@@ -166,7 +183,13 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, on
                     </div>
                     <div>
                         <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Knowledge Check</h3>
-                        <p className="text-[#7775a5] font-semibold text-sm">Let's see if you were paying attention.</p>
+                        <p className="text-[#7775a5] font-semibold text-sm">
+                            {gateType === '50'
+                                ? "You're halfway through — let's check in!"
+                                : gateType === '80'
+                                    ? "Almost done — one last checkpoint!"
+                                    : "Let's see if you were paying attention."}
+                        </p>
                     </div>
                 </div>
 

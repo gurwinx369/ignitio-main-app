@@ -6,7 +6,7 @@ import DoubtSolver from "./DoubtSolver";
 import KyleQuizModal from "./KyleQuizModal";
 import { isKyleEnabledRoadmap } from "@/features/roadmaps/lib/roadmapCapabilities";
 
-// Function to calculate the 50% time duration for legacy full-video levels
+// Function to calculate the 80% time duration for legacy full-video levels
 function fiftyPercentOfVideo(
   durationInMinutes,
   levelId,
@@ -14,12 +14,13 @@ function fiftyPercentOfVideo(
   onTimerComplete,
 ) {
   const durationInMilliseconds = durationInMinutes * 60 * 1000;
-  const fiftyPercentDuration = durationInMilliseconds * 0.5;
+  const LEGACY_THRESHOLD_RATIO = 0.8; // 80% watch required for legacy levels
+  const watchDuration = durationInMilliseconds * LEGACY_THRESHOLD_RATIO;
 
   const storageKey = `video_timer_${roadmapType}_${levelId}`;
   const storedElapsed = parseInt(localStorage.getItem(storageKey) || "0", 10);
 
-  const remainingTime = Math.max(0, fiftyPercentDuration - storedElapsed);
+  const remainingTime = Math.max(0, watchDuration - storedElapsed);
 
   if (remainingTime === 0) {
     onTimerComplete();
@@ -57,6 +58,7 @@ const LevelContent = ({
   const [feedback, setFeedback] = useState(null);
   const cleanupRef = useRef(null);
   const prevLevelIdRef = useRef(null);
+  const recoveryRanRef = useRef(false); // gates mount-time quiz recovery to run exactly once
 
   const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
   const isPythonRoadmap = roadmapType === "python-beginner";
@@ -64,16 +66,31 @@ const LevelContent = ({
   const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap && !isCRoadmap;
   const showPracticeTab = !isKyleRoadmap || isPythonRoadmap || isCRoadmap;
 
-  const quizGateCompletedKey = `quiz_gate_completed_${roadmapType}_${level.id}`;
-  const quizGateBypassedKey = `quiz_gate_bypassed_${roadmapType}_${level.id}`;
+  // --- Dual quiz gate keys ---
+  // Gate 1: fires at 50% watch (midpoint check-in, does NOT unlock button)
+  const quiz50CompletedKey = `quiz_gate_50_completed_${roadmapType}_${level.id}`;
+  const quiz50BypassedKey  = `quiz_gate_50_bypassed_${roadmapType}_${level.id}`;
+  // Gate 2: fires at 80% watch (before Complete button appears)
+  const quiz80CompletedKey = `quiz_gate_80_completed_${roadmapType}_${level.id}`;
+  const quiz80BypassedKey  = `quiz_gate_80_bypassed_${roadmapType}_${level.id}`;
 
-  const initialQuizSatisfied =
+  // Satisfaction state per gate (read from storage on mount)
+  const [quiz50Satisfied, setQuiz50Satisfied] = useState(
     typeof window !== "undefined"
-      ? localStorage.getItem(quizGateCompletedKey) === "true" ||
-        sessionStorage.getItem(quizGateBypassedKey) === "true"
-      : false;
+      ? localStorage.getItem(quiz50CompletedKey) === "true" ||
+        sessionStorage.getItem(quiz50BypassedKey) === "true"
+      : false
+  );
+  const [quiz80Satisfied, setQuiz80Satisfied] = useState(
+    typeof window !== "undefined"
+      ? localStorage.getItem(quiz80CompletedKey) === "true" ||
+        sessionStorage.getItem(quiz80BypassedKey) === "true"
+      : false
+  );
 
-  const [quizSatisfied, setQuizSatisfied] = useState(initialQuizSatisfied);
+  // Modal queue: ['50'] | ['80'] | ['50','80'] | []
+  const [quizQueue, setQuizQueue] = useState([]);
+  const [activeQuizGate, setActiveQuizGate] = useState(null); // '50' | '80' | null
   const [showQuizModal, setShowQuizModal] = useState(false);
 
   const shouldPauseVideo = showQuizModal || showAssignmentModal;
@@ -97,16 +114,24 @@ const LevelContent = ({
     }
   }, [showPracticeTab, showAskKyleTab, activeTab]);
 
-  // Update quiz logic when level changes
+  // Reset quiz gate state when level changes
   useEffect(() => {
-    const satisfied =
+    setQuiz50Satisfied(
       typeof window !== "undefined"
-        ? localStorage.getItem(quizGateCompletedKey) === "true" ||
-          sessionStorage.getItem(quizGateBypassedKey) === "true"
-        : false;
-    setQuizSatisfied(satisfied);
+        ? localStorage.getItem(quiz50CompletedKey) === "true" ||
+          sessionStorage.getItem(quiz50BypassedKey) === "true"
+        : false
+    );
+    setQuiz80Satisfied(
+      typeof window !== "undefined"
+        ? localStorage.getItem(quiz80CompletedKey) === "true" ||
+          sessionStorage.getItem(quiz80BypassedKey) === "true"
+        : false
+    );
     setShowQuizModal(false);
-  }, [quizGateCompletedKey, quizGateBypassedKey]);
+    setActiveQuizGate(null);
+    setQuizQueue([]);
+  }, [quiz50CompletedKey, quiz50BypassedKey, quiz80CompletedKey, quiz80BypassedKey]);
 
   // Check if level is segment-based
   const isSegmentBased =
@@ -119,15 +144,19 @@ const LevelContent = ({
       )
     : 0;
   const segmentDuration = isSegmentBased ? level.endSec - level.startSec : 0;
-  const thresholdSeconds = segmentDuration * 0.5;
+  // Threshold constant — must match VideoTab.jsx COMPLETION_THRESHOLD_RATIO
+  const COMPLETION_THRESHOLD_RATIO = 0.8; // 80% watch required to unlock Complete button
+  const thresholdSeconds = segmentDuration * COMPLETION_THRESHOLD_RATIO;
   const storedWatchTimeForLegacy = level.durationInMinutes
     ? parseInt(
         localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || "0",
         10,
       )
     : 0;
+  // Legacy full-video levels use 80% timer (matches segment-based threshold)
+  const LEGACY_THRESHOLD_RATIO = 0.8;
   const fiftyPercentDurationLegacy = level.durationInMinutes
-    ? level.durationInMinutes * 60 * 1000 * 0.5
+    ? level.durationInMinutes * 60 * 1000 * LEGACY_THRESHOLD_RATIO
     : 0;
 
   // Initial value computed from storage
@@ -144,82 +173,125 @@ const LevelContent = ({
     initialCanMarkComplete,
   );
 
+  // Button unlocks only when 80% watched AND both quiz gates passed (Kyle roadmaps only)
   const canMarkCompleteAfterQuiz =
-    canMarkComplete && (!isKyleRoadmap || quizSatisfied || isPreview);
+    canMarkComplete &&
+    (!isKyleRoadmap || quiz50Satisfied || isPreview) &&
+    (!isKyleRoadmap || quiz80Satisfied || isPreview);
 
-  // Recover users who refresh after already meeting watch threshold but not finishing quiz
-  useEffect(() => {
-    if (
-      isKyleRoadmap &&
-      canMarkComplete &&
-      !quizSatisfied &&
-      !isCompleted &&
-      !isPreview
-    ) {
-      setShowQuizModal(true);
-    }
-  }, [isKyleRoadmap, canMarkComplete, quizSatisfied, isCompleted, isPreview]);
+  // Helper: open the next quiz in queue (or close modal if queue empty)
+  const dequeueAndShow = useCallback((completedGate) => {
+    setQuizQueue(prev => {
+      const remaining = prev.filter(g => g !== completedGate);
+      if (remaining.length > 0) {
+        setActiveQuizGate(remaining[0]);
+        setShowQuizModal(true);
+      } else {
+        setShowQuizModal(false);
+        setActiveQuizGate(null);
+      }
+      return remaining;
+    });
+  }, []);
 
-  // Legacy levels: start timer only if not already completed
-  useEffect(() => {
-    if (
-      !isSegmentBased &&
-      level.durationInMinutes &&
-      !isCompleted &&
-      !canMarkComplete
-    ) {
-      cleanupRef.current = fiftyPercentOfVideo(
-        level.durationInMinutes,
-        level.id,
-        roadmapType,
-        () => setCanMarkComplete(true),
+  // Called when VideoTab fires onMidpointMet (50% watched)
+  // Purpose: trigger midpoint quiz only — does NOT unlock the Complete button
+  const handleMidpointMet = useCallback(() => {
+    if (!isKyleRoadmap || quiz50Satisfied || isPreview) return;
+    setQuizQueue(prev => prev.includes('50') ? prev : [...prev, '50']);
+    // Only open modal if none is currently showing
+    setShowQuizModal(showing => {
+      if (!showing) {
+        setActiveQuizGate('50');
+        return true;
+      }
+      return showing;
+    });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("kyle-pet-state", { detail: { state: "thinking" } }),
       );
     }
+  }, [isKyleRoadmap, quiz50Satisfied, isPreview]);
 
-    return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
+  // Called when VideoTab fires onCompletionMet (80% watched)
+  // Purpose: unlock button AND trigger 80% quiz on Kyle roadmaps
+  const handleCompletionMet = useCallback(() => {
+    setCanMarkComplete(true); // 80% threshold — button eligibility unlocked
+    if (!isKyleRoadmap || quiz80Satisfied || isPreview) return;
+    setQuizQueue(prev => prev.includes('80') ? prev : [...prev, '80']);
+    setShowQuizModal(showing => {
+      if (!showing) {
+        setActiveQuizGate('80');
+        return true;
       }
-    };
-  }, [
-    isSegmentBased,
-    level.durationInMinutes,
-    level.id,
-    isCompleted,
-    roadmapType,
-    canMarkComplete,
-  ]);
-
-  // Called when 50% watch threshold is met
-  const handleThresholdMet = useCallback(() => {
-    setCanMarkComplete(true);
-    if (isKyleRoadmap && !quizSatisfied && !isPreview) {
-      setShowQuizModal(true);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("kyle-pet-state", { detail: { state: "thinking" } }),
-        );
-      }
+      return showing;
+    });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("kyle-pet-state", { detail: { state: "thinking" } }),
+      );
     }
-  }, [isKyleRoadmap, quizSatisfied, isPreview]);
+  }, [isKyleRoadmap, quiz80Satisfied, isPreview]);
 
   const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
-    localStorage.setItem(quizGateCompletedKey, "true");
-    setQuizSatisfied(true);
+    // Save gate completion to localStorage — but do NOT close or advance the modal yet.
+    // The explanation screen (status='result') is still showing inside KyleQuizModal.
+    // dequeueAndShow() runs in handleCloseQuizModal when user clicks "Continue to lesson".
+    if (activeQuizGate === '50') {
+      localStorage.setItem(quiz50CompletedKey, "true");
+      setQuiz50Satisfied(true);
+    } else if (activeQuizGate === '80') {
+      localStorage.setItem(quiz80CompletedKey, "true");
+      setQuiz80Satisfied(true);
+    }
+    // NOTE: intentionally no dequeueAndShow here — let the user read the explanation first.
   };
 
   const handleCloseQuizModal = () => {
-    // In case they bypassed, check if bypassed key exists
-    if (sessionStorage.getItem(quizGateBypassedKey) === "true") {
-      setQuizSatisfied(true);
+    // Check bypass for the active gate
+    const bypassKey = activeQuizGate === '50' ? quiz50BypassedKey : quiz80BypassedKey;
+    if (sessionStorage.getItem(bypassKey) === "true") {
+      if (activeQuizGate === '50') setQuiz50Satisfied(true);
+      if (activeQuizGate === '80') setQuiz80Satisfied(true);
     }
-    setShowQuizModal(false);
+    dequeueAndShow(activeQuizGate);
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("kyle-pet-state", { detail: { action: "clear" } }),
       );
     }
   };
+
+  // Single mount-time recovery: restore quiz modal state after a page refresh.
+  // Uses a ref so the logic runs at most once, while keeping a STABLE dep array
+  // (avoids React's "dep array size changed" error from HMR / Strict Mode).
+  useEffect(() => {
+    if (recoveryRanRef.current) return;
+    recoveryRanRef.current = true;
+    if (!isKyleRoadmap || isCompleted || isPreview) return;
+
+    // 80% recovery takes priority: user watched 80%+ but hasn't done the gate quiz
+    if (canMarkComplete && !quiz80Satisfied) {
+      setQuizQueue(prev => prev.includes('80') ? prev : [...prev, '80']);
+      setActiveQuizGate('80');
+      setShowQuizModal(true);
+      return;
+    }
+
+    // 50% recovery: user watched 50%+ but hasn't done the midpoint quiz
+    if (!quiz50Satisfied && isSegmentBased) {
+      const stored = typeof window !== 'undefined'
+        ? parseFloat(localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || '0')
+        : 0;
+      const duration = level.endSec - level.startSec;
+      if (stored >= duration * 0.5 && duration > 0) {
+        setQuizQueue(prev => prev.includes('50') ? prev : [...prev, '50']);
+        setActiveQuizGate('50');
+        setShowQuizModal(true);
+      }
+    }
+  }, [isKyleRoadmap, canMarkComplete, quiz50Satisfied, quiz80Satisfied, isCompleted, isPreview, isSegmentBased, level.id, level.endSec, level.startSec, roadmapType]);
 
   // Called when user clicks the Complete button
   const handleMarkComplete = useCallback(() => {
@@ -297,7 +369,8 @@ const LevelContent = ({
         <VideoTab
           level={level}
           hasWatched={hasWatched}
-          onThresholdMet={handleThresholdMet}
+          onMidpointMet={handleMidpointMet}
+          onCompletionMet={handleCompletionMet}
           onMarkComplete={handleMarkComplete}
           feedback={feedback}
           setFeedback={setFeedback}
@@ -320,11 +393,13 @@ const LevelContent = ({
       {/* Quiz suppressed in preview — no auth context available */}
       {!isPreview && (
         <KyleQuizModal
+          key={activeQuizGate || 'empty'}
           open={showQuizModal}
           level={level}
           roadmapType={roadmapType}
           dayNumber={dayNumber}
           role={role}
+          gateType={activeQuizGate}
           onAnswered={handleQuizAnswered}
           onCloseAfterAnswered={handleCloseQuizModal}
         />
