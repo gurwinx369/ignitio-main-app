@@ -12,6 +12,7 @@ import { UserProfile } from "@/models/v2/user.profile.model";
 
 const BodySchema = z.object({
   levelId: z.string().min(1),
+  gateType: z.string().optional().default("50"),
   dayNumber: z.number().int().positive(),
   concept: z.string().min(1),
   question: z.string().min(1),
@@ -43,17 +44,19 @@ export async function POST(request) {
     );
   }
 
-  const { levelId, dayNumber, concept, question, selectedOption, wasCorrect } =
+  const { levelId, gateType, dayNumber, concept, question, selectedOption, wasCorrect } =
     parsed.data;
   const { uid } = decodedToken;
 
   await connectToDB();
 
   try {
-    // One attempt per level — check before writing.
+    // One attempt per level PER gate — check before writing.
     const alreadyAttempted = await KyleHistory.exists({
       firebaseUID: uid,
-      "quizHistory.levelId": levelId,
+      quizHistory: { 
+        $elemMatch: { levelId, gateType } 
+      }
     });
 
     if (alreadyAttempted) {
@@ -68,7 +71,7 @@ export async function POST(request) {
       { firebaseUID: uid },
       {
         $push: {
-          quizHistory: { levelId, dayNumber, concept, question, selectedOption, wasCorrect },
+          quizHistory: { levelId, gateType, dayNumber, concept, question, selectedOption, wasCorrect },
         },
         $inc: wasCorrect ? { totalQuizzesCorrect: 1 } : { totalQuizzesWrong: 1 },
       },

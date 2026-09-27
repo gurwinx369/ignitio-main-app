@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const prefixes = [
                 "profession", "completedLevels", "completed_levels_", "progress_",
-                "assignment_passed_", "quiz_gate_completed_", "quiz_gate_bypassed_",
+                "assignment_passed_", "quiz_gate_", 
                 "video_timer_", "segment_watch_", "segment_intervals_", "ignitio:last_active_roadmap",
                 "ignitio:certificates"
             ];
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
             const sessionKeysToRemove = [];
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);
-                if (key && key.startsWith("quiz_gate_bypassed_")) {
+                if (key && key.startsWith("quiz_gate_") && key.includes("_bypassed_")) {
                     sessionKeysToRemove.push(key);
                 }
             }
@@ -60,7 +60,31 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const migrateLegacyQuizKeys = () => {
+        try {
+            const keysToMigrate = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith("quiz_gate_completed_")) {
+                    keysToMigrate.push(key);
+                }
+            }
+            keysToMigrate.forEach(oldKey => {
+                const value = localStorage.getItem(oldKey);
+                const suffix = oldKey.substring(20); // remove "quiz_gate_completed_"
+                // Grant both 50% and 80% to legacy users so they aren't blocked on levels they already cleared
+                localStorage.setItem(`quiz_gate_50_completed_${suffix}`, value);
+                localStorage.setItem(`quiz_gate_80_completed_${suffix}`, value);
+                localStorage.removeItem(oldKey);
+            });
+        } catch (e) {
+            console.error("Migration error:", e);
+        }
+    };
+
     useEffect(() => {
+        scheduleIdleTask(() => migrateLegacyQuizKeys(), { timeout: 2000 });
+
         // Set persistence to LOCAL
         setPersistence(auth, browserLocalPersistence)
             .then(() => {

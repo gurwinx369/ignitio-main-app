@@ -17,6 +17,7 @@ const BodySchema = z.object({
   role: z.enum(["student", "developer", "writer", "designer", "other"]),
 });
 
+
 // ---------------------------------------------------------------------------
 // FastAPI → Next.js response schema (snake_case from upstream)
 // ---------------------------------------------------------------------------

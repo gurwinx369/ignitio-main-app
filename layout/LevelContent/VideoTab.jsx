@@ -3,15 +3,22 @@ import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 import { scheduleIdleTask } from '@/lib/utils/idleTask';
 
-const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
-    const thresholdCalledRef = useRef(false);
+const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
+    // Two separate one-shot guards — midpoint (50%) and completion (80%)
+    const midpointCalledRef = useRef(false);
+    const completionCalledRef = useRef(false);
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
 
-    // Calculate segment duration
+    // Threshold constants — single source of truth
+    const MIDPOINT_THRESHOLD_RATIO = 0.5;    // 50% — triggers midpoint quiz (does NOT unlock button)
+    const COMPLETION_THRESHOLD_RATIO = 0.8;  // 80% — triggers completion quiz + unlocks button
+
+    // Calculate segment duration and both thresholds
     const segmentDuration = isSegmentBased ? (level.endSec - level.startSec) : 0;
-    const watchThreshold = segmentDuration * 0.5; // 50% of segment
+    const midpointThreshold = segmentDuration * MIDPOINT_THRESHOLD_RATIO;
+    const watchThreshold = segmentDuration * COMPLETION_THRESHOLD_RATIO;
 
     // Storage keys
     const watchTimeKey = `segment_watch_${roadmapType}_${level.id}`;
@@ -119,13 +126,19 @@ const VideoTab = ({ level, hasWatched, onThresholdMet, onMarkComplete, feedback,
                 localStorage.setItem(watchTimeKey, watchedSeconds.toString());
             });
 
-            // Call onThresholdMet only once when threshold is first crossed
-            if (watchedSeconds >= watchThreshold && !thresholdCalledRef.current && !hasWatched) {
-                thresholdCalledRef.current = true;
-                onThresholdMet?.();
+            // Fire midpoint (50%) callback exactly once — triggers first quiz, does NOT unlock button
+            if (watchedSeconds >= midpointThreshold && !midpointCalledRef.current && !hasWatched) {
+                midpointCalledRef.current = true;
+                onMidpointMet?.();
+            }
+
+            // Fire completion (80%) callback exactly once — triggers second quiz + unlocks button
+            if (watchedSeconds >= watchThreshold && !completionCalledRef.current && !hasWatched) {
+                completionCalledRef.current = true;
+                onCompletionMet?.();
             }
         }
-    }, [watchedIntervals, watchedSeconds, watchThreshold, isSegmentBased, watchIntervalsKey, watchTimeKey, hasWatched, onThresholdMet]);
+    }, [watchedIntervals, watchedSeconds, midpointThreshold, watchThreshold, isSegmentBased, watchIntervalsKey, watchTimeKey, hasWatched, onMidpointMet, onCompletionMet]);
 
     // Handle watch time update from player - receives { currentTime, delta }
     // currentTime: absolute position in video
