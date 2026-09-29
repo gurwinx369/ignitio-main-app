@@ -86,7 +86,7 @@ export const NotificationProvider = ({ children }) => {
     if (fcmToken) {
       setToken(fcmToken);
       setPermission("granted");
-      await saveTokenToBackend(fcmToken, email);
+      saveTokenToBackend(fcmToken, email); // Fire and forget
     }
     return fcmToken;
   };

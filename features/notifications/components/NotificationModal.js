@@ -19,9 +19,10 @@ export default function NotificationModal() {
   const checkAndShowModal = useCallback(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Never show again in the current session if user closed or dismissed it
+    // 1. Show a maximum of 2 times in the current session if user closed or dismissed it
     try {
-      if (sessionStorage.getItem("notification_modal_dismissed_session") === "true") {
+      const dismissCount = parseInt(sessionStorage.getItem("notification_modal_dismiss_count") || "0");
+      if (dismissCount >= 2) {
         return;
       }
     } catch (e) {
@@ -47,7 +48,7 @@ export default function NotificationModal() {
     const timer = setTimeout(() => {
       setIsOpen(true);
       setIsVisible(true);
-    }, 400);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [permission, pathname]);
@@ -83,7 +84,8 @@ export default function NotificationModal() {
     if (loading) return;
     try {
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("notification_modal_dismissed_session", "true");
+        const count = parseInt(sessionStorage.getItem("notification_modal_dismiss_count") || "0");
+        sessionStorage.setItem("notification_modal_dismiss_count", (count + 1).toString());
       }
     } catch (e) {
       // ignore storage errors
@@ -116,47 +118,43 @@ export default function NotificationModal() {
 
     setLoading(true);
     try {
-      const fcmToken = await requestPermission(user.email);
+      // 1. Ask for native browser permission. 
+      // This pauses execution until they click "Allow" on the native OS popup.
+      const nativePermission = await Notification.requestPermission();
 
-      if (!fcmToken) {
-        setLoading(false);
-        alert(
-          "Failed to enable notifications. Please check your browser settings.",
-        );
-        return;
-      }
+      // 2. The millisecond they respond, visually hide the modal instantly
+      setIsVisible(false);
 
-      const alreadySentWelcome = localStorage.getItem(
-        "welcome_notification_sent",
-      );
-      if (process.env.NODE_ENV === "development") {
-        console.log("Already sent: ", alreadySentWelcome);
-      }
-      if (!alreadySentWelcome) {
-        const response = await axios({
-          method: "POST",
-          url: "/api/v1/notifications/welcome",
-          data: { token: fcmToken },
-        });
-        if (process.env.NODE_ENV === "development") {
-          console.log("Welcome notification sent");
+      // 3. If they allowed it, do the slow Google/Database work
+      if (nativePermission === "granted") {
+        const fcmToken = await requestPermission(user.email);
+
+        if (fcmToken) {
+          const alreadySentWelcome = localStorage.getItem("welcome_notification_sent");
+          if (!alreadySentWelcome) {
+            axios({
+              method: "POST",
+              url: "/api/v1/notifications/welcome",
+              data: { token: fcmToken },
+            }).catch(e => {
+              if (process.env.NODE_ENV === "development") console.error("Welcome notif failed", e);
+            });
+            localStorage.setItem("welcome_notification_sent", "true");
+          }
         }
-        // ✅ Mark as sent so we don't send it again on future permission grants
-        localStorage.setItem("welcome_notification_sent", "true");
       }
 
-      // ✅ Always stop loading and close modal on success
+      // 4. Unmount after work is done
       setLoading(false);
-      handleClose();
+      setTimeout(() => setIsOpen(false), 300);
+
     } catch (error) {
       setLoading(false);
+      setIsVisible(false);
+      setTimeout(() => setIsOpen(false), 300);
       if (process.env.NODE_ENV === "development") {
         console.error("Error enabling notifications:", error?.message || "unknown error");
       }
-      // Show the actual error message if available
-      const errorMessage =
-        error?.message || "An error occurred while enabling notifications.";
-      alert(errorMessage);
     }
   };
 
@@ -189,66 +187,68 @@ export default function NotificationModal() {
           </svg>
         </button>
 
-        <div className="flex flex-col sm:flex-row gap-5">
-          {/* Avatar & Streak Icons Column */}
-          <div className="flex flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-3 shrink-0">
-            <div className="relative w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] bg-gradient-to-b from-[#fffcf8] to-[#fff5e6] rounded-2xl flex items-center justify-center border border-orange-50 shadow-inner">
-              <Image
-                src="/notifications/noti_kyle.svg"
-                alt=""
-                width={100}
-                height={100}
-                className="w-[85px] sm:w-[95px] absolute -bottom-1 object-contain drop-shadow-md z-10"
-                priority
-              />
+        <div className="flex flex-col gap-4 sm:gap-5">
+          {/* Top Section: Avatar & Text */}
+          <div className="flex flex-row gap-4 sm:gap-5">
+            {/* Avatar & Streak Icons Column */}
+            <div className="flex flex-col items-center gap-2 sm:gap-3 shrink-0">
+              <div className="relative w-[64px] h-[64px] sm:w-[90px] sm:h-[90px] bg-gradient-to-b from-[#fffcf8] to-[#fff5e6] rounded-[14px] sm:rounded-2xl flex items-center justify-center border border-orange-50 shadow-inner">
+                <Image
+                  src="/notifications/noti_kyle.svg"
+                  alt=""
+                  width={100}
+                  height={100}
+                  className="w-[70px] sm:w-[95px] absolute -bottom-1 object-contain drop-shadow-md z-10"
+                  priority
+                />
+              </div>
+              
+              {/* Small Streak visualization */}
+              <div className="flex justify-center gap-1 sm:gap-2 mt-0.5 sm:mt-1 opacity-95">
+                <Image src="/streak/streak_done.png" alt="" width={28} height={28} className="w-4 h-4 sm:w-7 sm:h-7 object-contain drop-shadow-sm" />
+                <Image src="/streak/streak_done.png" alt="" width={28} height={28} className="w-4 h-4 sm:w-7 sm:h-7 object-contain drop-shadow-sm" />
+                <Image src="/streak/streak_pending_or_skipped.png" alt="" width={28} height={28} className="w-4 h-4 sm:w-7 sm:h-7 object-contain opacity-50 drop-shadow-sm" />
+              </div>
             </div>
-            
-            {/* Small Streak visualization */}
-            <div className="flex justify-center gap-2 mt-1 opacity-95">
-              <Image src="/streak/streak_done.png" alt="" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-sm" />
-              <Image src="/streak/streak_done.png" alt="" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-sm" />
-              <Image src="/streak/streak_pending_or_skipped.png" alt="" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 object-contain opacity-50 drop-shadow-sm" />
-            </div>
-          </div>
 
-          {/* Content & Actions Column */}
-          <div className="flex flex-col justify-between flex-1 pt-1">
-            <div className="pr-6 sm:pr-4">
-              <h2 id="notif-modal-title" className="text-[17px] sm:text-[18px] font-extrabold text-[#19183B] mb-1.5 leading-tight tracking-tight">
+            {/* Content Column */}
+            <div className="flex flex-col justify-center flex-1 py-1 pr-6 sm:pr-4">
+              <h2 id="notif-modal-title" className="text-[16px] sm:text-[18px] font-extrabold text-[#19183B] mb-1 sm:mb-1.5 leading-tight tracking-tight">
                 Don&apos;t lose your <span className="text-[#06b6d4]">streak</span> to silence.
               </h2>
-              <p id="notif-modal-desc" className="text-[13.5px] text-slate-500 leading-relaxed mb-5">
+              <p id="notif-modal-desc" className="text-[13.5px] text-slate-500 leading-snug sm:leading-relaxed">
                 Get a reminder before your streak is at risk.
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 mt-auto">
-              <button
-                onClick={handleClose}
-                disabled={loading}
-                className="px-4 h-[42px] text-[13px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
-              >
-                Maybe later
-              </button>
-              <button
-                onClick={handleAccept}
-                disabled={loading}
-                autoFocus
-                className="btn-push-sm flex-1 h-[42px] px-5 bg-[#00A9FF] border-[#007bcc] hover:bg-[#0098E5] text-white text-[13.5px] font-bold rounded-xl disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4]"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enabling...
-                  </>
-                ) : (
-                  "Enable Notifications"
-                )}
-              </button>
-            </div>
+          {/* Bottom Section: Actions */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full mt-3">
+            <button
+              onClick={handleAccept}
+              disabled={loading}
+              autoFocus
+              className="btn-push-sm flex-1 h-[64px] sm:h-[54px] px-4 sm:px-5 bg-[#00A9FF] border-[#007bcc] hover:bg-[#0098E5] text-white text-[18px] sm:text-[16px] font-extrabold rounded-[20px] disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4] shadow-sm"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Enabling...
+                </>
+              ) : (
+                "Enable Notifications"
+              )}
+            </button>
+            <button
+              onClick={handleClose}
+              disabled={loading}
+              className="flex-1 h-[64px] sm:h-[54px] px-4 text-[18px] sm:text-[16px] font-extrabold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-[20px] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06b6d4] shadow-sm"
+            >
+              Maybe later
+            </button>
           </div>
         </div>
       </div>

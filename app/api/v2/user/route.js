@@ -232,12 +232,11 @@ export async function POST(request) {
     const userProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid,
       email: tokenEmail,
-      // role is intentionally omitted — schema defaults to "other".
-      // The dedicated role-selection step overwrites this later.
+      role: "student",
       onboardingComplete: false,
       onboardingVersion: ONBOARDING_VERSIONS.V4,
       onboardingState: {
-        step: "role_selection",
+        step: "activation_pending",
       },
     });
 
