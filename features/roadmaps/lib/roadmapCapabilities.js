@@ -7,7 +7,8 @@ export function isKyleEnabledRoadmap(roadmapType) {
             roadmapType === "gen-ai-internship" ||
             roadmapType.startsWith("system-design") ||
             roadmapType.startsWith("python-beginner") ||
-            roadmapType.startsWith("c-language")
+            roadmapType.startsWith("c-language") ||
+            roadmapType.startsWith("git-github")
         )
     );
 }

@@ -6,42 +6,6 @@ import DoubtSolver from "./DoubtSolver";
 import KyleQuizModal from "./KyleQuizModal";
 import { isKyleEnabledRoadmap } from "@/features/roadmaps/lib/roadmapCapabilities";
 
-// Function to calculate the 80% time duration for legacy full-video levels
-function fiftyPercentOfVideo(
-  durationInMinutes,
-  levelId,
-  roadmapType,
-  onTimerComplete,
-) {
-  const durationInMilliseconds = durationInMinutes * 60 * 1000;
-  const LEGACY_THRESHOLD_RATIO = 0.8; // 80% watch required for legacy levels
-  const watchDuration = durationInMilliseconds * LEGACY_THRESHOLD_RATIO;
-
-  const storageKey = `video_timer_${roadmapType}_${levelId}`;
-  const storedElapsed = parseInt(localStorage.getItem(storageKey) || "0", 10);
-
-  const remainingTime = Math.max(0, watchDuration - storedElapsed);
-
-  if (remainingTime === 0) {
-    onTimerComplete();
-    return null;
-  }
-
-  const startTime = Date.now();
-
-  const timer = setTimeout(() => {
-    localStorage.removeItem(storageKey);
-    onTimerComplete();
-  }, remainingTime);
-
-  return () => {
-    clearTimeout(timer);
-    const additionalElapsed = Date.now() - startTime;
-    const totalElapsed = storedElapsed + additionalElapsed;
-    localStorage.setItem(storageKey, totalElapsed.toString());
-  };
-}
-
 const LevelContent = ({
   level,
   onBack,
