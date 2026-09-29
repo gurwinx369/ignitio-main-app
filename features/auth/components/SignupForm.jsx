@@ -9,6 +9,51 @@ import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
 
+function deriveScheduleFromBrowser() {
+  const tz = (typeof Intl !== "undefined" &&
+    Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC";
+
+  const now   = new Date();
+  const h     = now.getHours();
+  const m     = now.getMinutes();
+
+  const roundedM  = Math.round(m / 15) * 15;
+  const carry     = roundedM >= 60 ? 1 : 0;
+  const startH    = (h + carry) % 24;
+  const startM    = roundedM % 60;
+
+  let period;
+  if (startH >= 5 && startH < 12)       period = "MORNING";
+  else if (startH >= 12 && startH < 17) period = "NOON";
+  else if (startH >= 17 && startH < 21) period = "EVENING";
+  else                                   period = "NIGHT";
+
+  const bounds = {
+    MORNING: { min: "05:00", max: "12:00" },
+    NOON:    { min: "12:00", max: "17:00" },
+    EVENING: { min: "17:00", max: "21:00" },
+    NIGHT:   { min: "21:00", max: "23:59" },
+  };
+
+  const { min, max } = bounds[period];
+  const [minH, minM] = min.split(":").map(Number);
+  const [maxH, maxM] = max.split(":").map(Number);
+  const minMins      = minH * 60 + minM;
+  const maxMins      = maxH * 60 + maxM;
+
+  let startMins = startH * 60 + startM;
+
+  if (startMins < minMins) startMins = minMins;
+
+  const pad      = (n) => String(n).padStart(2, "0");
+  const startTime = `${pad(Math.floor(startMins / 60))}:${pad(startMins % 60)}`;
+
+  const rawEndMins = Math.min(startMins + 60, maxMins);
+  const endTime    = `${pad(Math.floor(rawEndMins / 60))}:${pad(rawEndMins % 60)}`;
+
+  return { timezone: tz, period, startTime, endTime };
+}
+
 async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
 
@@ -44,6 +89,7 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState("");
+  const [activationError, setActivationError] = useState(false);
   const isHandlingAuthActionRef = useRef(false);
   const isResumingRef = useRef(false);
   const posthog = usePostHog();
@@ -92,22 +138,56 @@ export default function SignupForm() {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
 
           if (result.authMode === "new_signup") {
+            const isGenAiPreview =
+              typeof window !== "undefined" &&
+              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+
             const hasPreview =
               typeof window !== "undefined" &&
               !!localStorage.getItem("ignitio:preview_payload");
-            
-            const isGenAiPreview = 
-              typeof window !== "undefined" && 
-              new URLSearchParams(window.location.search).get("from") === "genai_preview";
 
-            // ponytail: gen-ai preview → role+schedule first, then diagnostic → paywall
-            router.replace(
-              isGenAiPreview
-                ? "/home/onboarding/role-selection?from=genai_preview"
-                : hasPreview
-                ? "/home/onboarding/role-selection?from=preview"
-                : "/home/onboarding/role-selection"
-            );
+            if (isGenAiPreview || hasPreview) {
+              router.replace(
+                isGenAiPreview
+                  ? "/home/onboarding/role-selection?from=genai_preview"
+                  : "/home/onboarding/role-selection?from=preview"
+              );
+              return;
+            }
+
+            try {
+              const idToken = await result.user.getIdToken();
+              const derived = deriveScheduleFromBrowser();
+
+              const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                  role: "student",
+                  schedule: {
+                    timezone: derived.timezone,
+                    windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
+                  },
+                }),
+              });
+
+              if (!scheduleRes.ok) throw new Error("schedule_failed");
+
+              const activateRes = await fetch("/api/v2/onboarding/activate", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${idToken}` },
+              });
+
+              if (!activateRes.ok) throw new Error("activate_failed");
+
+              router.replace("/home");
+            } catch {
+              setActivationError(true);
+              setLoading(false);
+            }
           } else {
             router.replace(getOnboardingRoute(profile));
           }
@@ -141,21 +221,56 @@ export default function SignupForm() {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
 
           if (result.authMode === "new_signup") {
+            const isGenAiPreview =
+              typeof window !== "undefined" &&
+              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+
             const hasPreview =
               typeof window !== "undefined" &&
               !!localStorage.getItem("ignitio:preview_payload");
 
-            const isGenAiPreview = 
-              typeof window !== "undefined" && 
-              new URLSearchParams(window.location.search).get("from") === "genai_preview";
+            if (isGenAiPreview || hasPreview) {
+              router.replace(
+                isGenAiPreview
+                  ? "/home/onboarding/role-selection?from=genai_preview"
+                  : "/home/onboarding/role-selection?from=preview"
+              );
+              return;
+            }
 
-            router.replace(
-              isGenAiPreview
-                ? "/home/onboarding/role-selection?from=genai_preview"
-                : hasPreview
-                ? "/home/onboarding/role-selection?from=preview"
-                : "/home/onboarding/role-selection"
-            );
+            try {
+              const idToken = await result.user.getIdToken();
+              const derived = deriveScheduleFromBrowser();
+
+              const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                  role: "student",
+                  schedule: {
+                    timezone: derived.timezone,
+                    windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
+                  },
+                }),
+              });
+
+              if (!scheduleRes.ok) throw new Error("schedule_failed");
+
+              const activateRes = await fetch("/api/v2/onboarding/activate", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${idToken}` },
+              });
+
+              if (!activateRes.ok) throw new Error("activate_failed");
+
+              router.replace("/home");
+            } catch {
+              setActivationError(true);
+              setLoading(false);
+            }
           } else {
             router.replace(getOnboardingRoute(profile));
           }
@@ -186,6 +301,33 @@ export default function SignupForm() {
       handleSubmit(e);
     }
   };
+
+  if (activationError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4"
+           style={{ backgroundColor: "#F0CAA8" }}>
+        <div className="w-full max-w-md text-center rounded-3xl p-8 shadow-lg"
+             style={{ backgroundColor: "#FFF9EB" }}>
+          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1a1a2e" }}>
+            Setup hit a snag
+          </h2>
+          <p className="text-base mb-8" style={{ color: "#6b7280" }}>
+            We couldn&apos;t finish setting up your account. Please try again.
+          </p>
+          <button
+            onClick={() => {
+              setActivationError(false);
+              setLoading(false);
+            }}
+            className="w-full py-4 rounded-2xl text-white text-lg font-semibold uppercase tracking-wide"
+            style={{ backgroundColor: "#00A9FF", boxShadow: "0 4px 0 #0088CC" }}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
