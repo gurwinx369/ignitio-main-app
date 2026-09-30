@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 import { scheduleIdleTask } from '@/lib/utils/idleTask';
+import DoubtSolver from './DoubtSolver';
 
 const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
+    const [showDoubtSolver, setShowDoubtSolver] = useState(false);
     // Two separate one-shot guards — midpoint (50%) and completion (80%)
     const midpointCalledRef = useRef(false);
     const completionCalledRef = useRef(false);
@@ -256,7 +258,7 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                     </div>
 
                     {/* Feedback Section */}
-                    <div className="flex items-center justify-center gap-4 pt-4">
+                    <div className="relative flex items-center justify-center gap-4 pt-4">
                         <span className="text-base sm:text-lg text-gray-700 font-medium">
                             Was this helpful?
                         </span>
@@ -278,7 +280,39 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                         >
                             <ThumbsDown className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
+                        
+                        <div className="absolute right-0 hidden sm:block">
+                            <button
+                                onClick={() => setShowDoubtSolver(!showDoubtSolver)}
+                                className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5 active:translate-y-0 text-sm"
+                            >
+                                <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
+                                    <img src="/kyle/kyle.svg" alt="Kyle" className="w-5 h-5 rounded-full shadow-sm" />
+                                </div>
+                                <span className="tracking-wide">{showDoubtSolver ? 'Close Kyle' : 'Ask Kyle'}</span>
+                            </button>
+                        </div>
                     </div>
+                    
+                    {/* Mobile Ask Kyle button */}
+                    <div className="flex justify-center sm:hidden pt-2">
+                        <button
+                            onClick={() => setShowDoubtSolver(!showDoubtSolver)}
+                            className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] active:scale-95 text-sm"
+                        >
+                            <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
+                                <img src="/kyle/kyle.svg" alt="Kyle" className="w-5 h-5 rounded-full shadow-sm" />
+                            </div>
+                            <span className="tracking-wide">{showDoubtSolver ? 'Close Kyle' : 'Ask Kyle'}</span>
+                        </button>
+                    </div>
+
+                    {/* Inline Doubt Solver */}
+                    {showDoubtSolver ? (
+                        <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                            <DoubtSolver level={level} roadmapType={roadmapType} />
+                        </div>
+                    ) : null}
                 </div>
             </div>
         );
