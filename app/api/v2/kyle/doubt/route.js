@@ -13,6 +13,7 @@ const BodySchema = z.object({
   transcript: z.string().optional(),
   role: z.enum(["student", "developer", "writer", "designer", "other"]),
   question: z.string().min(1).max(500),
+  pageContext: z.string().optional(),
 }).superRefine((data, ctx) => {
   const hasContext = Boolean(data.concept?.trim()) && Boolean(data.transcript?.trim());
   if (data.mode === "general") return;

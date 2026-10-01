@@ -153,7 +153,7 @@ function getStaticContextualKyleResponse({ question, concept }) {
 }
 
 // Answers a learner's doubt. Can use current level context or general mentor prompt.
-export async function answerDoubt({ concept, transcript, role, question, mode }) {
+export async function answerDoubt({ concept, transcript, role, question, mode, pageContext }) {
   const isGeneralMode = mode === "general" || !concept;
 
   if (isGeneralMode) {
@@ -171,8 +171,8 @@ export async function answerDoubt({ concept, transcript, role, question, mode })
   const model = getModel();
   
   const systemInstruction = isGeneralMode
-    ? buildGeneralDoubtSystemPrompt(getRoleContext(role))
-    : buildDoubtSystemPrompt(concept, transcript, getRoleContext(role));
+    ? buildGeneralDoubtSystemPrompt(getRoleContext(role), pageContext)
+    : buildDoubtSystemPrompt(concept, transcript, getRoleContext(role), pageContext);
 
   const result = await model.generateContent({
     systemInstruction,
