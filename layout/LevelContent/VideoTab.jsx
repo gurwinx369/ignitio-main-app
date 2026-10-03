@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { CheckCircle, ThumbsDown, ThumbsUp, Flag } from 'lucide-react';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 import { scheduleIdleTask } from '@/lib/utils/idleTask';
-import DoubtSolver from './DoubtSolver';
-
+import { AskKyleContext } from '@/features/kyle/ask/AskKyleProvider';
+import { useContext } from 'react';
 const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
-    const [showDoubtSolver, setShowDoubtSolver] = useState(false);
-    // Two separate one-shot guards — midpoint (50%) and completion (80%)
+    const { openAskKyle } = useContext(AskKyleContext);
     const midpointCalledRef = useRef(false);
     const completionCalledRef = useRef(false);
+    // Two separate one-shot guards — midpoint (50%) and completion (80%)
 
     // Check if level is segment-based
     const isSegmentBased = level.startSec !== undefined && level.endSec !== undefined && level.videoId;
@@ -238,11 +238,35 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                                     <span>Watch progress</span>
                                     <span>{Math.round(watchProgressPercent)}%</span>
                                 </div>
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="relative h-2 bg-gray-200 rounded-full mt-6 mb-2">
                                     <div
-                                        className="h-full bg-blue-500 transition-all duration-300"
+                                        className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-300 rounded-full"
                                         style={{ width: `${watchProgressPercent}%` }}
                                     />
+                                    
+                                    {/* 50% Checkpoint */}
+                                    <div 
+                                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+                                        style={{ left: '50%' }}
+                                    >
+                                        <div className={`absolute bottom-1.5 flex flex-col items-center transition-colors duration-300 ${watchProgressPercent >= 50 ? 'text-blue-500 drop-shadow-sm' : 'text-gray-400'}`}>
+                                            <span className="text-[9px] font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Checkpoint 1</span>
+                                            <Flag className="w-3.5 h-3.5 fill-current" />
+                                        </div>
+                                        <div className={`w-2 h-2 rounded-full z-10 transition-colors duration-300 border-[1.5px] border-white ${watchProgressPercent >= 50 ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                                    </div>
+
+                                    {/* 80% Checkpoint */}
+                                    <div 
+                                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+                                        style={{ left: '80%' }}
+                                    >
+                                        <div className={`absolute bottom-1.5 flex flex-col items-center transition-colors duration-300 ${watchProgressPercent >= 80 ? 'text-blue-500 drop-shadow-sm' : 'text-gray-400'}`}>
+                                            <span className="text-[9px] font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Checkpoint 2</span>
+                                            <Flag className="w-3.5 h-3.5 fill-current" />
+                                        </div>
+                                        <div className={`w-2 h-2 rounded-full z-10 transition-colors duration-300 border-[1.5px] border-white ${watchProgressPercent >= 80 ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                                    </div>
                                 </div>
                                 {!hasMetWatchRequirement ? (
                                     <p className="text-xs text-gray-500 mt-2">
@@ -283,13 +307,13 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                         
                         <div className="absolute right-0 hidden sm:block">
                             <button
-                                onClick={() => setShowDoubtSolver(!showDoubtSolver)}
+                                onClick={() => openAskKyle({ context: { concept: level.concept, transcript: level.transcript } })}
                                 className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5 active:translate-y-0 text-sm"
                             >
                                 <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
                                     <img src="/kyle/kyle.svg" alt="Kyle" className="w-5 h-5 rounded-full shadow-sm" />
                                 </div>
-                                <span className="tracking-wide">{showDoubtSolver ? 'Close Kyle' : 'Ask Kyle'}</span>
+                                <span className="tracking-wide">Ask Kyle</span>
                             </button>
                         </div>
                     </div>
@@ -297,22 +321,15 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                     {/* Mobile Ask Kyle button */}
                     <div className="flex justify-center sm:hidden pt-2">
                         <button
-                            onClick={() => setShowDoubtSolver(!showDoubtSolver)}
+                            onClick={() => openAskKyle({ context: { concept: level.concept, transcript: level.transcript } })}
                             className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] active:scale-95 text-sm"
                         >
                             <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
                                 <img src="/kyle/kyle.svg" alt="Kyle" className="w-5 h-5 rounded-full shadow-sm" />
                             </div>
-                            <span className="tracking-wide">{showDoubtSolver ? 'Close Kyle' : 'Ask Kyle'}</span>
+                            <span className="tracking-wide">Ask Kyle</span>
                         </button>
                     </div>
-
-                    {/* Inline Doubt Solver */}
-                    {showDoubtSolver ? (
-                        <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
-                            <DoubtSolver level={level} roadmapType={roadmapType} />
-                        </div>
-                    ) : null}
                 </div>
             </div>
         );

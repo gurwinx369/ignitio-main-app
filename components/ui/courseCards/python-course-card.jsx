@@ -14,6 +14,7 @@ import {
 } from "./CardLoader";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import useRoadmapCanvasActivity from "./useRoadmapCanvasActivity";
+import { CompilerModal } from "@/features/compiler";
 
 const ANIM_STYLE = `
 @keyframes py-cursor {
@@ -107,7 +108,7 @@ function renderVisibleTokens(tokens, visibleCharacters) {
   });
 }
 
-function PythonCodeVisual() {
+function PythonCodeVisual({ onRunClick }) {
   const visualRef =
     useRef(null);
 
@@ -462,46 +463,54 @@ function PythonCodeVisual() {
           main.py
         </span>
 
-        <div
-          style={{
-            marginLeft: "auto",
-            height: 24,
-            minWidth: 57,
-            borderRadius: 7,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 5,
-            padding: "0 8px",
-            color: running ? "#98c379" : "#94a3b8",
-            background: running
-              ? "rgba(152,195,121,0.10)"
-              : "rgba(148,163,184,0.07)",
-            border: running
-              ? "1px solid rgba(152,195,121,0.18)"
-              : "1px solid rgba(148,163,184,0.08)",
-            transition: "all 0.25s ease",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 8,
-              transform: "translateY(-0.5px)",
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRunClick) onRunClick();
             }}
+            style={{
+              marginLeft: "auto",
+              height: 24,
+              minWidth: 57,
+              borderRadius: 7,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              padding: "0 8px",
+              color: running ? "#98c379" : "#94a3b8",
+              background: running
+                ? "rgba(152,195,121,0.10)"
+                : "rgba(148,163,184,0.07)",
+              border: running
+                ? "1px solid rgba(152,195,121,0.18)"
+                : "1px solid rgba(148,163,184,0.08)",
+              transition: "all 0.25s ease",
+              cursor: "pointer",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(1.2)")}
+            onMouseOut={(e) => (e.currentTarget.style.filter = "brightness(1)")}
           >
-            ▶
-          </span>
+            <span
+              style={{
+                fontSize: 8,
+                transform: "translateY(-0.5px)",
+              }}
+            >
+              ▶
+            </span>
 
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {running ? "Running" : "Run"}
-          </span>
-        </div>
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {running ? "Running" : "Run"}
+            </span>
+          </button>
       </div>
 
       {/* Code editor */}
@@ -732,6 +741,7 @@ export default function PythonCourseCard({
     totalLevels || calculatedTotalLevels;
 
   const [hovered, setHovered] = useState(false);
+  const [showCompiler, setShowCompiler] = useState(false);
 
   const {
     state,
@@ -806,7 +816,7 @@ export default function PythonCourseCard({
               "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
           }}
         >
-          <PythonCodeVisual />
+          <PythonCodeVisual onRunClick={() => setShowCompiler(true)} />
 
         {isActive && (
           <div
@@ -925,6 +935,12 @@ export default function PythonCourseCard({
           </div>
         </div>
       </div>
+
+      <CompilerModal
+        isOpen={showCompiler}
+        onClose={() => setShowCompiler(false)}
+        language="python3"
+      />
     </div>
   );
 }

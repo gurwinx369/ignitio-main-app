@@ -5,6 +5,8 @@ import PracticeTab from "./PracticeTab";
 import DoubtSolver from "./DoubtSolver";
 import KyleQuizModal from "./KyleQuizModal";
 import { isKyleEnabledRoadmap } from "@/features/roadmaps/lib/roadmapCapabilities";
+import { AskKyleContext } from "@/features/kyle/ask/AskKyleProvider";
+import { useContext } from "react";
 
 const LevelContent = ({
   level,
@@ -24,6 +26,9 @@ const LevelContent = ({
   const prevLevelIdRef = useRef(null);
   const recoveryRanRef = useRef(false); // gates mount-time quiz recovery to run exactly once
 
+  const askKyleContext = useContext(AskKyleContext);
+  const setGlobalContext = askKyleContext?.setGlobalContext;
+
   const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
   const isPythonRoadmap = roadmapType === "python-beginner";
   const isCRoadmap = roadmapType.startsWith("c-language");
@@ -33,22 +38,22 @@ const LevelContent = ({
   // --- Dual quiz gate keys ---
   // Gate 1: fires at 50% watch (midpoint check-in, does NOT unlock button)
   const quiz50CompletedKey = `quiz_gate_50_completed_${roadmapType}_${level.id}`;
-  const quiz50BypassedKey  = `quiz_gate_50_bypassed_${roadmapType}_${level.id}`;
+  const quiz50BypassedKey = `quiz_gate_50_bypassed_${roadmapType}_${level.id}`;
   // Gate 2: fires at 80% watch (before Complete button appears)
   const quiz80CompletedKey = `quiz_gate_80_completed_${roadmapType}_${level.id}`;
-  const quiz80BypassedKey  = `quiz_gate_80_bypassed_${roadmapType}_${level.id}`;
+  const quiz80BypassedKey = `quiz_gate_80_bypassed_${roadmapType}_${level.id}`;
 
   // Satisfaction state per gate (read from storage on mount)
   const [quiz50Satisfied, setQuiz50Satisfied] = useState(
     typeof window !== "undefined"
       ? localStorage.getItem(quiz50CompletedKey) === "true" ||
-        sessionStorage.getItem(quiz50BypassedKey) === "true"
+      sessionStorage.getItem(quiz50BypassedKey) === "true"
       : false
   );
   const [quiz80Satisfied, setQuiz80Satisfied] = useState(
     typeof window !== "undefined"
       ? localStorage.getItem(quiz80CompletedKey) === "true" ||
-        sessionStorage.getItem(quiz80BypassedKey) === "true"
+      sessionStorage.getItem(quiz80BypassedKey) === "true"
       : false
   );
 
@@ -69,6 +74,17 @@ const LevelContent = ({
     }
   }, []);
 
+  // Sync global Kyle context for floating ask button
+  useEffect(() => {
+    if (setGlobalContext) {
+      setGlobalContext({
+        concept: level.concept,
+        transcript: level.transcript,
+      });
+      return () => setGlobalContext(null);
+    }
+  }, [level.concept, level.transcript, setGlobalContext]);
+
   useEffect(() => {
     if (!showPracticeTab && activeTab === "practice") {
       setActiveTab("video");
@@ -83,13 +99,13 @@ const LevelContent = ({
     setQuiz50Satisfied(
       typeof window !== "undefined"
         ? localStorage.getItem(quiz50CompletedKey) === "true" ||
-          sessionStorage.getItem(quiz50BypassedKey) === "true"
+        sessionStorage.getItem(quiz50BypassedKey) === "true"
         : false
     );
     setQuiz80Satisfied(
       typeof window !== "undefined"
         ? localStorage.getItem(quiz80CompletedKey) === "true" ||
-          sessionStorage.getItem(quiz80BypassedKey) === "true"
+        sessionStorage.getItem(quiz80BypassedKey) === "true"
         : false
     );
     setShowQuizModal(false);
@@ -104,8 +120,8 @@ const LevelContent = ({
   // Compute canMarkComplete from localStorage - recomputes when level changes
   const storedWatchTime = isSegmentBased
     ? parseFloat(
-        localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || "0",
-      )
+      localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || "0",
+    )
     : 0;
   const segmentDuration = isSegmentBased ? level.endSec - level.startSec : 0;
   // Threshold constant — must match VideoTab.jsx COMPLETION_THRESHOLD_RATIO
@@ -113,9 +129,9 @@ const LevelContent = ({
   const thresholdSeconds = segmentDuration * COMPLETION_THRESHOLD_RATIO;
   const storedWatchTimeForLegacy = level.durationInMinutes
     ? parseInt(
-        localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || "0",
-        10,
-      )
+      localStorage.getItem(`video_timer_${roadmapType}_${level.id}`) || "0",
+      10,
+    )
     : 0;
   // Legacy full-video levels use 80% timer (matches segment-based threshold)
   const LEGACY_THRESHOLD_RATIO = 0.8;
@@ -290,34 +306,20 @@ const LevelContent = ({
               <div className="inline-flex bg-orange-200/60 rounded-full p-1">
                 <button
                   onClick={() => setActiveTab("video")}
-                  className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                    activeTab === "video"
+                  className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === "video"
                       ? "bg-blue-400 text-white shadow-md"
                       : "text-gray-700 hover:text-gray-900"
-                  }`}
+                    }`}
                 >
                   Video
                 </button>
-                {showAskKyleTab && (
-                  <button
-                    onClick={() => setActiveTab("kyle")}
-                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                      activeTab === "kyle"
-                        ? "bg-blue-400 text-white shadow-md"
-                        : "text-gray-700 hover:text-gray-900"
-                    }`}
-                  >
-                    Ask Kyle
-                  </button>
-                )}
                 {showPracticeTab && (
                   <button
                     onClick={() => setActiveTab("practice")}
-                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${
-                      activeTab === "practice"
+                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === "practice"
                         ? "bg-blue-400 text-white shadow-md"
                         : "text-gray-700 hover:text-gray-900"
-                    }`}
+                      }`}
                   >
                     Practice
                   </button>
@@ -345,14 +347,9 @@ const LevelContent = ({
           shouldPauseVideo={shouldPauseVideo}
         />
       </div>
-      {/* Practice and Ask Kyle tabs suppressed in preview */}
+      {/* Practice tab suppressed in preview */}
       {activeTab === "practice" && showPracticeTab && !isPreview && (
         <PracticeTab level={level} roadmapType={roadmapType} />
-      )}
-      {activeTab === "kyle" && showAskKyleTab && !isPreview && (
-        <div className="pb-12">
-          <DoubtSolver level={level} roadmapType={roadmapType} role={role} />
-        </div>
       )}
       {/* Quiz suppressed in preview — no auth context available */}
       {!isPreview && (

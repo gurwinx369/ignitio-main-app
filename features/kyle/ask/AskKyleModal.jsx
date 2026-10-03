@@ -33,7 +33,7 @@ function renderBasicMarkdown(text) {
   });
 }
 
-export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking }) {
+export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking, globalContext }) {
   const { user } = useAuth();
   const pathname = usePathname();
 
@@ -63,10 +63,31 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
   const wasOpenRef = useRef(isOpen);
 
-  // Reset state only when transitioning from OPEN to CLOSED
+  // Load history on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ignitio_kyle_session');
+      if (saved) {
+        setMessages(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.warn('Failed to load kyle session');
+    }
+  }, []);
+
+  // Save history on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('ignitio_kyle_session', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Failed to save kyle session');
+    }
+  }, [messages]);
+
+  // Reset transient state only when transitioning from OPEN to CLOSED
   useEffect(() => {
     if (wasOpenRef.current && !isOpen) {
-      setMessages(INITIAL_MESSAGES);
+      // Do not clear messages, keep them persistent
       setQuestion('');
       setError(null);
       setIsHighDemand(false);
@@ -86,13 +107,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
     }
   }, [isOpen, messages, isThinking, error, isHighDemand]);
 
-  // Close modal if user navigates to a lesson/contextual page
-  useEffect(() => {
-    if (!isOpen) return;
-    if (pathname && (pathname.includes('/lesson') || pathname.includes('/video') || pathname.includes('/interactive-overviews'))) {
-      onClose();
-    }
-  }, [pathname, isOpen, onClose]);
+  // Removed auto-close logic so chat persists everywhere
 
   if (!isOpen) return null;
 
@@ -111,6 +126,11 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
     setIsThinking(true);
     setKylePetVisualState('thinking');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 25000);
+
     try {
       const idToken = await user.getIdToken();
       if (!idToken) {
@@ -125,19 +145,35 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
         role = "student";
       }
 
+      const activeContext = options?.context || globalContext;
+
+      const requestBody = {
+        mode: activeContext ? 'contextual' : 'general',
+        role: role,
+        question: currentQuestion,
+        history: messages.map(m => ({
+          role: m.role === 'kyle' ? 'model' : 'user',
+          text: m.text
+        }))
+      };
+
+      if (activeContext) {
+        requestBody.concept = activeContext.concept;
+        requestBody.transcript = activeContext.transcript;
+      }
+      requestBody.pageContext = `User is currently on this route: ${pathname || 'Unknown'}`;
+
       const response = await fetch('/api/v2/kyle/doubt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify({
-          mode: 'general',
-          role: role,
-          question: currentQuestion,
-          pageContext: `User is currently on this route: ${pathname || 'Unknown'}`
-        })
+        signal: controller.signal,
+        body: JSON.stringify(requestBody)
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -150,9 +186,17 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
       }
 
       const rawAnswer = data?.data?.answer || data?.answer || "Kyle responded, but no answer text was returned.";
-      const answer = rawAnswer.replace(/<thinking>[\s\S]*?<\/thinking>\n*/g, '').trim();
+      const answer = rawAnswer
+        .replace(/<thinking>[\s\S]*?<\/thinking>\n*/gi, '')
+        .replace(/<\/?thinking>/gi, '') // Catch any stray or unmatched tags
+        .trim();
       setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
     } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setIsHighDemand(true);
+        return;
+      }
       setError(err.message || 'Failed to connect to Kyle.');
     } finally {
       setIsThinking(false);
@@ -207,7 +251,9 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
             </div>
             <div>
               <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kyle</h3>
-              <p className="text-[#7775a5] font-semibold text-[13px]">Your Global AI Mentor</p>
+              <p className="text-[#7775a5] font-semibold text-[13px]">
+                {(options?.context || globalContext) ? `Helping with ${(options?.context || globalContext).concept}` : "Your Global AI Mentor"}
+              </p>
             </div>
           </div>
           <button
@@ -262,7 +308,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
                   <div className="flex items-start gap-2">
                     <AlertCircle size={18} className="text-[#ef4444] mt-0.5 shrink-0" />
                     <p className="text-[15px] font-semibold text-[#19183b] leading-snug">
-                      Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
+                      Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span>. Please try again.
                     </p>
                   </div>
                   <button

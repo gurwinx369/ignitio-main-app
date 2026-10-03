@@ -69,6 +69,11 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
         setMessages(prev => [...prev, { role: 'user', text: currentQuestion }]);
         setLoading(true);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, 25000);
+
         try {
             const idToken = await user.getIdToken();
             if (!idToken) {
@@ -81,6 +86,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${idToken}`
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
                     concept: level.concept || level.title,
                     transcript: level.transcript || level.description,
@@ -90,6 +96,8 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                     pageContext: `User is viewing DoubtSolver modal for ${level.concept || level.title || 'this lesson'}`
                 })
             });
+
+            clearTimeout(timeoutId);
 
             const data = await response.json();
 
@@ -107,6 +115,11 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                 setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
             });
         } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') {
+                setIsHighDemand(true);
+                return;
+            }
             setError(err.message || 'Failed to connect to Kyle.');
         } finally {
             setLoading(false);
@@ -208,7 +221,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                                     <div className="flex items-start gap-2">
                                         <AlertCircle size={18} className="text-[#ef4444] mt-0.5 shrink-0" />
                                         <p className="text-[15px] font-semibold text-[#19183b] leading-snug">
-                                            Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
+                                            Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span>. Please try again.
                                         </p>
                                     </div>
                                     <button

@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
-import { answerDoubt } from "@/features/kyle/lib/kyle.service";
+import { callKyleFastApi } from "@/features/kyle/server/kyle-fastapi.client";
 
 const BodySchema = z.object({
   mode: z.enum(["contextual", "general"]).optional(),
@@ -14,6 +14,12 @@ const BodySchema = z.object({
   role: z.enum(["student", "developer", "writer", "designer", "other"]),
   question: z.string().min(1).max(500),
   pageContext: z.string().optional(),
+  history: z.array(
+    z.object({
+      role: z.enum(["user", "model"]),
+      text: z.string(),
+    })
+  ).optional(),
 }).superRefine((data, ctx) => {
   const hasContext = Boolean(data.concept?.trim()) && Boolean(data.transcript?.trim());
   if (data.mode === "general") return;
@@ -51,48 +57,38 @@ export async function POST(request) {
   }
 
   try {
-    const answer = await answerDoubt(parsed.data);
-    return NextResponse.json({ data: { answer } }, { status: 200 });
+    const responseData = await callKyleFastApi({
+      request,
+      path: "/api/v1/doubt",
+      body: {
+        mode: parsed.data.mode,
+        concept: parsed.data.concept,
+        transcript: parsed.data.transcript,
+        role: parsed.data.role,
+        question: parsed.data.question,
+        pageContext: parsed.data.pageContext,
+        history: parsed.data.history
+      },
+      timeoutMs: 35000 // Let frontend 25s timeout hit first naturally
+    });
+
+    return NextResponse.json({ data: { answer: responseData.answer } }, { status: 200 });
   } catch (err) {
-    const errMsg = err.message || "";
-    const isTransient =
-      /503|Service Unavailable|high demand|try again later/i.test(errMsg);
-
-    if (isTransient) {
-      const delay = Math.floor(Math.random() * (1200 - 700 + 1)) + 700;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      try {
-        const retryAnswer = await answerDoubt(parsed.data);
+    if (err.name === "KyleFastApiError") {
+      const isTransient = [502, 503, 504].includes(err.status);
+      if (isTransient) {
         return NextResponse.json(
-          { data: { answer: retryAnswer } },
-          { status: 200 },
-        );
-      } catch (retryErr) {
-        const retryErrMsg = retryErr.message || "";
-        if (
-          /503|Service Unavailable|high demand|try again later/i.test(
-            retryErrMsg,
-          )
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Kyle is busy right now. Please try again in a few seconds.",
-              retryable: true,
-            },
-            { status: 503 },
-          );
-        }
-        console.error(
-          "[POST /api/v2/kyle/doubt] Retry error:",
-          retryErr.message,
-        );
-        return NextResponse.json(
-          { error: "Internal server error" },
-          { status: 500 },
+          {
+            error: "Kyle is busy right now. Please try again in a few seconds.",
+            retryable: true,
+          },
+          { status: 503 },
         );
       }
+      return NextResponse.json(
+        { error: err.message },
+        { status: err.status },
+      );
     }
 
     console.error("[POST /api/v2/kyle/doubt]", err.message);

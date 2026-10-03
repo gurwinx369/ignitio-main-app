@@ -473,7 +473,10 @@ export default function Dashboard() {
               </p>
 
               <button
-                onClick={() => setActiveTab("worlds")}
+                onClick={() => {
+                  setActiveTab("worlds");
+                  router.replace("/home?tab=worlds", { scroll: false });
+                }}
                 className="
                   px-8 py-3.5
                   bg-[#00A9FF]
