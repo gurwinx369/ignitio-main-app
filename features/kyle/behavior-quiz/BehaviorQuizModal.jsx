@@ -1,4 +1,5 @@
 "use client";
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 // features/kyle/behavior-quiz/BehaviorQuizModal.jsx
 //
 // Behavior quiz UI — zero internal state, all state from useBehaviorQuiz.
@@ -73,9 +74,17 @@ export default function BehaviorQuizModal({
   recordUnattempted,
 }) {
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.setAttribute('data-kibo-exam-mode', 'true');
+    } else {
+      document.body.style.overflow = "";
+      document.body.removeAttribute('data-kibo-exam-mode');
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.removeAttribute('data-kibo-exam-mode');
+    };
   }, [isOpen]);
 
   if (!isOpen || !currentItem) return null;
@@ -95,13 +104,7 @@ export default function BehaviorQuizModal({
         <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-              <Image
-                src="/kyle/kyle.svg"
-                alt="Kyle"
-                width={48}
-                height={48}
-                className="w-full h-full rounded-full object-cover"
-              />
+              <KiboAvatar width={48} height={48} className="w-full h-full rounded-full object-cover" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Knowledge Check</h3>

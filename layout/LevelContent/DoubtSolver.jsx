@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, startTransition } from 'react';
 import Image from 'next/image';
 import { Send, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 
 function renderBasicMarkdown(text) {
   const normalizedText = String(text || "")
@@ -37,7 +38,7 @@ function renderBasicMarkdown(text) {
 const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([
-        { role: 'kyle', text: `Hi! I'm Kyle. Ask me any question about "${level.concept || level.title}" and I'll help you out.` }
+        { role: 'kyle', text: `Hi! I'm Kibo. Ask me any question about "${level.concept || level.title}" and I'll help you out.` }
     ]);
     const [question, setQuestion] = useState('');
     const [loading, setLoading] = useState(false);
@@ -62,7 +63,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
         setIsHighDemand(false);
 
         if (!user) {
-            setError("Please sign in again to ask Kyle.");
+            setError("Please sign in again to ask Kibo.");
             return;
         }
 
@@ -77,7 +78,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
         try {
             const idToken = await user.getIdToken();
             if (!idToken) {
-                throw new Error("Please sign in again to ask Kyle.");
+                throw new Error("Please sign in again to ask Kibo.");
             }
 
             const response = await fetch('/api/v2/kyle/doubt', {
@@ -109,7 +110,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                 throw new Error(data.error || 'Something went wrong. Please try again.');
             }
 
-            const rawAnswer = data?.data?.answer || data?.answer || "Kyle responded, but no answer text was returned.";
+            const rawAnswer = data?.data?.answer || data?.answer || "Kibo responded, but no answer text was returned.";
             const answer = rawAnswer.replace(/<thinking>[\s\S]*?<\/thinking>\n*/g, '').trim();
             startTransition(() => {
                 setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
@@ -120,7 +121,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                 setIsHighDemand(true);
                 return;
             }
-            setError(err.message || 'Failed to connect to Kyle.');
+            setError(err.message || 'Failed to connect to Kibo.');
         } finally {
             setLoading(false);
         }
@@ -162,10 +163,10 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                 <div className="px-6 py-4 border-b-2 border-[#e5d5c5]/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-white p-1 flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                            <Image src="/kyle/kyle.svg" alt="Kyle" width={40} height={40} className="w-full h-full rounded-full object-cover" />
+                            <KiboAvatar width={40} height={40} className="w-full h-full rounded-full object-cover" />
                         </div>
                         <div>
-                            <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kyle</h3>
+                            <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kibo</h3>
                             <p className="text-[#7775a5] font-semibold text-[13px]">Your AI Learning Assistant</p>
                         </div>
                     </div>
@@ -179,7 +180,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                                 <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 border-2 ${
                                     msg.role === 'user' ? 'bg-[#ddf2ff] text-[#007bcc] border-[#00a9ff] shadow-sm' : 'bg-white p-0.5 overflow-hidden border-[#e5d5c5] shadow-sm'
                                 }`}>
-                                    {msg.role === 'user' ? <User size={18} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
+                                    {msg.role === 'user' ? <User size={18} /> : <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />}
                                 </div>
                                 <div className={`px-5 py-4 text-[15px] font-semibold leading-relaxed border-2 ${
                                     msg.role === 'user' 
@@ -196,7 +197,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                         <div className="flex justify-start">
                             <div className="flex gap-3 max-w-[85%]">
                                 <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                                    <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
+                                    <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />
                                 </div>
                                 <div className="px-5 py-4 bg-white text-[#7775a5] font-semibold border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC] rounded-2xl rounded-tl-sm flex items-center gap-2">
                                     <div className="flex space-x-1">
@@ -204,7 +205,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                                         <div className="w-2 h-2 bg-[#7775a5] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                                         <div className="w-2 h-2 bg-[#7775a5] rounded-full animate-bounce"></div>
                                     </div>
-                                    <span className="text-[15px] italic ml-1">Kyle is thinking...</span>
+                                    <span className="text-[15px] italic ml-1">Kibo is thinking...</span>
                                 </div>
                             </div>
                         </div>
@@ -215,13 +216,13 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                         <div className="flex justify-start">
                             <div className="flex gap-3 max-w-[85%]">
                                 <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                                    <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
+                                    <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />
                                 </div>
                                 <div className="bg-white border-2 border-[#ef4444]/30 shadow-[0_3px_0_rgba(239,68,68,0.2)] rounded-2xl rounded-tl-sm px-5 py-4 flex flex-col gap-3">
                                     <div className="flex items-start gap-2">
                                         <AlertCircle size={18} className="text-[#ef4444] mt-0.5 shrink-0" />
                                         <p className="text-[15px] font-semibold text-[#19183b] leading-snug">
-                                            Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span>. Please try again.
+                                            Kibo is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span>. Please try again.
                                         </p>
                                     </div>
                                     <button
@@ -279,7 +280,7 @@ const DoubtSolver = ({ level, roadmapType, role: propRole }) => {
                         </button>
                     </form>
                     <div className="text-center mt-3">
-                        <p className="text-[11px] text-slate-400">Kyle can make mistakes. Consider verifying important information.</p>
+                        <p className="text-[11px] text-slate-400">Kibo can make mistakes. Consider verifying important information.</p>
                     </div>
                 </div>
             </div>

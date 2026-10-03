@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -184,6 +185,15 @@ export default function RoadmapTemplate({
           completedLevels: localProgress.completedLevels,
         });
 
+        if (localProgress.completedLevels.length === 0 && !window.__kibo_greeted_roadmap) {
+          window.__kibo_greeted_roadmap = true;
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('kyle-pet-state', {
+              detail: { action: 'say', message: `So you decided to tackle ${roadmapData.title}, then? Good choice.`, duration: 5000 }
+            }));
+          }, 1500);
+        }
+
         return;
       }
       try {
@@ -253,6 +263,16 @@ export default function RoadmapTemplate({
               migrated.progress.completedLevels || []
             ).length;
           }
+
+          const finalCompleted = migrated && migrated.progress ? (migrated.progress.completedLevels || []) : serverCompletedLevels;
+          if (finalCompleted.length === 0 && !window.__kibo_greeted_roadmap) {
+            window.__kibo_greeted_roadmap = true;
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('kyle-pet-state', {
+                detail: { action: 'say', message: `So you decided to tackle ${roadmapData.title}, then? Good choice.`, duration: 5000 }
+              }));
+            }, 1500);
+          }
         }
       } catch (err) {
         if (roadmapData.id === "gen-ai-internship") {
@@ -283,6 +303,15 @@ export default function RoadmapTemplate({
           roadmapId: roadmapData.id,
           completedLevels: localProgress.completedLevels,
         });
+
+        if (localProgress.completedLevels.length === 0 && !window.__kibo_greeted_roadmap) {
+          window.__kibo_greeted_roadmap = true;
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('kyle-pet-state', {
+              detail: { action: 'say', message: `So you decided to tackle ${roadmapData.title}, then? Good choice.`, duration: 5000 }
+            }));
+          }, 1500);
+        }
       }
     };
     loadProgress();
@@ -1107,13 +1136,7 @@ export default function RoadmapTemplate({
           <div className="bg-[#FAF9F6] w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="bg-white px-6 py-5 border-b border-orange-50 flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-orange-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                <Image
-                  src="/kyle/kyle.svg"
-                  alt="Kyle"
-                  width={48}
-                  height={48}
-                  className="w-full h-full rounded-full object-cover"
-                />
+                <KiboAvatar width={48} height={48} className="w-full h-full rounded-full object-cover" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900">

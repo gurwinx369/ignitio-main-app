@@ -7,6 +7,7 @@ import KyleQuizModal from "./KyleQuizModal";
 import { isKyleEnabledRoadmap } from "@/features/roadmaps/lib/roadmapCapabilities";
 import { AskKyleContext } from "@/features/kyle/ask/AskKyleProvider";
 import { useContext } from "react";
+import { useAuth } from "@/features/context/AuthContext";
 
 const LevelContent = ({
   level,
@@ -28,6 +29,7 @@ const LevelContent = ({
 
   const askKyleContext = useContext(AskKyleContext);
   const setGlobalContext = askKyleContext?.setGlobalContext;
+  const { user } = useAuth();
 
   const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
   const isPythonRoadmap = roadmapType === "python-beginner";
@@ -85,6 +87,67 @@ const LevelContent = ({
     }
   }, [level.concept, level.transcript, setGlobalContext]);
 
+  // Fetch and show a fun fact about the transcript when the level loads
+  useEffect(() => {
+    if (!level?.transcript || !level?.concept || !isKyleRoadmap) return;
+    
+    // Ensure we only do this once per level per session
+    const storageKey = `kibo_fun_fact_${level.id}`;
+    if (sessionStorage.getItem(storageKey) === 'true') return;
+    
+    let isCancelled = false;
+    
+    const fetchFunFact = async () => {
+      try {
+        const profession = localStorage.getItem("profession") || "student";
+        const token = user ? await user.getIdToken() : null;
+        
+        if (!token) return; // Wait for user auth
+        
+        const res = await fetch("/api/v2/kyle/funfact", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` 
+          },
+          body: JSON.stringify({
+            concept: level.concept,
+            transcript: level.transcript,
+            user_profession: profession
+          })
+        });
+        
+        if (isCancelled) return;
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.fun_fact && !isCancelled) {
+            sessionStorage.setItem(storageKey, 'true');
+            // Give the user a moment to orient themselves before Kibo pops up
+            setTimeout(() => {
+              if (isCancelled) return;
+              window.dispatchEvent(
+                new CustomEvent("kyle-pet-state", { 
+                  detail: { action: "say", message: data.fun_fact, duration: 12000 } 
+                })
+              );
+            }, 3000);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch Kibo fun fact:", err);
+      }
+    };
+    
+    if (user) {
+      fetchFunFact();
+    }
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [level?.id, level?.concept, level?.transcript, isKyleRoadmap, user]);
+
   useEffect(() => {
     if (!showPracticeTab && activeTab === "practice") {
       setActiveTab("video");
@@ -94,7 +157,18 @@ const LevelContent = ({
     }
   }, [showPracticeTab, showAskKyleTab, activeTab]);
 
-  // Reset quiz gate state when level changes
+  // Render-phase state reset when level changes. 
+  // This ensures we reset the queue BEFORE VideoTab mounts and fires its triggers,
+  // preventing the parent useEffect from cancelling the child's onMidpointMet.
+  const [prevLevelId, setPrevLevelId] = useState(level.id);
+  if (level.id !== prevLevelId) {
+    setPrevLevelId(level.id);
+    setShowQuizModal(false);
+    setActiveQuizGate(null);
+    setQuizQueue([]);
+  }
+
+  // Only read initial storage on mount or level change
   useEffect(() => {
     setQuiz50Satisfied(
       typeof window !== "undefined"
@@ -108,9 +182,6 @@ const LevelContent = ({
         sessionStorage.getItem(quiz80BypassedKey) === "true"
         : false
     );
-    setShowQuizModal(false);
-    setActiveQuizGate(null);
-    setQuizQueue([]);
   }, [quiz50CompletedKey, quiz50BypassedKey, quiz80CompletedKey, quiz80BypassedKey]);
 
   // Check if level is segment-based
@@ -198,6 +269,16 @@ const LevelContent = ({
   // Purpose: unlock button AND trigger 80% quiz on Kyle roadmaps
   const handleCompletionMet = useCallback(() => {
     setCanMarkComplete(true); // 80% threshold — button eligibility unlocked
+    
+    // Dispatch celebration at 80%
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("kyle-pet-state", {
+          detail: { state: "celebrate", action: "say", message: "You made it to 80%! Great focus.", duration: 3000 },
+        }),
+      );
+    }
+
     if (!isKyleRoadmap || quiz80Satisfied || isPreview) return;
     setQuizQueue(prev => prev.includes('80') ? prev : [...prev, '80']);
     setShowQuizModal(showing => {
@@ -207,11 +288,6 @@ const LevelContent = ({
       }
       return showing;
     });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("kyle-pet-state", { detail: { state: "thinking" } }),
-      );
-    }
   }, [isKyleRoadmap, quiz80Satisfied, isPreview]);
 
   const handleQuizAnswered = ({ wasCorrect, alreadyAttempted }) => {
@@ -251,26 +327,9 @@ const LevelContent = ({
     recoveryRanRef.current = true;
     if (!isKyleRoadmap || isCompleted || isPreview) return;
 
-    // 80% recovery takes priority: user watched 80%+ but hasn't done the gate quiz
-    if (canMarkComplete && !quiz80Satisfied) {
-      setQuizQueue(prev => prev.includes('80') ? prev : [...prev, '80']);
-      setActiveQuizGate('80');
-      setShowQuizModal(true);
-      return;
-    }
-
-    // 50% recovery: user watched 50%+ but hasn't done the midpoint quiz
-    if (!quiz50Satisfied && isSegmentBased) {
-      const stored = typeof window !== 'undefined'
-        ? parseFloat(localStorage.getItem(`segment_watch_${roadmapType}_${level.id}`) || '0')
-        : 0;
-      const duration = level.endSec - level.startSec;
-      if (stored >= duration * 0.5 && duration > 0) {
-        setQuizQueue(prev => prev.includes('50') ? prev : [...prev, '50']);
-        setActiveQuizGate('50');
-        setShowQuizModal(true);
-      }
-    }
+    // Quiz recovery logic removed because VideoTab is always mounted (even when hidden) 
+    // and its useEffect will instantly fire onMidpointMet and onCompletionMet 
+    // if the user has already watched past those thresholds.
   }, [isKyleRoadmap, canMarkComplete, quiz50Satisfied, quiz80Satisfied, isCompleted, isPreview, isSegmentBased, level.id, level.endSec, level.startSec, roadmapType]);
 
   // Called when user clicks the Complete button
