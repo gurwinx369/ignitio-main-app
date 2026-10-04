@@ -2,10 +2,10 @@
 // The Paywall reads nextStep from the server and maps it to a local route.
 // Never navigate to arbitrary server-returned URLs.
 export const ONBOARDING_ROUTES = {
-  diagnostic: "/home/onboarding/diagnostic",
-  results: "/home/onboarding/results",
-  paywall: "/home/onboarding/paywall",
-  role_selection: "/home/onboarding/role-selection",
-  activation_pending: "/home/onboarding/activation",
+  diagnostic: "/onboarding/diagnostic",
+  results: "/onboarding/results",
+  paywall: "/onboarding/paywall",
+  role_selection: "/onboarding/role-selection",
+  activation_pending: "/onboarding/activation",
   completed: "/home",
 };

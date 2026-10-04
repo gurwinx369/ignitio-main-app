@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
-import { UserProfile, ONBOARDING_VERSIONS } from "@/models/v2/user.profile.model";
+import { UserProfile, ONBOARDING_VERSIONS, USER_GOALS } from "@/models/v2/user.profile.model";
 import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigration.helpers";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
@@ -429,5 +429,53 @@ export async function GET(request) {
       { message: "Internal server error" },
       { status: 500 },
     );
+  }
+}
+
+// SECTION 5: PATCH — Update goal (called by onboarding sync after free-path flow)
+const PatchUserValidator = z.object({
+  goal: z.enum(Object.values(USER_GOALS)).optional(),
+});
+
+export async function PATCH(request) {
+  await connectToDB();
+
+  const { decodedToken, error: authError, status: authStatus } = await verifyFirebaseToken(request);
+  if (authError) {
+    return NextResponse.json({ message: authError }, { status: authStatus });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON in request body" }, { status: 400 });
+  }
+
+  const validation = PatchUserValidator.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json({ message: "Validation failed", detail: validation.error.issues }, { status: 422 });
+  }
+
+  const { goal } = validation.data;
+  if (!goal) {
+    return NextResponse.json({ message: "No valid fields to update" }, { status: 400 });
+  }
+
+  try {
+    const updated = await UserProfile.findOneAndUpdate(
+      { firebaseUID: decodedToken.uid },
+      { $set: { goal } },
+      { new: true }
+    ).select("goal").lean();
+
+    if (!updated) {
+      return NextResponse.json({ message: "User profile not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, goal: updated.goal }, { status: 200 });
+  } catch (err) {
+    console.error("[PATCH /api/v2/user] DB error:", err.name);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

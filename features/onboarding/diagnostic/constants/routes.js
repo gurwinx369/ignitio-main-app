@@ -1,14 +1,14 @@
 export const RESULTS_ROUTE =
-  "/home/onboarding/results";
+  "/onboarding/results";
 
 export const PAYWALL_ROUTE =
-  "/home/onboarding/paywall";
+  "/onboarding/paywall";
 
 export const ROLE_SELECTION_ROUTE =
-  "/home/onboarding/role-selection";
+  "/onboarding/role-selection";
 
 export const ACTIVATION_ROUTE =
-  "/home/onboarding/activation";
+  "/onboarding/activation";
 
 export const HOME_ROUTE = "/home";
 

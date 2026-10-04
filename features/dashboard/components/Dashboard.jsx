@@ -33,6 +33,17 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 
+// Sequential unlock order — git-github is always first.
+// Each roadmap unlocks only when the previous one is 100% done.
+const UNLOCK_ORDER = [
+  "git-github",
+  "cpp",
+  "python-beginner",
+  "c-language-course",
+  "system-design-fundamentals",
+  // prompt-engineering and DSA are always unlocked (role-specific, supplemental)
+];
+
 export default function Dashboard() {
   const router = useRouter();
   const redirects = {
@@ -80,6 +91,7 @@ export default function Dashboard() {
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
+  const [lockedRoadmapIds, setLockedRoadmapIds] = useState(new Set());
   const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
     genericPromptEngineeringRoadmapData,
   );
@@ -109,14 +121,14 @@ export default function Dashboard() {
             const data = await res.json();
 
             if (data.user?.requiresOnboarding) {
-              router.replace("/home/onboarding");
+              router.replace("/onboarding");
               return;
             }
 
             role = data.user?.role || "other";
           } else {
             if (res.status === 404) {
-              router.replace("/home/onboarding");
+              router.replace("/onboarding");
               return;
             }
           }
@@ -233,9 +245,12 @@ export default function Dashboard() {
       legacySections: [],
     });
 
+    // Filter to ONLY include roadmaps that are in our sequential foundation
+    const filteredRoadmapsData = roadmapsData.filter(r => UNLOCK_ORDER.includes(r.id));
+
     const progressMap = {};
 
-    for (const roadmap of roadmapsData) {
+    for (const roadmap of filteredRoadmapsData) {
       let completedLevelsCount = 0;
       const canonicalKey = `completed_levels_${roadmap.id}`;
       const saved = localStorage.getItem(canonicalKey);
@@ -283,19 +298,50 @@ export default function Dashboard() {
       }
     } catch (e) { }
 
-    let activeRoadmapToSet = bestRoadmap;
-    if (lastActiveRoadmapId) {
-      const foundLastActive = roadmapsData.find(
-        (r) => r.id === lastActiveRoadmapId,
-      );
-      if (foundLastActive) {
-        activeRoadmapToSet = foundLastActive;
+    // We don't set activeRoadmapToSet here anymore, since we re-evaluate it based on unlocked roadmaps later.
+
+    // Compute which roadmaps are locked based on sequential completion.
+    // A roadmap at position i in UNLOCK_ORDER is locked if position i-1 isn't 100% done.
+    // Roadmaps not in UNLOCK_ORDER (prompt-engineering, DSA) are always unlocked.
+    const lockedIds = new Set();
+    for (let i = 1; i < UNLOCK_ORDER.length; i++) {
+      const prevId = UNLOCK_ORDER[i - 1];
+      const prevProgress = progressMap[prevId];
+      const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
+      if (!prevDone) {
+        // This roadmap and all subsequent ones are locked
+        for (let j = i; j < UNLOCK_ORDER.length; j++) {
+          lockedIds.add(UNLOCK_ORDER[j]);
+        }
+        break;
       }
+    }
+
+    // Only allow unlocked roadmaps as the active (home tab) roadmap
+    const unlockedRoadmaps = filteredRoadmapsData.filter(r => !lockedIds.has(r.id));
+
+    let activeRoadmapToSet = null;
+    let maxProgress = -1;
+    for (const r of unlockedRoadmaps) {
+      if (r.completedLevels > maxProgress) {
+        maxProgress = r.completedLevels;
+        activeRoadmapToSet = r;
+      } else if (r.completedLevels === maxProgress && r.id === "git-github") {
+        // Tie-breaker: prefer git-github if it's tied for max progress
+        activeRoadmapToSet = r;
+      }
+    }
+
+    if (lastActiveRoadmapId) {
+      const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId);
+      if (foundLastActive) activeRoadmapToSet = foundLastActive;
     }
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(activeRoadmapToSet);
-    setAllRoadmaps(roadmapsData);
+    setAllRoadmaps(filteredRoadmapsData);
+    // ponytail: lockedIds stored in state so worlds tab can read it
+    setLockedRoadmapIds(lockedIds);
   }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
 
   const handleRedirect = (route) => {
@@ -425,6 +471,9 @@ export default function Dashboard() {
     )
   });
 
+  // Filter carousel items to ONLY include ones that survived the UNLOCK_ORDER filter in state
+  const filteredCarouselRoadmaps = carouselRoadmaps.filter(cr => allRoadmaps.some(ar => ar.id === cr.id));
+
   /**
    * New-user guard:
    * Only show the empty state after client-side resolution completes.
@@ -525,7 +574,7 @@ export default function Dashboard() {
 
                 <div className="w-full max-w-[460px] mx-auto">
                   {(() => {
-                    const comp = carouselRoadmaps.find(
+                    const comp = filteredCarouselRoadmaps.find(
                       (r) => r.id === activeRoadmap.id
                     )?.component;
 
@@ -543,9 +592,65 @@ export default function Dashboard() {
       {/* ── WORLDS TAB ── */}
       {activeTab === "worlds" && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
-          {/* RoadmapWorldsCarousel renders its own "Roadmap Worlds" heading internally */}
           <RoadmapWorldsCarousel
-            roadmaps={carouselRoadmaps}
+            roadmaps={filteredCarouselRoadmaps.map(item => {
+              if (!lockedRoadmapIds.has(item.id)) return item;
+              // Find which roadmap unlocks this one
+              const lockIdx = UNLOCK_ORDER.indexOf(item.id);
+              const prevId = lockIdx > 0 ? UNLOCK_ORDER[lockIdx - 1] : null;
+              const prevTitle = allRoadmaps.find(r => r.id === prevId)?.title ?? "the previous roadmap";
+              return {
+                ...item,
+                component: (
+                  <div
+                    key={item.id}
+                    className="relative w-full h-full select-none"
+                    style={{ borderRadius: 24 }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {/* Greyscale + dim the underlying card */}
+                    <div
+                      style={{
+                        filter: "grayscale(1) brightness(0.72)",
+                        pointerEvents: "none",
+                        height: "100%",
+                        width: "100%",
+                      }}
+                    >
+                      {React.cloneElement(item.component, { onClick: undefined })}
+                    </div>
+
+                    {/* Lock overlay */}
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
+                      style={{
+                        background: "rgba(25,24,59,0.45)",
+                        borderRadius: 24,
+                        backdropFilter: "blur(2px)",
+                      }}
+                    >
+                      {/* Lock icon */}
+                      <div
+                        className="flex items-center justify-center rounded-full bg-white/15"
+                        style={{ width: 52, height: 52 }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </div>
+
+                      <p className="text-white font-bold text-[15px] leading-snug">
+                        Locked
+                      </p>
+                      <p className="text-white/80 text-[13px] leading-relaxed">
+                        Complete <span className="font-semibold text-white">{prevTitle}</span> to unlock this roadmap.
+                      </p>
+                    </div>
+                  </div>
+                ),
+              };
+            })}
             initialActiveId={activeRoadmap?.id}
           />
         </div>
@@ -569,7 +674,7 @@ export default function Dashboard() {
                   handleRedirect("/home/premium/genai")
                 }
                 onNavigatePaywall={() =>
-                  handleRedirect("/home/onboarding/diagnostic")
+                  handleRedirect("/onboarding/diagnostic")
                 }
               />
             </div>

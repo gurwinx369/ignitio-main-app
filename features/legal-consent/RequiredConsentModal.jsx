@@ -21,7 +21,7 @@ export default function RequiredConsentModal() {
       return;
     }
 
-    if (pathname && pathname.startsWith("/home/onboarding")) {
+    if (pathname && pathname.startsWith("/onboarding")) {
       setIsOpen(false);
       return;
     }

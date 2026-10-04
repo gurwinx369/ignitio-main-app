@@ -8,7 +8,7 @@ import { kylePetConfig } from './kylePetConfig';
 import KylePetBubble from './KylePetBubble';
 import { useAskKyle } from '@/features/kyle/ask/useAskKyle';
 
-const KYLE_BLOCKED_PATHS = ['/home/onboarding', '/auth/'];
+const KYLE_BLOCKED_PATHS = ['/onboarding', '/auth/'];
 
 function getKyleRouteContext(pathname) {
   if (!pathname) return 'default';

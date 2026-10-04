@@ -8,6 +8,7 @@ import Link from "next/link";
 import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
+import { syncOnboardingFromLocalStorage } from '@/lib/onboarding/sync-localstorage';
 
 function deriveScheduleFromBrowser() {
   const tz = (typeof Intl !== "undefined" &&
@@ -149,8 +150,8 @@ export default function SignupForm() {
             if (isGenAiPreview || hasPreview) {
               router.replace(
                 isGenAiPreview
-                  ? "/home/onboarding/role-selection?from=genai_preview"
-                  : "/home/onboarding/role-selection?from=preview"
+                  ? "/onboarding/role-selection?from=genai_preview"
+                  : "/onboarding/role-selection?from=preview"
               );
               return;
             }
@@ -158,6 +159,9 @@ export default function SignupForm() {
             try {
               const idToken = await result.user.getIdToken();
               const derived = deriveScheduleFromBrowser();
+
+              // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
+              await syncOnboardingFromLocalStorage(idToken);
 
               const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
                 method: "POST",
@@ -232,8 +236,8 @@ export default function SignupForm() {
             if (isGenAiPreview || hasPreview) {
               router.replace(
                 isGenAiPreview
-                  ? "/home/onboarding/role-selection?from=genai_preview"
-                  : "/home/onboarding/role-selection?from=preview"
+                  ? "/onboarding/role-selection?from=genai_preview"
+                  : "/onboarding/role-selection?from=preview"
               );
               return;
             }
@@ -241,6 +245,9 @@ export default function SignupForm() {
             try {
               const idToken = await result.user.getIdToken();
               const derived = deriveScheduleFromBrowser();
+
+              // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
+              await syncOnboardingFromLocalStorage(idToken);
 
               const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
                 method: "POST",

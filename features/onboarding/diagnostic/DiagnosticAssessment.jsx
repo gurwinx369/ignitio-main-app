@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ONBOARDING_ROUTES } from "@/features/onboarding/paywall/constants/routes";
+import { ONBOARDING_STEP_ROUTES } from "./constants/routes";
 
 import { useAuth } from "@/features/context/AuthContext";
 import {
@@ -11,7 +11,6 @@ import {
 } from "@/lib/onboarding/diagnostic-flow";
 
 import { QUESTIONS } from "./constants/questions";
-import { ONBOARDING_STEP_ROUTES } from "./constants/routes";
 import { submitDiagnostic } from "./services/submitDiagnostic";
 
 import DiagnosticProgress from "./components/DiagnosticProgress";
@@ -254,19 +253,21 @@ export default function DiagnosticAssessment({
       return;
     }
 
-    if (!user && mode !== "preview") {
-      setError(
-        "Your session has expired. Please sign in again.",
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     setError("");
 
     try {
-      const payload =
-        buildDiagnosticPayload(answers);
+      const payload = buildDiagnosticPayload(answers);
+
+      if (!user) {
+        localStorage.setItem("genai_preview_assessment", JSON.stringify(payload));
+        if (onSuccess) {
+          await onSuccess({ nextStep: "results" });
+          return;
+        }
+        router.push(ONBOARDING_STEP_ROUTES.results);
+        return;
+      }
 
       const idToken =
         user ? await user.getIdToken() : null;
@@ -284,8 +285,8 @@ export default function DiagnosticAssessment({
 
       // ponytail: use the canonical route map — never interpolate nextStep into URL directly
       const nextRoute =
-        ONBOARDING_ROUTES[result.nextStep] ??
-        ONBOARDING_ROUTES["results"];
+        ONBOARDING_STEP_ROUTES[result.nextStep] ??
+        ONBOARDING_STEP_ROUTES["results"];
 
       router.push(nextRoute);
     } catch (error) {

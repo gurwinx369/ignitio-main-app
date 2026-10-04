@@ -19,6 +19,7 @@ import { useAuth } from "@/features/context/AuthContext";
 import { ONBOARDING_ROUTES } from "@/features/onboarding/paywall/constants/routes";
 import OnboardingShell from "../components/OnboardingShell";
 import { getDiagnosticResults } from "@/features/onboarding/results/services/getDiagnosticResults";
+import { syncOnboardingFromLocalStorage } from "@/lib/onboarding/sync-localstorage";
 
 import {
   SCHEDULE_PERIOD_CONFIG,
@@ -208,34 +209,9 @@ export default function RoleScheduleController() {
       const idToken =
         await user.getIdToken();
 
-      // Gen-AI preview: submit stored diagnostic BEFORE advancing state to activation_pending
-      if (isGenAiPreview) {
-        const stored = typeof window !== "undefined"
-          ? localStorage.getItem("genai_preview_assessment")
-          : null;
-
-        if (stored) {
-          let payload;
-          try { payload = JSON.parse(stored); } catch { payload = null; }
-
-          if (payload) {
-            // step → results
-            const diagRes = await fetch("/api/v2/onboarding/diagnostic", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-              body: JSON.stringify(payload),
-            }).then(r => r.json()).catch(() => null);
-
-            // step → paywall (silent fallback — paywall reconciles on mount)
-            if (diagRes?.success) {
-              await fetch("/api/v2/onboarding/results/continue", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
-              }).catch(() => null);
-            }
-          }
-        }
-      }
+      // Flush all localStorage onboarding data (goal + GenAI diagnostic) to the backend.
+      // Runs for every user regardless of path — the helper is a no-op if keys are absent.
+      await syncOnboardingFromLocalStorage(idToken);
 
       const response = await fetch(
         "/api/v2/onboarding/role-schedule",
@@ -280,7 +256,7 @@ export default function RoleScheduleController() {
       }
 
       if (isGenAiPreview) {
-        router.push("/home/onboarding/paywall");
+        router.push("/onboarding/paywall");
         return;
       }
 

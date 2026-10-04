@@ -24,15 +24,15 @@ const PROTECTED_PREFIXES = [
 const PROTECTED_EXACT = ["/home"];
 
 // Routes belonging to core onboarding (role selection).
-const ONBOARDING_PREFIX = "/home/onboarding";
+const ONBOARDING_PREFIX = "/onboarding";
 
 // GenAI activation routes — accessible to BOTH incomplete AND complete users.
 // They are no longer gated by core onboarding completion.
 const GENAI_ACTIVATION_PREFIXES = [
-    "/home/onboarding/diagnostic",
-    "/home/onboarding/results",
-    "/home/onboarding/paywall",
-    "/home/onboarding/activation",
+    "/onboarding/diagnostic",
+    "/onboarding/results",
+    "/onboarding/paywall",
+    "/onboarding/activation",
 ];
 
 function isProtectedRoute(pathname) {
@@ -229,7 +229,7 @@ export default function ProtectedRoute({
         if (isProtectedRoute(pathname)) {
             if (!profileObj) {
                 router.replace(
-                    "/home/onboarding",
+                    "/onboarding",
                 );
                 return;
             }
@@ -261,7 +261,7 @@ export default function ProtectedRoute({
                  * The onboarding entry page is accessible without a
                  * profile to allow new users to start onboarding.
                  */
-                const entryStep = "/home/onboarding/role-selection";
+                const entryStep = "/onboarding/role-selection";
                 if (pathname !== entryStep) {
                     router.replace(entryStep);
                 }
@@ -356,7 +356,7 @@ export default function ProtectedRoute({
         }
 
         if (!profileObj) {
-            const entryStep = "/home/onboarding/role-selection";
+            const entryStep = "/onboarding/role-selection";
             if (pathname !== entryStep) {
                 return null;
             }

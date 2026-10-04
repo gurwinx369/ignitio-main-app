@@ -41,21 +41,42 @@ export default function DiagnosticResults() {
   ] = useState(null);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
     let isMounted = true;
 
     const fetchResults = async () => {
       try {
-        const idToken =
-          await user.getIdToken();
+        if (!user) {
+          const stored = localStorage.getItem("genai_preview_assessment");
+          if (!stored) {
+            if (isMounted) {
+              setError("No results found. Please take the assessment first.");
+              setLoading(false);
+            }
+            return;
+          }
 
-        const res =
-          await getDiagnosticResults(
-            idToken,
-          );
+          const payload = JSON.parse(stored);
+          const { evaluateDiagnosticPayload } = await import("@/lib/onboarding/diagnostic-evaluation");
+          const { buildDiagnosticResults } = await import("./server/buildDiagnosticResults");
+
+          const evaluation = evaluateDiagnosticPayload(payload);
+          if (!evaluation.success) {
+            if (isMounted) {
+              setError("Invalid assessment data.");
+              setLoading(false);
+            }
+            return;
+          }
+
+          if (isMounted) {
+            setData(buildDiagnosticResults(evaluation.persistenceFields));
+            setLoading(false);
+          }
+          return;
+        }
+        const idToken = await user.getIdToken();
+
+        const res = await getDiagnosticResults(idToken);
 
         if (!isMounted) {
           return;
@@ -117,10 +138,12 @@ export default function DiagnosticResults() {
   }, [user]);
 
   const handleContinue = async () => {
-    if (
-      preparationStatus === "preparing" ||
-      !user
-    ) {
+    if (preparationStatus === "preparing") {
+      return;
+    }
+
+    if (!user) {
+      router.push("/auth/signup?redirect=/onboarding/results");
       return;
     }
 

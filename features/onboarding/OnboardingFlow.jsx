@@ -160,7 +160,7 @@ export default function OnboardingFlow() {
             // Save to localStorage only after successful DB save
             localStorage.setItem("onboarding_completed", JSON.stringify(finalData));
             // Navigate to welcome page
-            router.push("/home/onboarding/welcome");
+            router.push("/onboarding/welcome");
 
         } catch (error) {
             // Handle errors gracefully
