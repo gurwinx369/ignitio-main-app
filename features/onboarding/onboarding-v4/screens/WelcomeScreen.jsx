@@ -46,7 +46,7 @@ export default function WelcomeScreen({ onContinue }) {
   const [step, setStep] = useState(0); // 0 = greet, 1 = hook
   const [isTyping, setIsTyping] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-  
+
   const eyesRef = useRef(null);
   const wrapperRef = useRef(null);
   const kiboContainerRef = useRef(null);
@@ -88,7 +88,6 @@ export default function WelcomeScreen({ onContinue }) {
       {/* ── Zone 2: Mascot + bubble ─────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center px-5 sm:px-6">
         <div className="w-full max-w-[420px] mx-auto flex flex-col items-center">
-
           {/* Chat bubble */}
           <div
             key={step}
@@ -100,36 +99,42 @@ export default function WelcomeScreen({ onContinue }) {
               aria-live="polite"
             >
               {step === 0 ? (
-                <div className="text-[18px] leading-snug font-bold" style={{ color: HEADING }}>
-                  <TextType 
-                    text="Hi, I'm Kibo!" 
-                    typingSpeed={40} 
+                <div
+                  className="text-[18px] leading-snug font-bold"
+                  style={{ color: HEADING }}
+                >
+                  <TextType
+                    text="Hi, I'm Kibo!"
+                    typingSpeed={40}
                     showCursor={false}
                     loop={false}
                     onSentenceComplete={handleTypingComplete}
                   />
                 </div>
               ) : (
-                <div className="text-[17px] leading-relaxed font-medium" style={{ color: HEADING }}>
-                  <TextType 
-                    text="Hey. 👀 Let's make your " 
-                    typingSpeed={30} 
+                <div
+                  className="text-[17px] leading-relaxed font-medium"
+                  style={{ color: HEADING }}
+                >
+                  <TextType
+                    text="Let's make your "
+                    typingSpeed={30}
                     showCursor={false}
                     loop={false}
                     as="span"
                   />
-                  <TextType 
-                    text='"where do I even start?"' 
-                    typingSpeed={30} 
+                  <TextType
+                    text='"where do I even start?"'
+                    typingSpeed={30}
                     initialDelay={750}
                     showCursor={false}
                     loop={false}
                     as="span"
                     className="font-extrabold text-[#00A9FF] relative inline-block mx-1"
                   />
-                  <TextType 
-                    text=" problem disappear." 
-                    typingSpeed={30} 
+                  <TextType
+                    text=" problem disappear."
+                    typingSpeed={30}
                     initialDelay={1470}
                     showCursor={false}
                     loop={false}
@@ -145,10 +150,12 @@ export default function WelcomeScreen({ onContinue }) {
           <div
             ref={kiboContainerRef}
             className="relative select-none mt-2 transition-all duration-300 rounded-full cursor-pointer"
-            style={{ 
-              width: 140, 
+            style={{
+              width: 140,
               height: 140,
-              filter: isHovered ? 'drop-shadow(0 0 16px rgba(6, 182, 212, 0.4))' : 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
+              filter: isHovered
+                ? "drop-shadow(0 0 16px rgba(6, 182, 212, 0.4))"
+                : "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))",
             }}
             aria-label="Kibo, your AI learning companion"
             onPointerEnter={() => setIsHovered(true)}
@@ -156,21 +163,24 @@ export default function WelcomeScreen({ onContinue }) {
             onClick={() => {
               // Add a playful hop when clicked
               if (wrapperRef.current) {
-                wrapperRef.current.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                wrapperRef.current.style.transform = 'translateY(-12px) scale(1.05)';
+                wrapperRef.current.style.transition =
+                  "transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)";
+                wrapperRef.current.style.transform =
+                  "translateY(-12px) scale(1.05)";
                 setTimeout(() => {
                   if (wrapperRef.current) {
-                    wrapperRef.current.style.transform = 'translateY(0) scale(1)';
+                    wrapperRef.current.style.transform =
+                      "translateY(0) scale(1)";
                   }
                 }, 200);
               }
             }}
           >
-            <KiboBody 
-              visualState={isTyping ? 'speaking' : 'idle'} 
-              petSize={140} 
-              wrapperRef={wrapperRef} 
-              eyesRef={eyesRef} 
+            <KiboBody
+              visualState={isTyping ? "speaking" : "idle"}
+              petSize={140}
+              wrapperRef={wrapperRef}
+              eyesRef={eyesRef}
             />
           </div>
         </div>
@@ -193,5 +203,3 @@ export default function WelcomeScreen({ onContinue }) {
     </main>
   );
 }
-
-
