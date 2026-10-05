@@ -1,280 +1,86 @@
-# KIBO.md — Kibo AI Pet: Character and Behavioral Architecture
+# Kibo AI: Developer Guide & Architecture Overview
 
-> Written directly from source code. Master reference for Kibo design, physics, animations, and interaction rules.
-
----
-
-## File Map
-
-| File | Role |
-|---|---|
-| features/kyle/pet/KiboPet.jsx | Root orchestrator — state machine, event listener, drag/throw wiring |
-| features/kyle/pet/KiboBody.jsx | All CSS @keyframes animations + SVG layer rendering |
-| features/kyle/pet/KylePetBubble.jsx | Speech bubble + typewriter effect |
-| features/kyle/pet/KiboParticles.jsx | GSAP confetti particle emitter (celebration) |
-| features/kyle/pet/useKiboScrollPhysics.js | GSAP scroll lag/squash/stretch hook |
-| features/kyle/pet/useKiboThrowPhysics.js | Velocity throw + wall bounce physics |
-| features/kyle/pet/useKiboEyeTracking.js | Mouse-tracking eye follow |
-| features/kyle/pet/useKylePetPosition.js | Drag position + pointer events |
-| features/kyle/pet/useKiboVisibilityGuard.js | Safe-zone enforcement after resize/throw |
-| features/kyle/pet/kylePetConfig.js | Central config (timeouts, focus tips, action toggles) |
+> This document is a high-level conceptual guide for developers. It explains how Kibo's visual design, physics, and interaction rules are built so that anyone joining the project can understand how he works without needing to dig through complex math and CSS.
 
 ---
 
-## 1. DOM Layer Architecture
+## 1. Core Philosophy: A Living AI, Not a UI Component
 
-Three separated DOM layers prevent animation conflicts:
+Kibo is designed to feel like a physical, weightless companion that lives in the user's workspace. Unlike standard chatbots, Kibo has mass, momentum, and emotional states.
 
-`
-Position div (translate3d, z-index: 110)
-  KylePetBubble
-  button ref=buttonRef        <- GSAP celebration flip target
-    div ref=scrollRef         <- GSAP scroll squash/stretch target
-      KiboParticles           <- Particle emitter (absolute overlay)
-      KiboBody ref=wrapperRef <- CSS @keyframes target
-        img kibo_body.svg     <- Static body (z-index: 1)
-        img kibo_eyes.svg     <- Animated eyes (z-index: 2)
-`
-
-GSAP inline transforms applied to scrollRef (scroll) and buttonRef (flip).
-CSS @keyframes applied to wrapperRef.
-These never share an element so they cannot conflict.
+To maintain the illusion that Kibo is "alive":
+- **No Close Buttons:** Kibo's speech bubble doesn't have an "X". He dismisses himself when you click away, scroll, or just wait.
+- **Physical Reactions:** He stretches when you scroll fast and bounces off walls if you throw him.
+- **Context Awareness:** If you click him during a test, he gets angry. If you enter a new lesson, he greets you with a fun fact.
 
 ---
 
-## 2. Visual State Machine
+## 2. How the Animations Work (The 3-Layer System)
 
-Priority cascade (highest wins):
+Making Kibo feel alive requires many different animations happening at the same time: he needs to float up and down, stretch when scrolling, and do backflips when celebrating.
 
-`
-isDragging            -> dragging
-isBouncingState       -> bouncing
-AskKyle thinking      -> thinking
-forcedState           -> forcedState value
-message exists        -> speaking
-isSleeping            -> sleeping
-isHovered             -> hovered
-(default)             -> idle
-`
+If we applied all these animations to a single HTML element, they would fight each other and glitch out. To solve this, Kibo is built like an onion with three distinct layers:
 
-Drop-shadow mapping on the button element:
-- empathetic: amber rgba(245,158,11,0.6) — unique warm glow
-- hovered/dragging: cyan rgba(6,182,212,0.3)
-- idle: subtle black rgba(0,0,0,0.1)
+1. **The Position Layer (Outer):** Moves him around the screen when you drag or throw him.
+2. **The Physics Layer (Middle):** Powered by GSAP. This handles the "squash and stretch" effects when scrolling, and the 360-degree backflips when celebrating.
+3. **The CSS Layer (Inner):** Powered by standard CSS. This handles his constant idle floating, his breathing, his eye blinking, and his facial expressions.
+
+*Because these are separated, Kibo can stretch from a scroll while simultaneously breathing!*
 
 ---
 
-## 3. CSS Animations (all defined inline in KiboBody.jsx)
+## 3. Kibo's Emotional States
 
-### .kibo-idle
-4s vertical float with subtle breathing scaleX/scaleY.
-Eyes: slow horizontal drift (kibo-eye-idle) + blink every 4s (kibo-blink).
-Blink delay randomised per mount: CSS var --blink-delay set to 0-3s random.
+Kibo reacts to the user's progress by changing his "State". Each state completely alters his animation, his eye movements, and the color of his glowing drop-shadow.
 
-### .kibo-hovered
-Cancels float. Scales up to 1.06. Eyes perk up and blink faster.
-
-### .kibo-dragging
-Tilts -5deg, scales down to 0.97. Eyes sag downward (gravity feel).
-
-### .kibo-bouncing
-scaleX: 1.05, scaleY: 0.95 — impact compression squash.
-Eyes sag 4px down.
-
-### .kibo-thinking
-Slow float at 3s cycle. Eyes float upward repeatedly (kibo-eye-think).
-
-### .kibo-speaking
-Standard float. Eyes pulse up rhythmically with slower blink.
-
-### .kibo-celebrating (CSS layer)
-Alternating translateY(-12px) rotate(3deg) scale(1.05) at 0.5s.
-Eyes scale up and float.
-PLUS: GSAP on buttonRef fires 360deg rotateY flip + y:-40 yoyo bounce.
-
-### .kibo-empathetic
-4s slow deep breathing: translateY 2px->6px with slight scale shifts.
-Eyes: heavy drooped movement matching the breath cycle.
-Amber drop-shadow on outer button.
-Duration: stays active 12 seconds after trigger.
-
-### .kibo-angry
-Rapid 0.3s horizontal shake (kibo-shake: translateX +-2px rotate +-1deg).
-Eyes squash flat: scaleY 0.4 translateY 4px.
-
-### .kibo-sad
-Body sinks: translateY 8px with 0.5s ease.
-Eyes shrink to 0.9 scale, dim to opacity 0.7.
-
-### .kibo-sleeping
-Slow 5s rocking (kibo-sleep-bob: translateY 0->4px rotate -1->1deg).
-Eyes dim to opacity 0.3.
+*   **Idle / Hovered:** His default state. He gently floats, blinks, and his eyes follow your mouse cursor around the screen.
+*   **Thinking:** When waiting for an API (like generating a quiz), his glowing shadow turns Cyan and he pulses softly.
+*   **Celebrating:** When you pass a milestone (like 80% completion), he turns Green/Gold, does a rapid backflip, and shoots out confetti particles!
+*   **Empathetic:** If you get a quiz question wrong, he turns a warm Amber color. His fast floating stops, and he switches to a slow, deep "breathing" animation to visually encourage you to take a breath and relax. He stays like this for 12 seconds to provide a soft landing.
+*   **Angry / Sad:** He shakes rapidly (angry) or sinks down with dimmed eyes (sad) if you click him when you aren't supposed to (like during an exam).
 
 ---
 
-## 4. Eye Tracking (useKiboEyeTracking)
+## 4. The Physics Engine
 
-Active when visualState is idle or hovered, and not dragging.
-Eyes follow mouse cursor in real time via JS-driven transform.
-.tracking-active class added to wrapper to suppress CSS idle-drift animation (prevents fighting).
+Kibo acts like a tangible object on your screen.
 
----
+### Drag, Throw, and Bounce
+You can drag Kibo anywhere. The app tracks how fast your mouse is moving. If you let go while moving quickly, Kibo is physically "thrown" across the screen, carrying that momentum. If he hits the edge of your browser window, he bounces off the walls like a rubber ball, losing a bit of speed on each impact until he stops.
 
-## 5. Scroll Physics (useKiboScrollPhysics.js)
-
-Mechanism: window capture-phase scroll listener (passive: true).
-Capture phase catches scroll from any nested container — lesson panels, roadmap sidebars, etc.
-
-Container switch guard:
-If user scrolls a different element, lastScrollTarget resets the baseline velocity.
-Prevents sudden delta jumps when switching between scroll areas.
-
-Velocity accumulation each event:
-  scrollVelocity += dy * 0.4
-  Clamped to [-50, +50]
-
-DEADZONE: animation only fires if Math.abs(scrollVelocity) > 15.
-Slow casual reads produce zero jitter.
-
-On scroll active (GSAP, duration 0.15s, ease power1.out):
-  y: -scrollVelocity * 0.6       <- body lags behind scroll direction
-  scaleY: 1 + |v| * 0.003        <- vertical stretch
-  scaleX: 1 - |v| * 0.001        <- horizontal squash
-
-100ms after scroll stops (GSAP, duration 0.8s, ease elastic.out(1, 0.5)):
-  y: 0, scaleY: 1, scaleX: 1    <- springs back with boing snap
+### Scroll Drag (Squash and Stretch)
+When you scroll down a long page, the air resistance pushes against Kibo.
+- He lags slightly behind the scroll direction.
+- He physically stretches vertically and squashes horizontally depending on how fast you scroll.
+- When you stop scrolling, he snaps back into a perfect circle with an elastic "boing" effect.
+- **The Deadzone:** To prevent him from jittering annoyingly when you are slowly reading a paragraph, these extreme stretch effects only activate if you swipe or scroll very quickly.
 
 ---
 
-## 6. Throw and Bounce (useKiboThrowPhysics.js)
+## 5. The Speech Bubble & Typing
 
-During drag: recordDragPoint(x, y) stores rolling history of pointer positions.
-On pointerUp: startThrow() calculates exit velocity from last N samples.
+### Dynamic Positioning
+Because you can throw Kibo anywhere, his speech bubble needs to be smart. If you drag Kibo to the left side of your screen, his bubble appears on his right. If you drag him to the right side, the bubble instantly flips over to his left. This ensures his text is never cut off by the edge of your monitor.
 
-If velocity sufficient, enters rAF physics loop:
-  position += velocity each frame
-  Wall hit: negate velocity component * restitution coefficient (bounce dampening)
-  Loop ends when velocity < minimum threshold
-  Kibo enters bouncing visualState during this flight
+### The Retro Typewriter
+Kibo's dialogue is delivered using a dynamic typewriter effect (spelling out words letter by letter) with a blinking cursor (`|`). The font is always monospaced, reinforcing the idea that he is an AI typing to you in real-time.
 
 ---
 
-## 7. Speech Bubble (KylePetBubble.jsx)
+## 6. How to Talk to Kibo (The Global Event API)
 
-### Spatial flipping
-isLeftAligned = currentPosition.x < window.innerWidth / 2
+We built Kibo so that **any component in the app** can easily command him to do things, without needing to pass complicated props down the React tree.
 
-Left half of screen  -> bubble appears on RIGHT, CSS tail points left
-Right half of screen -> bubble appears on LEFT,  CSS tail points right
+We use a simple `window.dispatchEvent` system. If a developer wants Kibo to say something from anywhere in the codebase, they just fire an event like this:
 
-Tail is the CSS before: pseudo-element on the bubble container.
+```javascript
+window.dispatchEvent(new CustomEvent("kyle-pet-state", {
+  detail: {
+    state: "empathetic",             // Change his mood
+    action: "say",                   // Tell him to open his bubble
+    message: "Take a deep breath!",  // What he should type
+    duration: 12000                  // Go back to normal after 12 seconds
+  }
+}));
+```
 
-### Typewriter effect (useEffect on visualState + message)
-
-Thinking mode: cycles frames at 500ms interval
-  frames = [pipe, .pipe, ..pipe, ...pipe]  <- blinking ellipsis cursor
-
-Message mode: reveals message at 40ms per character
-  Appends trailing pipe cursor until final character reached.
-
-### Text color by state
-  thinking   -> text-cyan-600, tracking-widest, text-lg
-  angry      -> text-red-500, tracking-tight
-  empathetic -> text-amber-600, tracking-tight
-  default    -> text-slate-700, tracking-tight, text-sm
-
-Border: amber-100 for empathetic, cyan-100 for all others.
-
----
-
-## 8. Particle Emitter (KiboParticles.jsx)
-
-Active when visualState === celebrate.
-Dynamically creates 20 DOM div particles inside containerRef.
-
-Colors: #06b6d4 (cyan), #3b82f6 (blue), #10b981 (emerald), #f59e0b (amber), #8b5cf6 (purple)
-Each particle: w-3 h-3 rounded-full blur-1px opacity-0 initially
-
-GSAP timeline:
-  Step 1 — explosion (all at t=0, duration 0.8-1.2s, ease power3.out):
-    angle = (i / 20) * PI * 2       <- evenly distributed directions
-    radius = 60 + random * 80       <- 60 to 140px from center
-    ty -= 40                        <- upward bias so particles fly up not down
-    random rotation 0-360deg
-    random scale 0.5 to 2.0
-  Step 2 — fade out (offset -0.2s from end of step 1, duration 0.5s):
-    opacity -> 0, continue drifting down by 40px
-
-Cleanup: timeline killed and container cleared on unmount or active=false.
-
----
-
-## 9. Click Behavior (Context-Aware Routing)
-
-getKyleRouteContext(pathname) detects page type:
-
-  /quiz or /assignment or data-kibo-exam-mode=true:
-    forcedState -> angry
-    message -> I cant help you now during a test!
-    auto-clears after 4 seconds
-
-  /lesson or /video or /interactive-overviews:
-    message -> Use the lesson Ask Kibo tab for this concept-specific question.
-    auto-closes after kylePetConfig.bubble.autoCloseMs
-
-  /roadmaps or /home or default:
-    Opens global Ask Kyle drawer (openAskKyle)
-
-Note: click is suppressed if hasMovedBeyondClickThreshold or isBouncing.current is true.
-
----
-
-## 10. Sleep and Inactivity
-
-Monitored events: keydown, pointerdown, touchstart, scroll, wheel
-All events reset a timeout via resetSleepTimer().
-After kylePetConfig.inactivity.sleepingAfterMs of silence -> isSleeping = true.
-Any interaction wakes Kibo immediately.
-
----
-
-## 11. Visibility and Blocking Rules
-
-Hidden (stored in localStorage):
-  Kibo renders as a small Restore Kibo button at bottom-right instead.
-  Clicking it removes the localStorage flag and re-shows Kibo.
-
-Blocked routes (returns null):
-  /home/onboarding
-  /auth/
-
-Visibility guard (useKiboVisibilityGuard):
-  After resize or extreme throw, snaps position back to nearest safe coordinate.
-
-Ask Kyle open:
-  pointer-events: none applied to the entire Kibo wrapper.
-  Prevents Kibo intercepting mouse events while the drawer is active.
-
----
-
-## 12. Global Event API
-
-Any component anywhere fires CustomEvents on window to drive Kibo:
-
-  window.dispatchEvent(new CustomEvent(kyle-pet-state, {
-    detail: {
-      state: empathetic,
-      action: say,
-      message: Take a breath you are doing great.,
-      duration: 12000
-    }
-  }));
-
-Supported fields:
-  state    — sets forcedState (thinking, celebrate, sad, angry, empathetic)
-  action   — say: open bubble with message | clear: reset to idle immediately
-  message  — text content for the bubble (required when action=say)
-  duration — auto-clears forcedState after N milliseconds
-
-action=clear is the critical failsafe.
-Used in KyleQuizModal catch block to prevent Kibo getting stuck in thinking if API fails.
