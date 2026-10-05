@@ -3,7 +3,7 @@ import { useEffect, useRef, useCallback } from 'react';
 const MAX_EYE_OFFSET = 8;
 const LERP_FACTOR = 0.08;
 
-export function useKiboEyeTracking({ eyesRef, wrapperRef, active }) {
+export function useKiboEyeTracking({ eyesRef, wrapperRef, active, trackFullPage = false }) {
   const cursorPos = useRef({ x: 0, y: 0 });
   const currentOffset = useRef({ x: 0, y: 0 });
   const rafId = useRef(null);
@@ -26,7 +26,14 @@ export function useKiboEyeTracking({ eyesRef, wrapperRef, active }) {
     currentOffset.current.x += (targetX - currentOffset.current.x) * LERP_FACTOR;
     currentOffset.current.y += (targetY - currentOffset.current.y) * LERP_FACTOR;
 
-    eyesRef.current.style.transform = `translate(${currentOffset.current.x.toFixed(2)}px, ${currentOffset.current.y.toFixed(2)}px)`;
+    const x = currentOffset.current.x.toFixed(2);
+    const y = currentOffset.current.y.toFixed(2);
+    
+    // Set CSS variables so animations can combine with the track offset
+    eyesRef.current.style.setProperty('--eye-track-x', `${x}px`);
+    eyesRef.current.style.setProperty('--eye-track-y', `${y}px`);
+    // Fallback/base transform using the variables
+    eyesRef.current.style.transform = `translate(var(--eye-track-x, ${x}px), var(--eye-track-y, ${y}px))`;
 
     rafId.current = requestAnimationFrame(tick);
   }, [eyesRef, wrapperRef]);
@@ -44,19 +51,22 @@ export function useKiboEyeTracking({ eyesRef, wrapperRef, active }) {
     const onMove = (e) => {
       if (!wrapperRef.current) return;
       
-      const rect = wrapperRef.current.getBoundingClientRect();
-      const kiboCenterX = rect.left + rect.width / 2;
-      const screenWidth = window.innerWidth;
-      
-      const isKiboOnLeft = kiboCenterX < screenWidth / 2;
-      
       let shouldIgnore = false;
-      if (isKiboOnLeft) {
-        // If Kibo is on the left, ignore cursor if it is on the far right 30% of the screen
-        shouldIgnore = e.clientX > screenWidth * 0.70;
-      } else {
-        // If Kibo is on the right, ignore cursor if it is on the far left 30% of the screen
-        shouldIgnore = e.clientX < screenWidth * 0.30;
+      
+      if (!trackFullPage) {
+        const rect = wrapperRef.current.getBoundingClientRect();
+        const kiboCenterX = rect.left + rect.width / 2;
+        const screenWidth = window.innerWidth;
+        
+        const isKiboOnLeft = kiboCenterX < screenWidth / 2;
+        
+        if (isKiboOnLeft) {
+          // If Kibo is on the left, ignore cursor if it is on the far right 30% of the screen
+          shouldIgnore = e.clientX > screenWidth * 0.70;
+        } else {
+          // If Kibo is on the right, ignore cursor if it is on the far left 30% of the screen
+          shouldIgnore = e.clientX < screenWidth * 0.30;
+        }
       }
       
       if (shouldIgnore) {

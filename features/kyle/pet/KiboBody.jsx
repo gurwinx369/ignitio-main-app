@@ -103,8 +103,8 @@ const KIBO_CSS = `
   50%       { transform: translateY(-4px); }
 }
 @keyframes kibo-eye-think {
-  0%, 100% { transform: translateY(-4px) scale(1.02); }
-  50%       { transform: translateY(-6px) scale(1.04); }
+  0%, 100% { transform: translate(var(--eye-track-x, 0px), calc(var(--eye-track-y, 0px) - 4px)) scale(1.02); }
+  50%       { transform: translate(var(--eye-track-x, 0px), calc(var(--eye-track-y, 0px) - 6px)) scale(1.04); }
 }
 
 /* ── Speaking ───────────────────────────────────────── */
@@ -118,8 +118,8 @@ const KIBO_CSS = `
   }
 }
 @keyframes kibo-eye-speak {
-  0%   { transform: scale(1) translateY(0); }
-  100% { transform: scale(1.03) translateY(-2px); }
+  0%   { transform: translate(var(--eye-track-x, 0px), var(--eye-track-y, 0px)) scale(1); }
+  100% { transform: translate(var(--eye-track-x, 0px), calc(var(--eye-track-y, 0px) - 2px)) scale(1.03); }
 }
 
 /* ── Celebrating ────────────────────────────────────── */
@@ -136,8 +136,8 @@ const KIBO_CSS = `
   100% { transform: translateY(-12px) rotate(3deg) scale(1.05); }
 }
 @keyframes kibo-eyes-celebrate {
-  0%   { transform: scale(1) translateY(0); }
-  100% { transform: scale(1.08) translateY(-3px); }
+  0%   { transform: translate(var(--eye-track-x, 0px), var(--eye-track-y, 0px)) scale(1); }
+  100% { transform: translate(var(--eye-track-x, 0px), calc(var(--eye-track-y, 0px) - 3px)) scale(1.08); }
 }
 
 /* ── Angry ──────────────────────────────────────────── */

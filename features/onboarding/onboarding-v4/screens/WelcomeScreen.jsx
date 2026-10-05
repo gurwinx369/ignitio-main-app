@@ -52,7 +52,7 @@ export default function WelcomeScreen({ onContinue }) {
   const kiboContainerRef = useRef(null);
 
   // Activate Kibo eye tracking
-  useKiboEyeTracking({ eyesRef, wrapperRef, active: true });
+  useKiboEyeTracking({ eyesRef, wrapperRef, active: true, trackFullPage: true });
 
   const isLastStep = step === 1;
 
