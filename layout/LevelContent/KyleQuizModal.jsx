@@ -185,6 +185,11 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
             console.error("Quiz submit error:", err);
             setErrorMsg(err.message || "Failed to submit quiz.");
             setStatus('error'); // Let them retry submit or bypass
+            
+            // Failsafe: clear Kibo's state if the submit API crashes
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { action: "clear" } }));
+            }
         }
     };
     
