@@ -34,9 +34,10 @@ function renderBasicMarkdown(text) {
   });
 }
 
-export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking, globalContext }) {
+export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking, globalContext, isLessonActive }) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const isLesson = isLessonActive || (pathname && (pathname.includes('/lesson') || pathname.includes('/video') || pathname.includes('/interactive-overviews')));
 
   const setKylePetVisualState = (state) => {
     if (typeof window === 'undefined') return;
@@ -114,8 +115,6 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
   }, [isOpen, messages, isThinking, error, isHighDemand]);
 
   // Removed auto-close logic so chat persists everywhere
-
-  if (!isOpen) return null;
 
   const sendQuestion = async (currentQuestion) => {
     setError(null);
@@ -245,9 +244,22 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}></div>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200 pointer-events-auto">
+      <div 
+        className={`fixed inset-0 z-[80] bg-black/20 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
+        onClick={onClose}
+      ></div>
+      <div 
+        className={isLesson
+          ? `fixed inset-y-0 left-0 z-[100] w-full sm:w-[400px] max-w-[90vw] pointer-events-none flex transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+          : `fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none transition-all duration-200 ease-out ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`
+        }
+      >
+        <div 
+          className={(isLesson
+            ? "bg-[#fffaf3] w-full h-full sm:rounded-r-3xl shadow-[4px_0_24px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col relative border-r border-[#e5d5c5]/50 "
+            : "bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] "
+          ) + (isOpen ? "pointer-events-auto" : "pointer-events-none")}
+        >
 
         {/* Header */}
         <div className="px-6 py-4 border-b-2 border-[#e5d5c5]/50 flex items-center justify-between">

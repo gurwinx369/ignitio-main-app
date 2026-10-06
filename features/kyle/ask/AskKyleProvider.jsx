@@ -8,6 +8,7 @@ export function AskKyleProvider({ children }) {
   const [options, setOptions] = useState({});
   const [isThinking, setIsThinking] = useState(false);
   const [globalContext, setGlobalContext] = useState(null);
+  const [isLessonActive, setIsLessonActive] = useState(false);
 
   const openAskKyle = useCallback((opts = {}) => {
     setOptions(opts);
@@ -20,9 +21,9 @@ export function AskKyleProvider({ children }) {
   }, []);
 
   return (
-    <AskKyleContext.Provider value={{ isOpen, openAskKyle, closeAskKyle, options, isThinking, setIsThinking, globalContext, setGlobalContext }}>
+    <AskKyleContext.Provider value={{ isOpen, openAskKyle, closeAskKyle, options, isThinking, setIsThinking, globalContext, setGlobalContext, isLessonActive, setIsLessonActive }}>
       {children}
-      <AskKyleModal isOpen={isOpen} onClose={closeAskKyle} options={options} isThinking={isThinking} setIsThinking={setIsThinking} globalContext={globalContext} />
+      <AskKyleModal isOpen={isOpen} onClose={closeAskKyle} options={options} isThinking={isThinking} setIsThinking={setIsThinking} globalContext={globalContext} isLessonActive={isLessonActive} />
     </AskKyleContext.Provider>
   );
 }

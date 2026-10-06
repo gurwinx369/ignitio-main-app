@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, ThumbsDown, ThumbsUp, Flag } from 'lucide-react';
+import { CheckCircle, ThumbsDown, ThumbsUp, Flag, ArrowRight } from 'lucide-react';
 import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 import { scheduleIdleTask } from '@/lib/utils/idleTask';
 import { AskKyleContext } from '@/features/kyle/ask/AskKyleProvider';
 import { useContext } from 'react';
-const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false }) => {
+const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false, hasNextStep = false, onNextStep }) => {
     const { openAskKyle } = useContext(AskKyleContext);
     const midpointCalledRef = useRef(false);
     const completionCalledRef = useRef(false);
@@ -214,15 +214,19 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                             {!hasWatched && canMarkComplete && (
                                 <div className="flex flex-col items-center gap-1">
                                     <button
-                                        onClick={onMarkComplete}
-                                        className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-sm sm:text-base font-bold"
+                                        onClick={hasNextStep ? onNextStep : onMarkComplete}
+                                        className={`inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 text-white rounded-full transition-all duration-150 border-b-[4px] active:border-b-0 active:translate-y-[4px] text-sm sm:text-base font-bold ${
+                                            hasNextStep 
+                                                ? 'bg-blue-500 hover:bg-blue-400 border-blue-700' 
+                                                : 'bg-green-500 hover:bg-green-400 border-green-700'
+                                        }`}
                                     >
-                                        <CheckCircle className="w-5 h-5" />
-                                        Complete
+                                        {hasNextStep ? <ArrowRight className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                                        {hasNextStep ? 'Continue to Practice' : 'Complete'}
                                     </button>
 
                                     <span className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight">
-                                        Click to complete this lesson
+                                        {hasNextStep ? 'Click to proceed to the next step' : 'Click to complete this lesson'}
                                     </span>
                                 </div>
                             )}
@@ -304,31 +308,6 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                                 }`}
                         >
                             <ThumbsDown className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
-                        
-                        <div className="absolute right-0 hidden sm:block">
-                            <button
-                                onClick={() => openAskKyle({ context: { concept: level.concept, transcript: level.transcript } })}
-                                className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5 active:translate-y-0 text-sm"
-                            >
-                                <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
-                                    <KiboAvatar width={20} height={20} className="w-5 h-5 rounded-full shadow-sm" />
-                                </div>
-                                <span className="tracking-wide">Ask Kibo</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {/* Mobile Ask Kyle button */}
-                    <div className="flex justify-center sm:hidden pt-2">
-                        <button
-                            onClick={() => openAskKyle({ context: { concept: level.concept, transcript: level.transcript } })}
-                            className="group inline-flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full font-bold transition-all duration-300 shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] active:scale-95 text-sm"
-                        >
-                            <div className="bg-white/20 p-0.5 rounded-full backdrop-blur-sm">
-                                <KiboAvatar width={20} height={20} className="w-5 h-5 rounded-full shadow-sm" />
-                            </div>
-                            <span className="tracking-wide">Ask Kibo</span>
                         </button>
                     </div>
                 </div>

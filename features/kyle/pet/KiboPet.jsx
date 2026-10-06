@@ -217,13 +217,7 @@ export default function KiboPet() {
       return;
     }
 
-    if (context === 'lesson') {
-      setMessage("Use the lesson Ask Kibo tab for this concept-specific question.");
-      resetSleepTimer();
-      if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
-      bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
-      return;
-    }
+    // Removed the "Use the lesson Ask Kibo tab" block to allow chat opening in lessons
 
     openAskKyle({
       source: "kibo-pet",
@@ -257,13 +251,7 @@ export default function KiboPet() {
     e.stopPropagation();
     const context = getKyleRouteContext(pathname);
     
-    if (context === 'lesson') {
-      setMessage("Use the lesson Ask Kibo tab for this concept-specific question.");
-      resetSleepTimer();
-      if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
-      bubbleTimeoutRef.current = setTimeout(closeBubble, kylePetConfig.bubble.autoCloseMs);
-      return;
-    }
+    // Removed the "Use the lesson Ask Kibo tab" block to allow chat opening in lessons
 
     openAskKyle({
       source: "kibo-pet",

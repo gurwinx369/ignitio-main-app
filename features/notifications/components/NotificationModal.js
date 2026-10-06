@@ -7,6 +7,7 @@ import { useNotification } from "../context/NotificationContext";
 import { useAuth } from "@/features/context/AuthContext";
 import axios from "axios";
 import { hasUserCompletedAnyLesson } from "@/lib/roadmaps/progress.helpers";
+import KiboAvatar from "@/features/kyle/pet/KiboAvatar";
 
 export default function NotificationModal() {
   const { permission, requestPermission } = useNotification();
@@ -193,14 +194,9 @@ export default function NotificationModal() {
             {/* Avatar & Streak Icons Column */}
             <div className="flex flex-col items-center gap-2 sm:gap-3 shrink-0">
               <div className="relative w-[64px] h-[64px] sm:w-[90px] sm:h-[90px] bg-gradient-to-b from-[#fffcf8] to-[#fff5e6] rounded-[14px] sm:rounded-2xl flex items-center justify-center border border-orange-50 shadow-inner">
-                <Image
-                  src="/notifications/noti_kyle.svg"
-                  alt=""
-                  width={100}
-                  height={100}
-                  className="w-[70px] sm:w-[95px] absolute -bottom-1 object-contain drop-shadow-md z-10"
-                  priority
-                />
+                <div className="w-[70px] h-[70px] sm:w-[95px] sm:h-[95px] absolute -bottom-1 drop-shadow-md z-10">
+                  <KiboAvatar width="100%" height="100%" />
+                </div>
               </div>
               
               {/* Small Streak visualization */}

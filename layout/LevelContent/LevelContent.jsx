@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import { AskKyleContext } from '@/features/kyle/ask/AskKyleProvider';
 import VideoTab from "./VideoTab";
 import PracticeTab from "./PracticeTab";
 import DoubtSolver from "./DoubtSolver";
 import KyleQuizModal from "./KyleQuizModal";
 import { isKyleEnabledRoadmap } from "@/features/roadmaps/lib/roadmapCapabilities";
-import { AskKyleContext } from "@/features/kyle/ask/AskKyleProvider";
-import { useContext } from "react";
 import { useAuth } from "@/features/context/AuthContext";
 
 const LevelContent = ({
@@ -20,15 +19,18 @@ const LevelContent = ({
   showAssignmentModal = false,
   isPreview = false,
 }) => {
-  const [activeTab, setActiveTab] = useState("video");
+  const askKyleContext = useContext(AskKyleContext);
+  const isAskKyleOpen = askKyleContext?.isOpen;
+  const [currentStep, setCurrentStep] = useState(0);
   const [hasWatched, setHasWatched] = useState(isCompleted);
   const [feedback, setFeedback] = useState(null);
   const cleanupRef = useRef(null);
   const prevLevelIdRef = useRef(null);
   const recoveryRanRef = useRef(false); // gates mount-time quiz recovery to run exactly once
 
-  const askKyleContext = useContext(AskKyleContext);
+
   const setGlobalContext = askKyleContext?.setGlobalContext;
+  const setIsLessonActive = askKyleContext?.setIsLessonActive;
   const { user } = useAuth();
 
   const isKyleRoadmap = isKyleEnabledRoadmap(roadmapType);
@@ -36,6 +38,13 @@ const LevelContent = ({
   const isCRoadmap = roadmapType.startsWith("c-language");
   const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap && !isCRoadmap;
   const showPracticeTab = !isKyleRoadmap || isPythonRoadmap || isCRoadmap;
+
+  useEffect(() => {
+    if (setIsLessonActive) {
+      setIsLessonActive(true);
+      return () => setIsLessonActive(false);
+    }
+  }, [setIsLessonActive]);
 
   // --- Dual quiz gate keys ---
   // Gate 1: fires at 50% watch (midpoint check-in, does NOT unlock button)
@@ -64,7 +73,7 @@ const LevelContent = ({
   const [activeQuizGate, setActiveQuizGate] = useState(null); // '50' | '80' | null
   const [showQuizModal, setShowQuizModal] = useState(false);
 
-  const shouldPauseVideo = showQuizModal || showAssignmentModal;
+  const shouldPauseVideo = showQuizModal || showAssignmentModal || isAskKyleOpen;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -90,25 +99,25 @@ const LevelContent = ({
   // Fetch and show a fun fact about the transcript when the level loads
   useEffect(() => {
     if (!level?.transcript || !level?.concept || !isKyleRoadmap) return;
-    
+
     // Ensure we only do this once per level per session
     const storageKey = `kibo_fun_fact_${level.id}`;
     if (sessionStorage.getItem(storageKey) === 'true') return;
-    
+
     let isCancelled = false;
-    
+
     const fetchFunFact = async () => {
       try {
         const profession = localStorage.getItem("profession") || "student";
         const token = user ? await user.getIdToken() : null;
-        
+
         if (!token) return; // Wait for user auth
-        
+
         const res = await fetch("/api/v2/kyle/funfact", {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
+            "Authorization": `Bearer ${token}`
           },
           body: JSON.stringify({
             concept: level.concept,
@@ -116,9 +125,9 @@ const LevelContent = ({
             user_profession: profession
           })
         });
-        
+
         if (isCancelled) return;
-        
+
         if (res.ok) {
           const data = await res.json();
           if (data.fun_fact && !isCancelled) {
@@ -127,8 +136,8 @@ const LevelContent = ({
             setTimeout(() => {
               if (isCancelled) return;
               window.dispatchEvent(
-                new CustomEvent("kyle-pet-state", { 
-                  detail: { action: "say", message: data.fun_fact, duration: 12000 } 
+                new CustomEvent("kyle-pet-state", {
+                  detail: { action: "say", message: data.fun_fact, duration: 12000 }
                 })
               );
             }, 3000);
@@ -138,24 +147,24 @@ const LevelContent = ({
         console.error("Failed to fetch Kibo fun fact:", err);
       }
     };
-    
+
     if (user) {
       fetchFunFact();
     }
-    
+
     return () => {
       isCancelled = true;
     };
   }, [level?.id, level?.concept, level?.transcript, isKyleRoadmap, user]);
 
   useEffect(() => {
-    if (!showPracticeTab && activeTab === "practice") {
-      setActiveTab("video");
+    if (!showPracticeTab && currentStep === 1) {
+      setCurrentStep(0);
     }
-    if (!showAskKyleTab && activeTab === "kyle") {
-      setActiveTab("video");
+    if (!showAskKyleTab && currentStep === 2) {
+      setCurrentStep(0);
     }
-  }, [showPracticeTab, showAskKyleTab, activeTab]);
+  }, [showPracticeTab, showAskKyleTab, currentStep]);
 
   // Render-phase state reset when level changes. 
   // This ensures we reset the queue BEFORE VideoTab mounts and fires its triggers,
@@ -269,7 +278,7 @@ const LevelContent = ({
   // Purpose: unlock button AND trigger 80% quiz on Kyle roadmaps
   const handleCompletionMet = useCallback(() => {
     setCanMarkComplete(true); // 80% threshold — button eligibility unlocked
-    
+
     // Dispatch celebration at 80%
     if (typeof window !== "undefined") {
       window.dispatchEvent(
@@ -347,83 +356,87 @@ const LevelContent = ({
   }, [level.id, roadmapType, isSegmentBased, onComplete]);
 
   return (
-    <div className="w-full min-h-screen bg-linear-to-br from-gray-50 via-amber-50 to-gray-100">
-      {/* Header */}
-      <div className="bg-transparent px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="max-w-5xl mx-auto">
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-blue-400 hover:bg-blue-500 text-white rounded-full transition-all duration-200 hover:shadow-lg active:scale-95 text-sm sm:text-base font-medium mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+    <div className="flex w-full min-h-screen bg-linear-to-br from-gray-50 via-amber-50 to-gray-100">
+      {/* Squeeze placeholder that expands when Ask Kibo drawer is open */}
+      <div className={`transition-[width] duration-300 ease-in-out shrink-0 hidden sm:block ${isAskKyleOpen ? 'w-[400px]' : 'w-0'}`} />
 
-          {/* Video/Practice/Ask Kyle Switcher — hidden in preview (video only) */}
-          {!isPreview && (
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <div className="inline-flex bg-orange-200/60 rounded-full p-1">
-                <button
-                  onClick={() => setActiveTab("video")}
-                  className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === "video"
-                      ? "bg-blue-400 text-white shadow-md"
-                      : "text-gray-700 hover:text-gray-900"
-                    }`}
-                >
-                  Video
-                </button>
-                {showPracticeTab && (
-                  <button
-                    onClick={() => setActiveTab("practice")}
-                    className={`px-8 sm:px-12 py-2.5 sm:py-3 rounded-full text-base sm:text-lg font-medium transition-all duration-300 ${activeTab === "practice"
-                        ? "bg-blue-400 text-white shadow-md"
-                        : "text-gray-700 hover:text-gray-900"
-                      }`}
-                  >
-                    Practice
-                  </button>
-                )}
+      {/* Main Content Area */}
+      <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out">
+        {/* Header */}
+        <div className="bg-transparent px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="max-w-5xl mx-auto">
+            {/* Back Button */}
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-blue-400 hover:bg-blue-500 text-white rounded-full transition-all duration-200 hover:shadow-lg active:scale-95 text-sm sm:text-base font-medium mb-6"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Progress Bar (Step Indicator) — hidden in preview (video only) */}
+            {!isPreview && showPracticeTab && (
+              <div className="flex justify-center mb-6 sm:mb-8">
+                <div className="flex items-center gap-2 w-full max-w-sm">
+                  <div className={`h-2.5 rounded-full flex-1 transition-all duration-300 ${currentStep >= 0 ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-gray-200"}`} />
+                  <div className={`h-2.5 rounded-full flex-1 transition-all duration-300 ${currentStep >= 1 ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-gray-200"}`} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Content - VideoTab always mounted to keep player warm, others conditionally rendered */}
-      <div className={activeTab === "video" ? "block" : "hidden"}>
-        <VideoTab
-          level={level}
-          hasWatched={hasWatched}
-          onMidpointMet={handleMidpointMet}
-          onCompletionMet={handleCompletionMet}
-          onMarkComplete={handleMarkComplete}
-          feedback={feedback}
-          setFeedback={setFeedback}
-          hasMetWatchThreshold={canMarkComplete}
-          canMarkComplete={canMarkCompleteAfterQuiz}
-          roadmapType={roadmapType}
-          isVisible={activeTab === "video"}
-          shouldPauseVideo={shouldPauseVideo}
-        />
+        {/* Content - VideoTab always mounted to keep player warm, others conditionally rendered */}
+        <div className={currentStep === 0 ? "block" : "hidden"}>
+          <VideoTab
+            level={level}
+            hasWatched={hasWatched}
+            onMidpointMet={handleMidpointMet}
+            onCompletionMet={handleCompletionMet}
+            onMarkComplete={handleMarkComplete}
+            feedback={feedback}
+            setFeedback={setFeedback}
+            hasMetWatchThreshold={canMarkComplete}
+            canMarkComplete={canMarkCompleteAfterQuiz}
+            roadmapType={roadmapType}
+            isVisible={currentStep === 0}
+            shouldPauseVideo={shouldPauseVideo}
+            hasNextStep={showPracticeTab && !isPreview}
+            onNextStep={() => {
+              setCurrentStep(1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+        {/* Practice tab suppressed in preview */}
+        {currentStep === 1 && showPracticeTab && !isPreview && (
+          <div className="pb-24">
+            <PracticeTab level={level} roadmapType={roadmapType} />
+            <div className="max-w-7xl mx-auto px-4 mt-8 flex justify-end">
+              <button
+                onClick={handleMarkComplete}
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-lg font-bold shadow-lg"
+              >
+                <CheckCircle className="w-6 h-6" />
+                Complete Lesson
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Quiz suppressed in preview — no auth context available */}
+        {!isPreview && (
+          <KyleQuizModal
+            key={activeQuizGate || 'empty'}
+            open={showQuizModal}
+            level={level}
+            roadmapType={roadmapType}
+            dayNumber={dayNumber}
+            role={role}
+            gateType={activeQuizGate}
+            onAnswered={handleQuizAnswered}
+            onCloseAfterAnswered={handleCloseQuizModal}
+          />
+        )}
       </div>
-      {/* Practice tab suppressed in preview */}
-      {activeTab === "practice" && showPracticeTab && !isPreview && (
-        <PracticeTab level={level} roadmapType={roadmapType} />
-      )}
-      {/* Quiz suppressed in preview — no auth context available */}
-      {!isPreview && (
-        <KyleQuizModal
-          key={activeQuizGate || 'empty'}
-          open={showQuizModal}
-          level={level}
-          roadmapType={roadmapType}
-          dayNumber={dayNumber}
-          role={role}
-          gateType={activeQuizGate}
-          onAnswered={handleQuizAnswered}
-          onCloseAfterAnswered={handleCloseQuizModal}
-        />
-      )}
     </div>
   );
 };
