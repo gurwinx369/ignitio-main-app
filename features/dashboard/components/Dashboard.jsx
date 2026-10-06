@@ -303,17 +303,20 @@ export default function Dashboard() {
     // Compute which roadmaps are locked based on sequential completion.
     // A roadmap at position i in UNLOCK_ORDER is locked if position i-1 isn't 100% done.
     // Roadmaps not in UNLOCK_ORDER (prompt-engineering, DSA) are always unlocked.
+    // ponytail: dev bypass — all cards unlocked in development for testing
     const lockedIds = new Set();
-    for (let i = 1; i < UNLOCK_ORDER.length; i++) {
-      const prevId = UNLOCK_ORDER[i - 1];
-      const prevProgress = progressMap[prevId];
-      const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
-      if (!prevDone) {
-        // This roadmap and all subsequent ones are locked
-        for (let j = i; j < UNLOCK_ORDER.length; j++) {
-          lockedIds.add(UNLOCK_ORDER[j]);
+    if (process.env.NODE_ENV !== "development") {
+      for (let i = 1; i < UNLOCK_ORDER.length; i++) {
+        const prevId = UNLOCK_ORDER[i - 1];
+        const prevProgress = progressMap[prevId];
+        const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
+        if (!prevDone) {
+          // This roadmap and all subsequent ones are locked
+          for (let j = i; j < UNLOCK_ORDER.length; j++) {
+            lockedIds.add(UNLOCK_ORDER[j]);
+          }
+          break;
         }
-        break;
       }
     }
 

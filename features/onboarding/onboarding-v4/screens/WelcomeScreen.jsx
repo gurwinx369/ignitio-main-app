@@ -65,7 +65,7 @@ export default function WelcomeScreen({ onContinue }) {
     if (onContinue) {
       onContinue();
     } else {
-      router.push("/onboarding/diagnostic");
+      router.push("/onboarding");
     }
   };
 

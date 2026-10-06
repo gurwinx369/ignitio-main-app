@@ -33,7 +33,7 @@ import KnowledgeCheckScreen from "./screens/KnowledgeCheckScreen";
 import FreeDiagnostic from "./FreeDiagnostic";
 import RevealScreen from "./screens/RevealScreen";
 import NotificationScreen from "./screens/NotificationScreen";
-import RoadmapResult from "./screens/RoadmapResult";
+import MonthRoadmapResult from "./screens/MonthRoadmapResult";
 
 // ── Screen names ────────────────────────────────────────────────────────────
 const SCREENS = {
@@ -88,7 +88,7 @@ export default function FreeOnboarding() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [screen, setScreen] = useState(SCREENS.GOAL);
+  const [screen, setScreen] = useState(SCREENS.YEAR);
   const [goal, setGoal] = useState(null);
   const [year, setYear] = useState(null);
   const [diagnosticResults, setDiagnosticResults] = useState(null); // Array<{ skillId, verdict, include }>
@@ -124,20 +124,20 @@ export default function FreeOnboarding() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleGoal = useCallback((selectedGoal) => {
-    setGoal(selectedGoal);
-    setScreen(SCREENS.YEAR);
-  }, []);
-
   const handleYear = useCallback((selectedYear) => {
     setYear(selectedYear);
+    setScreen(SCREENS.GOAL);
+  }, []);
+
+  const handleGoal = useCallback((selectedGoal) => {
+    setGoal(selectedGoal);
     // Path A shortcut check
-    if (isShortcutPath(goal, selectedYear)) {
+    if (isShortcutPath(selectedGoal, year)) {
       setScreen(SCREENS.SHORTCUT);
     } else {
       setScreen(SCREENS.KNOWLEDGE_CHECK);
     }
-  }, [goal]);
+  }, [year]);
 
   const handleShortcutFastTrack = useCallback(() => {
     // Path A — exit to Gen AI module's own onboarding
@@ -220,15 +220,15 @@ export default function FreeOnboarding() {
 
   // ── Screen rendering ─────────────────────────────────────────────────────────
 
-  if (screen === SCREENS.GOAL) {
-    return <GoalScreen onNext={handleGoal} />;
+  if (screen === SCREENS.YEAR) {
+    return <YearScreen onNext={handleYear} />;
   }
 
-  if (screen === SCREENS.YEAR) {
+  if (screen === SCREENS.GOAL) {
     return (
-      <YearScreen
-        onNext={handleYear}
-        onBack={() => setScreen(SCREENS.GOAL)}
+      <GoalScreen
+        onNext={handleGoal}
+        onBack={() => setScreen(SCREENS.YEAR)}
       />
     );
   }
@@ -278,14 +278,15 @@ export default function FreeOnboarding() {
 
   if (screen === SCREENS.ROADMAP_RESULT && roadmap) {
     return (
-      <RoadmapResult
+      <MonthRoadmapResult
         roadmap={roadmap}
         path={path}
         onContinue={handleRoadmapResultContinue}
+        onBack={() => setScreen(SCREENS.NOTIFICATION)}
       />
     );
   }
 
   // Fallback — should not be reached in normal flow
-  return <GoalScreen onNext={handleGoal} />;
+  return <YearScreen onNext={handleYear} />;
 }
