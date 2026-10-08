@@ -10,6 +10,7 @@ import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
+import useSWR from "swr";
 import { useAuth } from "@/features/context/AuthContext";
 import {
   getPromptEngineeringRoadmapByRole,
@@ -61,7 +62,7 @@ export default function Dashboard() {
   const requestedTab =
     searchParams.get("tab");
   const posthog = usePostHog();
-  const { user } = useAuth();
+  const { user, userProfile, isProfileLoading } = useAuth();
   const {
     status,
     retry,
@@ -98,83 +99,31 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
-  const [profileData, setProfileData] = useState(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const fetcher = async (url) => {
+    if (!user) return null;
+    const token = await user.getIdToken();
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error("Failed to fetch");
+    const data = await res.json();
+    return data.profile;
+  };
+
+  const { data: profileData, isLoading: isLoadingProfile } = useSWR(
+    user ? "/api/v2/profile" : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  );
 
   // We store the full list of parsed roadmaps so we can feed them to Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      let role = "other";
-
-      if (user) {
-        try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/v2/user", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-
-            if (data.user?.requiresOnboarding) {
-              router.replace("/onboarding");
-              return;
-            }
-
-            role = data.user?.role || "other";
-          } else {
-            if (res.status === 404) {
-              router.replace("/onboarding");
-              return;
-            }
-          }
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.error(
-              "Failed to fetch user role:",
-              error?.message || "unknown error",
-            );
-          }
-
-          role = "other";
-        }
-      }
-
-      setUserRole(role);
-      setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
-      setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
-    };
-
-    const fetchProfile = async () => {
-      if (!user) {
-        setIsLoadingProfile(false);
-        return;
-      }
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("/api/v2/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setProfileData(data.profile);
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
-    if (user !== undefined) {
-      fetchUserRole();
-      fetchProfile();
-    }
-  }, [user, router]);
+    if (!userProfile) return;
+    const role = userProfile.role || "other";
+    setUserRole(role);
+    setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
+    setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
+  }, [userProfile]);
 
   useEffect(() => {
     setIsClient(true);
@@ -367,7 +316,7 @@ export default function Dashboard() {
   const handleRedirectCLang = () =>
     handleRedirect(redirects.CLang);
 
-  const displayName = profileData?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
+  const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
   const carouselRoadmaps = [];
 

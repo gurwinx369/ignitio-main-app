@@ -6,6 +6,7 @@ import {
   onForegroundMessage,
   displayNotification,
 } from "../../../lib/firebase/firebase-messaging";
+import { auth } from "../../../lib/firebase/firebase";
 
 const NotificationContext = createContext({});
 
@@ -93,9 +94,13 @@ export const NotificationProvider = ({ children }) => {
 
   const saveTokenToBackend = async (fcmToken, email) => {
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
       const response = await fetch("/api/v1/notifications/save-token", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(idToken && { Authorization: `Bearer ${idToken}` })
+        },
         body: JSON.stringify({ token: fcmToken, email: email }),
       });
       const data = await response.json();
