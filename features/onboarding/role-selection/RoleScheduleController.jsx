@@ -63,7 +63,7 @@ export default function RoleScheduleController() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isGenAiPreview = searchParams.get("from") === "genai_preview";
-  const { user } = useAuth();
+  const { user, userProfile, mutateProfile } = useAuth();
 
   const [step, setStep] =
     useState("role");
@@ -78,36 +78,23 @@ export default function RoleScheduleController() {
   const [hasPrefilledRole, setHasPrefilledRole] = useState(false);
 
   React.useEffect(() => {
-    // For logged-in users, prefill role from DB and skip role step
-    if (user) {
+    if (user && userProfile === "missing") {
       user.getIdToken().then((token) => {
-        fetch("/api/v2/user", { headers: { Authorization: `Bearer ${token}` } })
-          .then((res) => {
-            if (res.status === 404) {
-              fetch("/api/v2/user", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ email: user.email })
-              }).catch(() => {});
-              return null;
-            }
-            return res.ok ? res.json() : null;
-          })
-          .then((data) => {
-            const existingRole = data?.user?.role;
-            const currentStep = data?.user?.onboardingState?.step;
-            if (existingRole && currentStep !== "role_selection") {
-              setRole(existingRole);
-              setStep("schedule");
-              setHasPrefilledRole(true);
-            }
-          })
-          .catch(() => {});
+        fetch("/api/v2/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ email: user.email })
+        }).then(() => mutateProfile()).catch(() => {});
       });
-      return;
-    }
-    // Preview path: role stored in localStorage
-    if (typeof window !== "undefined") {
+    } else if (userProfile && userProfile !== "missing") {
+      const existingRole = userProfile.role;
+      const currentStep = userProfile.onboardingState?.step;
+      if (existingRole && currentStep !== "role_selection") {
+        setRole(existingRole);
+        setStep("schedule");
+        setHasPrefilledRole(true);
+      }
+    } else if (!user && typeof window !== "undefined") {
       const savedRole = localStorage.getItem("profession");
       if (savedRole) {
         setRole(savedRole);
@@ -115,7 +102,7 @@ export default function RoleScheduleController() {
         setHasPrefilledRole(true);
       }
     }
-  }, [user]);
+  }, [user, userProfile, mutateProfile]);
 
   // Timezone is auto-detected from the browser; no UI dropdown needed.
   const [timezone] = useState(() => {
@@ -268,13 +255,13 @@ export default function RoleScheduleController() {
           : null;
 
       if (!nextRoute) {
-        setErrorMsg(
-          "System error: Unknown next step.",
-        );
-
+        setErrorMsg("System error: Unknown next step.");
         setLoading(false);
         return;
       }
+
+      // Revalidate the global profile state since we just mutated the user
+      await mutateProfile();
 
       router.push(nextRoute);
     } catch {

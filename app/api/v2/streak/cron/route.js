@@ -58,6 +58,13 @@ export async function GET(request) {
       ],
     }).lean();
 
+    const userIdsString = users.map(u => u._id.toString());
+    const allNotifications = await UserNotification.find({
+      userID: { $in: userIdsString }
+    }).lean();
+    const notificationsMap = new Map(allNotifications.map(n => [n.userID, n]));
+
+
     const summaryData = {
       ok: true,
       dryRun,
@@ -151,9 +158,7 @@ export async function GET(request) {
         continue;
       }
 
-      const notificationPref = await UserNotification.findOne({
-        userID: user._id.toString(),
-      }).lean();
+      const notificationPref = notificationsMap.get(user._id.toString());
 
       let channel = "email";
       let fcmToken = null;

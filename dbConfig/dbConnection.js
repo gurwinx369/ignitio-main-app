@@ -23,6 +23,9 @@ const connectDB = async () => {
       const connection = await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 10000,
+        maxPoolSize: 10,
+        minPoolSize: 1,
+        socketTimeoutMS: 45000,
       });
 
       mongoose.connection.on("disconnected", () => {

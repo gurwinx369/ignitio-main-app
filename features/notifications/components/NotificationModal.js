@@ -133,9 +133,11 @@ export default function NotificationModal() {
         if (fcmToken) {
           const alreadySentWelcome = localStorage.getItem("welcome_notification_sent");
           if (!alreadySentWelcome) {
+            const idToken = user?.getIdToken ? await user.getIdToken() : null;
             axios({
               method: "POST",
               url: "/api/v1/notifications/welcome",
+              headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
               data: { token: fcmToken },
             }).catch(e => {
               if (process.env.NODE_ENV === "development") console.error("Welcome notif failed", e);
