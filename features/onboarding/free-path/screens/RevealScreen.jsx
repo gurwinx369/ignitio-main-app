@@ -13,7 +13,8 @@ const VERDICT_CONFIG = {
     strikethrough: true,
   },
   developing: {
-    label: "keeping this in. Gaps here compound later, so we're not skipping it.",
+    label:
+      "keeping this in. Gaps here compound later, so we're not skipping it.",
     icon: "📈",
     bg: "#EFF6FF",
     border: "#93C5FD",
@@ -21,7 +22,8 @@ const VERDICT_CONFIG = {
     strikethrough: false,
   },
   gap: {
-    label: "keeping this in. The gaps that showed up here compound badly later, so we're not skipping it.",
+    label:
+      "keeping this in. The gaps that showed up here compound badly later, so we're not skipping it.",
     icon: "🔧",
     bg: "#FFF7ED",
     border: "#FCD34D",
@@ -77,7 +79,10 @@ function SkillResultRow({ skillId, verdict, delay }) {
               {SKILL_LABELS[skillId]}
             </span>
           </p>
-          <p className="text-[13px] mt-1 leading-snug" style={{ color: config.text }}>
+          <p
+            className="text-[13px] mt-1 leading-snug"
+            style={{ color: config.text }}
+          >
             {config.label}
           </p>
         </div>
@@ -145,7 +150,10 @@ export default function RevealScreen({ results, onNext }) {
           type="button"
           onClick={onNext}
           className="w-full py-4 rounded-2xl text-white font-extrabold text-[16px] uppercase tracking-wide mt-2 transition-all active:scale-[0.98] focus-visible:outline-none"
-          style={{ background: "linear-gradient(135deg, #00bfff, #0288d1)", boxShadow: "0 4px 0 #005fa3" }}
+          style={{
+            background: "linear-gradient(135deg, #00bfff, #0288d1)",
+            boxShadow: "0 4px 0 #005fa3",
+          }}
         >
           Continue
         </button>
