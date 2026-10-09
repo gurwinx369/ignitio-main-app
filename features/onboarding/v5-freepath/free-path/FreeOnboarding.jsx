@@ -194,7 +194,7 @@ export default function FreeOnboarding() {
     setScreen(SCREENS.ROADMAP_RESULT);
   }, []);
 
-  const handleRoadmapResultContinue = useCallback(() => {
+  const handleRoadmapResultContinue = useCallback(async () => {
     // Persist onboarding result before auth so it survives the auth flow
     try {
       localStorage.setItem("ignitio:onboarding_result", JSON.stringify({
@@ -211,11 +211,43 @@ export default function FreeOnboarding() {
     }
 
     clearPersisted();
-    // Route to existing auth flow, or directly to role-selection if already authenticated
+    // Route to existing auth flow, or directly activate if already authenticated
     if (user) {
-      router.push("/onboarding/role-selection");
+      try {
+        const idToken = await user.getIdToken();
+        const { deriveScheduleFromBrowser } = await import('@/lib/onboarding/schedule-periods');
+        const { syncOnboardingFromLocalStorage } = await import('@/lib/onboarding/sync-localstorage');
+
+        const derived = deriveScheduleFromBrowser();
+        await syncOnboardingFromLocalStorage(idToken);
+
+        await fetch("/api/v2/onboarding/role-schedule", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            role: "student",
+            schedule: {
+              timezone: derived.timezone,
+              windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
+            },
+          }),
+        });
+
+        await fetch("/api/v2/onboarding/activate", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+
+        window.location.href = "/home";
+      } catch (err) {
+        // Fallback if anything fails
+        window.location.href = "/home";
+      }
     } else {
-      router.push("/auth/login");
+      router.push("/auth/signup");
     }
   }, [goal, year, path, roadmap, diagnosticResults, notificationAllowed, router, user]);
 

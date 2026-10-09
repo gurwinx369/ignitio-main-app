@@ -28,10 +28,51 @@ async function ensureCanonicalOnboardingState(profile) {
     return profile;
   }
 
-  if (
-    profile.onboardingComplete ||
-    profile.onboardingState?.step
-  ) {
+  const step = profile.onboardingState?.step;
+
+  // Legacy auto-heal: If a user is stuck on "role_selection" (deprecated),
+  // forcefully bump them to "activation_pending" and give them a valid schedule if missing,
+  // so they can pass activation seamlessly.
+  if (!profile.onboardingComplete && step === "role_selection") {
+    const defaultSchedule = {
+      timezone: "UTC",
+      windows: [
+        {
+          period: "MORNING",
+          startTime: "09:00",
+          endTime: "10:00",
+        },
+      ],
+      isDefault: true,
+    };
+
+    const updatedProfile = await UserProfile.findOneAndUpdate(
+      { _id: profile._id },
+      {
+        $set: {
+          role: profile.role || "student",
+          schedulePreference: profile.schedulePreference?.windows?.length > 0 ? profile.schedulePreference : defaultSchedule,
+          "onboardingState.step": "activation_pending",
+          onboardingVersion: ONBOARDING_VERSIONS.V5,
+        },
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+        timestamps: false,
+      }
+    )
+      .select("-__v")
+      .lean();
+
+    if (!updatedProfile) {
+      throw new Error("Failed to auto-heal legacy onboarding state");
+    }
+
+    return updatedProfile;
+  }
+
+  if (profile.onboardingComplete || step) {
     return profile;
   }
 
@@ -42,7 +83,7 @@ async function ensureCanonicalOnboardingState(profile) {
     },
     {
       $set: {
-        onboardingVersion: ONBOARDING_VERSIONS.V4,
+        onboardingVersion: ONBOARDING_VERSIONS.V5,
 
         // Set the whole embedded document rather than a dotted child path.
         // This safely handles legacy documents where onboardingState is
@@ -234,7 +275,7 @@ export async function POST(request) {
       email: tokenEmail,
       role: "student",
       onboardingComplete: false,
-      onboardingVersion: ONBOARDING_VERSIONS.V4,
+      onboardingVersion: ONBOARDING_VERSIONS.V5,
       onboardingState: {
         step: "activation_pending",
       },

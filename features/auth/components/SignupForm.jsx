@@ -9,51 +9,7 @@ import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
 import { syncOnboardingFromLocalStorage } from '@/lib/onboarding/sync-localstorage';
-
-function deriveScheduleFromBrowser() {
-  const tz = (typeof Intl !== "undefined" &&
-    Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC";
-
-  const now   = new Date();
-  const h     = now.getHours();
-  const m     = now.getMinutes();
-
-  const roundedM  = Math.round(m / 15) * 15;
-  const carry     = roundedM >= 60 ? 1 : 0;
-  const startH    = (h + carry) % 24;
-  const startM    = roundedM % 60;
-
-  let period;
-  if (startH >= 5 && startH < 12)       period = "MORNING";
-  else if (startH >= 12 && startH < 17) period = "NOON";
-  else if (startH >= 17 && startH < 21) period = "EVENING";
-  else                                   period = "NIGHT";
-
-  const bounds = {
-    MORNING: { min: "05:00", max: "12:00" },
-    NOON:    { min: "12:00", max: "17:00" },
-    EVENING: { min: "17:00", max: "21:00" },
-    NIGHT:   { min: "21:00", max: "23:59" },
-  };
-
-  const { min, max } = bounds[period];
-  const [minH, minM] = min.split(":").map(Number);
-  const [maxH, maxM] = max.split(":").map(Number);
-  const minMins      = minH * 60 + minM;
-  const maxMins      = maxH * 60 + maxM;
-
-  let startMins = startH * 60 + startM;
-
-  if (startMins < minMins) startMins = minMins;
-
-  const pad      = (n) => String(n).padStart(2, "0");
-  const startTime = `${pad(Math.floor(startMins / 60))}:${pad(startMins % 60)}`;
-
-  const rawEndMins = Math.min(startMins + 60, maxMins);
-  const endTime    = `${pad(Math.floor(rawEndMins / 60))}:${pad(rawEndMins % 60)}`;
-
-  return { timezone: tz, period, startTime, endTime };
-}
+import { deriveScheduleFromBrowser } from '@/lib/onboarding/schedule-periods';
 
 async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
@@ -137,6 +93,10 @@ export default function SignupForm() {
       if (result.success) {
         try {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
+          const idToken = await result.user.getIdToken();
+
+          // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
+          await syncOnboardingFromLocalStorage(idToken);
 
           if (result.authMode === "new_signup") {
             const isGenAiPreview =
@@ -157,11 +117,7 @@ export default function SignupForm() {
             }
 
             try {
-              const idToken = await result.user.getIdToken();
               const derived = deriveScheduleFromBrowser();
-
-              // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
-              await syncOnboardingFromLocalStorage(idToken);
 
               const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
                 method: "POST",
@@ -187,7 +143,7 @@ export default function SignupForm() {
 
               if (!activateRes.ok) throw new Error("activate_failed");
 
-              router.replace("/home");
+              window.location.href = "/home";
             } catch {
               setActivationError(true);
               setLoading(false);
@@ -223,6 +179,10 @@ export default function SignupForm() {
       if (result.success) {
         try {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
+          const idToken = await result.user.getIdToken();
+
+          // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
+          await syncOnboardingFromLocalStorage(idToken);
 
           if (result.authMode === "new_signup") {
             const isGenAiPreview =
@@ -243,11 +203,7 @@ export default function SignupForm() {
             }
 
             try {
-              const idToken = await result.user.getIdToken();
               const derived = deriveScheduleFromBrowser();
-
-              // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
-              await syncOnboardingFromLocalStorage(idToken);
 
               const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
                 method: "POST",
@@ -273,7 +229,7 @@ export default function SignupForm() {
 
               if (!activateRes.ok) throw new Error("activate_failed");
 
-              router.replace("/home");
+              window.location.href = "/home";
             } catch {
               setActivationError(true);
               setLoading(false);
