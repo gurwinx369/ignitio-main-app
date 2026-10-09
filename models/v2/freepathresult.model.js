@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const DiagnosticResultSchema = new mongoose.Schema({
   skillId: { type: String, required: true },
-  verdict: { type: String, enum: ["pass", "fail", "skip", "unknown"], required: true },
+  verdict: { type: String, enum: ["mastery", "developing", "gap", "insufficient"], required: true },
   include: { type: Boolean, required: true }
 }, { _id: false });
 

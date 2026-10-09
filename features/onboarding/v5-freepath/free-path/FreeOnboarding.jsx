@@ -98,11 +98,8 @@ export default function FreeOnboarding() {
 
   // Restore progress on mount — users should never redo the diagnostic after abandoning
   useEffect(() => {
-    // If user is already authenticated and onboarding is complete, skip entirely
-    if (user) {
-      router.replace("/onboarding/role-selection");
-      return;
-    }
+    // ProtectedRoute already handles authenticated user routing.
+    // If an authenticated user lands here, they are meant to take the diagnostic.
 
     const saved = loadSaved();
     if (!saved) return;
@@ -214,9 +211,13 @@ export default function FreeOnboarding() {
     }
 
     clearPersisted();
-    // Route to existing auth flow
-    router.push("/auth/login");
-  }, [goal, year, path, roadmap, diagnosticResults, notificationAllowed, router]);
+    // Route to existing auth flow, or directly to role-selection if already authenticated
+    if (user) {
+      router.push("/onboarding/role-selection");
+    } else {
+      router.push("/auth/login");
+    }
+  }, [goal, year, path, roadmap, diagnosticResults, notificationAllowed, router, user]);
 
   // ── Screen rendering ─────────────────────────────────────────────────────────
 

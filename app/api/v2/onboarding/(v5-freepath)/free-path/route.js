@@ -6,7 +6,7 @@ import { verifyFirebaseToken } from "@/lib/auth";
 
 const DiagnosticResultValidator = z.object({
   skillId: z.string(),
-  verdict: z.enum(["pass", "fail", "skip", "unknown"]),
+  verdict: z.enum(["mastery", "developing", "gap", "insufficient"]),
   include: z.boolean(),
 });
 

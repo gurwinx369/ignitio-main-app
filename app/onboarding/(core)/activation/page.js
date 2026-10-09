@@ -8,7 +8,7 @@ import OnboardingShell from "@/features/onboarding/core/components/OnboardingShe
 
 export default function ActivationPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, mutateProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const hasRequested = useRef(false);
@@ -39,6 +39,7 @@ export default function ActivationPage() {
 
       // Success or Idempotent Success
       if (data.success && data.nextStep === "completed") {
+        await mutateProfile(); // Invalidate the cached profile so /home doesn't bounce us back
         router.replace("/home"); // Final transition to main app
       } else {
         setErrorMsg("Unexpected response from server.");
@@ -51,7 +52,7 @@ export default function ActivationPage() {
       setLoading(false);
       hasRequested.current = false;
     }
-  }, [router]);
+  }, [router, mutateProfile]);
 
   useEffect(() => {
     // user is obtained from useAuth
