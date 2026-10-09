@@ -435,6 +435,7 @@ export async function GET(request) {
 // SECTION 5: PATCH — Update goal (called by onboarding sync after free-path flow)
 const PatchUserValidator = z.object({
   goal: z.enum(Object.values(USER_GOALS)).optional(),
+  onboardingVersion: z.enum(Object.values(ONBOARDING_VERSIONS)).optional(),
 });
 
 export async function PATCH(request) {
@@ -457,17 +458,21 @@ export async function PATCH(request) {
     return NextResponse.json({ message: "Validation failed", detail: validation.error.issues }, { status: 422 });
   }
 
-  const { goal } = validation.data;
-  if (!goal) {
+  const { goal, onboardingVersion } = validation.data;
+  if (!goal && !onboardingVersion) {
     return NextResponse.json({ message: "No valid fields to update" }, { status: 400 });
   }
+
+  const updatePayload = {};
+  if (goal) updatePayload.goal = goal;
+  if (onboardingVersion) updatePayload.onboardingVersion = onboardingVersion;
 
   try {
     const updated = await UserProfile.findOneAndUpdate(
       { firebaseUID: decodedToken.uid },
-      { $set: { goal } },
+      { $set: updatePayload },
       { new: true }
-    ).select("goal").lean();
+    ).select("goal onboardingVersion").lean();
 
     if (!updated) {
       return NextResponse.json({ message: "User profile not found" }, { status: 404 });

@@ -19,6 +19,7 @@ export const ONBOARDING_VERSIONS = {
   V2: "v2",
   V3: "v3",
   V4: "v4",
+  V5: "v5",
 };
 
 
