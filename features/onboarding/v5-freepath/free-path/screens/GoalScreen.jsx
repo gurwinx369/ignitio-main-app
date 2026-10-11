@@ -16,7 +16,8 @@ const GOAL_OPTIONS = [
   { value: "internship", label: "Get an internship" },
   { value: "job",        label: "Land a job" },
   { value: "project",    label: "Build a project" },
-  { value: "dsa",        label: "Learn DSA properly" },
+  // DSA goal disabled — not available yet. Re-enable when DSA paid course is ready.
+  // { value: "dsa",        label: "Learn DSA properly" },
   { value: "gen_ai",     label: "Get into Gen AI" },
   { value: "unsure",     label: "Honestly, I don't know yet" },
 ];

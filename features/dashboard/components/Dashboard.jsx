@@ -6,7 +6,8 @@ import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
-import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
+// DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+// import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
@@ -18,7 +19,7 @@ import {
 } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
-import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
+// import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
@@ -97,7 +98,7 @@ export default function Dashboard() {
     genericPromptEngineeringRoadmapData,
   );
   const [userRole, setUserRole] = useState("other");
-  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
+  // const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
   const fetcher = async (url) => {
     if (!user) return null;
@@ -122,7 +123,7 @@ export default function Dashboard() {
     const role = userProfile.role || "other";
     setUserRole(role);
     setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
-    setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
+    // setSelectedDsaRoadmap(getDsaRoadmapByRole(role)); // DSA disabled
   }, [userProfile]);
 
   useEffect(() => {
@@ -154,15 +155,16 @@ export default function Dashboard() {
       },
     ];
 
-    if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
-      roadmapsData.splice(1, 0, {
-        id: selectedDsaRoadmap.id,
-        title: selectedDsaRoadmap.title,
-        route: "/home/roadmaps/dsa",
-        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
-        legacySections: [],
-      });
-    }
+    // DSA disabled — not available yet.
+    // if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
+    //   roadmapsData.splice(1, 0, {
+    //     id: selectedDsaRoadmap.id,
+    //     title: selectedDsaRoadmap.title,
+    //     route: "/home/roadmaps/dsa",
+    //     totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
+    //     legacySections: [],
+    //   });
+    // }
 
     roadmapsData.push({
       id: systemDesignRoadmapData.id,
@@ -294,7 +296,7 @@ export default function Dashboard() {
     setAllRoadmaps(filteredRoadmapsData);
     // ponytail: lockedIds stored in state so worlds tab can read it
     setLockedRoadmapIds(lockedIds);
-  }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
+  }, [selectedPromptRoadmap, userRole]); // selectedDsaRoadmap removed (DSA disabled)
 
   const handleRedirect = (route) => {
     if (isNavigating) return;
@@ -306,7 +308,7 @@ export default function Dashboard() {
   const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub);
   const handleRedirectCPP = () => handleRedirect(redirects.CPP);
   const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
-  const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa");
+  // const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa"); // DSA disabled
   const handleRedirectSystemDesign = () =>
     handleRedirect(redirects.SystemDesign);
 
@@ -384,20 +386,20 @@ export default function Dashboard() {
     )
   });
 
-  // DSA
-  if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
-    carouselRoadmaps.push({
-      id: selectedDsaRoadmap.id,
-      component: (
-        <DsaCourseCard
-          onClick={handleRedirectDsa}
-          levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
-          totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
-          roadmapData={selectedDsaRoadmap}
-        />
-      )
-    });
-  }
+  // DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+  // if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
+  //   carouselRoadmaps.push({
+  //     id: selectedDsaRoadmap.id,
+  //     component: (
+  //       <DsaCourseCard
+  //         onClick={handleRedirectDsa}
+  //         levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+  //         totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
+  //         roadmapData={selectedDsaRoadmap}
+  //       />
+  //     )
+  //   });
+  // }
 
   // CPP
   carouselRoadmaps.push({

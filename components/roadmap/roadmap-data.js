@@ -2,29 +2,29 @@ import { CodeXml, GitBranch, Rocket, Trophy } from "lucide-react";
 
 export const STAGES = [
   {
-    id: "git",
-    kind: "stage",
-    number: "01",
-    weekLabel: "Week 1",
-    days: "Days 1–7",
-    title: "Git & GitHub",
-    concepts: ["Commits", "Branching", "Pull Requests", "Remote Repos"],
-    outcome: "Push your first repo live",
-    accent: "#5eead4",
-    icon: GitBranch,
-    startHere: true,
-  },
-  {
     id: "python",
     kind: "stage",
-    number: "02",
-    weekLabel: "Weeks 2–3",
-    days: "Days 8–21",
+    number: "01",
+    weekLabel: "Weeks 1–2",
+    days: "Days 1–14",
     title: "Python",
     concepts: ["Variables & Types", "Functions", "Lists & Dicts", "File I/O"],
     outcome: "Write 3 working scripts",
     accent: "#a5b4fc",
     icon: CodeXml,
+    startHere: true,
+  },
+  {
+    id: "git",
+    kind: "stage",
+    number: "02",
+    weekLabel: "Week 3",
+    days: "Days 15–21",
+    title: "Git & GitHub",
+    concepts: ["Commits", "Branching", "Pull Requests", "Remote Repos"],
+    outcome: "Push your first repo live",
+    accent: "#5eead4",
+    icon: GitBranch,
   },
   {
     id: "ship",
@@ -69,7 +69,7 @@ export const cardTop = (index) => index * STEP_Y + LABEL_H;
 export const cardHeight = (stage) =>
   stage.kind === "finish" ? FINISH_H : STAGE_H;
 
-export const INTRO_MS = 1600;
+export const INTRO_MS = 4200;
 export const HEADER_MS = 900;
 export const STAGE_MS = 1500;
 export const PILL_BASE_MS = 420;

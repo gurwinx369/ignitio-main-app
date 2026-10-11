@@ -5,7 +5,8 @@ import { SKILL_LABELS, SKILL_IDS } from "@/lib/onboarding/free-path-questions";
 
 // Premium skills are always shown at the bottom — locked
 const PREMIUM_SKILLS = [
-  { id: "dsa", label: "DSA with C++", description: "Premium — unlocks after foundation", icon: "🏆" },
+  // DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+  // { id: "dsa", label: "DSA with C++", description: "Premium — unlocks after foundation", icon: "🏆" },
   { id: "gen_ai", label: "Gen AI with Python", description: "Premium — unlocks after foundation", icon: "🤖" },
 ];
 

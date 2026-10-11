@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { delay } from "./reveal-utils";
+import { delay } from "@/lib/onboarding/reveal-utils";
 
-export function RoadmapIntro({ exiting, title, steps, icon: Icon }) {
+export function RoadmapIntro({ exiting, title = "Preparing roadmap", steps = [], icon: Icon }) {
   const [on, setOn] = useState(false);
 
   useEffect(() => {
@@ -46,10 +46,12 @@ export function RoadmapIntro({ exiting, title, steps, icon: Icon }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Icon
-            aria-hidden="true"
-            className="rm-float size-9 text-ig-cyan-soft"
-          />
+          {Icon && (
+            <Icon
+              aria-hidden="true"
+              className="rm-float size-9 text-ig-cyan-soft"
+            />
+          )}
         </div>
       </div>
 

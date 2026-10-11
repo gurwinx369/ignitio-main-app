@@ -7,7 +7,7 @@ import {
   PILL_STEP_MS,
   checkDelay,
 } from "./roadmap-data";
-import { delay } from "./reveal-utils";
+import { delay } from "@/lib/onboarding/reveal-utils";
 
 const PILLS_PER_ROW = 2;
 const ROW_STAGGER = 20;

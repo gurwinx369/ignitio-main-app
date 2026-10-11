@@ -23,16 +23,17 @@ const roadmaps = [
     hoverBorder: "hover:border-purple-400",
     bgHover: "hover:bg-purple-50/50",
   },
-  {
-    id: "dsa",
-    title: "Data Structures",
-    icon: Database,
-    color: "text-blue-500",
-    shadow: "shadow-blue-200",
-    border: "border-blue-200",
-    hoverBorder: "hover:border-blue-400",
-    bgHover: "hover:bg-blue-50/50",
-  },
+  // DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+  // {
+  //   id: "dsa",
+  //   title: "Data Structures",
+  //   icon: Database,
+  //   color: "text-blue-500",
+  //   shadow: "shadow-blue-200",
+  //   border: "border-blue-200",
+  //   hoverBorder: "hover:border-blue-400",
+  //   bgHover: "hover:bg-blue-50/50",
+  // },
   {
     id: "prompt-engineering",
     title: "Prompt Engineering",

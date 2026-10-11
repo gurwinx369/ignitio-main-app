@@ -7,7 +7,7 @@ import {
   cardTop,
   stageX,
 } from "./roadmap-data";
-import { delay } from "./reveal-utils";
+import { delay } from "@/lib/onboarding/reveal-utils";
 
 const RADIUS = 22;
 

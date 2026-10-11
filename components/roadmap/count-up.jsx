@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { prefersReducedMotion } from "./reveal-utils";
+import { prefersReducedMotion } from "@/lib/onboarding/reveal-utils";
 
 const easeOutCubic = (p) => 1 - Math.pow(1 - p, 3);
 
