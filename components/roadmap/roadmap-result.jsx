@@ -39,17 +39,30 @@ import { useKiboEyeTracking } from "@/features/kyle/pet/useKiboEyeTracking";
 function KiboHeaderAvatar({ size = 72, className = "", eyeTracking = true }) {
   const wrapperRef = useRef(null);
   const eyesRef = useRef(null);
-  useKiboEyeTracking({ eyesRef, wrapperRef, active: eyeTracking, trackFullPage: true });
+  useKiboEyeTracking({
+    eyesRef,
+    wrapperRef,
+    active: eyeTracking,
+    trackFullPage: true,
+  });
 
   return (
-    <div className={`relative ${className}`} style={{ width: size, height: size }}>
-      <KiboBody visualState="idle" petSize={size} wrapperRef={wrapperRef} eyesRef={eyesRef} />
+    <div
+      className={`relative ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <KiboBody
+        visualState="idle"
+        petSize={size}
+        wrapperRef={wrapperRef}
+        eyesRef={eyesRef}
+      />
     </div>
   );
 }
 
 // ponytail: duration rules for stages to compute dynamic weeks
-const STAGE_WEEKS = { git: 1, python: 2, ship: 1 };
+const STAGE_WEEKS = { git: 1, python: 2, ship: 1, prompt: 1, system_design: 1 };
 
 export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
   // ponytail: compute active stages and dynamic labels inline instead of complex state
@@ -96,7 +109,12 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
     () =>
       activeStages.reduce(
         (acc, stage) =>
-          acc + (stage.kind === "stage" ? STAGE_WEEKS[stage.id] || 1 : stage.kind === "finish" ? 1 : 0),
+          acc +
+          (stage.kind === "stage"
+            ? STAGE_WEEKS[stage.id] || 1
+            : stage.kind === "finish"
+              ? 1
+              : 0),
         0,
       ),
     [activeStages],
@@ -127,7 +145,6 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
   const [linked, setLinked] = useState(0);
   const [celebrated, setCelebrated] = useState(false);
   const [done, setDone] = useState(false);
-  const [skipped, setSkipped] = useState(false);
   const [committed, setCommitted] = useState(false);
   const [bursts, setBursts] = useState([]);
 
@@ -204,7 +221,6 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
 
   const showEverything = useCallback(() => {
     clearTimers();
-    setSkipped(true);
     setPhase("reveal");
     setIntroExiting(false);
     setHeaderOn(true);
@@ -220,7 +236,6 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
       userControl.current = false;
 
       if (reset) {
-        setSkipped(true);
         setHeaderOn(false);
         setRevealed(0);
         setLinked(0);
@@ -230,7 +245,6 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         setIntroExiting(false);
         window.scrollTo({ top: 0 });
         scrollerRef.current?.scrollTo({ left: 0 });
-        at(80, () => setSkipped(false));
       }
 
       setPhase(withIntro ? "intro" : "reveal");
@@ -301,8 +315,10 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
   const commit = (event) => {
     if (committed) return;
     setCommitted(true);
-    const rect = event.currentTarget.getBoundingClientRect();
-    addBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "big");
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      addBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "big");
+    }
     navigator.vibrate?.(14);
     if (onContinue) {
       setTimeout(onContinue, 1200);
@@ -311,6 +327,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
 
   const handlePointerDown = (event) => {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
+    if (event.target.closest("button") || event.target.closest("a")) return;
     const el = scrollerRef.current;
     if (!el) return;
     drag.current = {
@@ -341,9 +358,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         "--font-sans": "var(--font-jakarta)",
         "--font-mono": "var(--font-jetbrains)",
       }}
-      className={`relative isolate min-h-screen overflow-hidden bg-ig-bg pb-10 text-ig-text font-sans dark ${jakarta.variable} ${jetbrains.variable} ${
-        skipped ? "rm-skip" : ""
-      }`}
+      className={`relative isolate min-h-screen overflow-hidden bg-ig-bg pb-10 text-ig-text font-sans dark ${jakarta.variable} ${jetbrains.variable}`}
     >
       <CanvasBackground />
       <div
@@ -359,7 +374,13 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         <RoadmapIntro
           exiting={introExiting}
           title="Building your custom roadmap"
-          icon={() => <KiboHeaderAvatar size={72} className="rm-float" eyeTracking={false} />}
+          icon={() => (
+            <KiboHeaderAvatar
+              size={72}
+              className="rm-float"
+              eyeTracking={false}
+            />
+          )}
           steps={[
             { label: "Analyzing your diagnostic answers...", at: 200 },
             { label: "Matching your pace and goals...", at: 1200 },
@@ -369,42 +390,39 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         />
       )}
 
-      <div className="fixed right-4 top-4 z-60 flex gap-2">
-        {!done && (
-          <button
-            type="button"
-            onClick={showEverything}
-            className="rounded-full border border-ig-text/15 bg-ig-bg/70 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-ig-muted backdrop-blur transition hover:text-ig-text focus-visible:ring-2 focus-visible:ring-ig-cyan/60 focus-visible:outline-none"
-          >
-            Skip
-          </button>
-        )}
-      </div>
-
       <header
         data-on={headerOn}
         className="mx-auto max-w-6xl px-5 pt-10 sm:pt-16"
       >
         <div className="flex items-start gap-4 sm:gap-6 max-w-3xl relative">
-          <div
-            className="rm-reveal shrink-0 z-10"
-            style={delay(0)}
-          >
+          <div className="rm-reveal shrink-0 z-10" style={delay(0)}>
             <KiboHeaderAvatar size={112} className="rm-float drop-shadow-xl" />
           </div>
           <div className="flex-1 min-w-0 pt-4 relative z-0">
             {/* Chat Bubble Tail */}
-            <div 
+            <div
               className="rm-reveal absolute -left-3 top-10 w-6 h-6 bg-ig-text/5 border-l border-t border-ig-text/10 transform -rotate-45"
-              style={{ ...delay(140), zIndex: -1, backdropFilter: 'blur(12px)' }} 
+              style={{
+                ...delay(140),
+                zIndex: -1,
+                backdropFilter: "blur(12px)",
+              }}
             />
             <div
               className="rm-reveal rm-fade relative rounded-3xl rounded-tl-sm bg-ig-text/5 px-6 py-5 border border-ig-text/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.2)] backdrop-blur-md"
               style={delay(140)}
             >
-              <h1 id="roadmap-title" className="sr-only">Your customized roadmap</h1>
+              <h1 id="roadmap-title" className="sr-only">
+                Your customized roadmap
+              </h1>
               <p className="text-pretty text-base sm:text-lg leading-relaxed text-ig-text font-medium">
-                I've analyzed everything and crafted a personalized path especially for you. Stick to this plan, and in just <strong className="text-ig-cyan-soft font-bold">{totalWeeks} weeks</strong>, you'll launch your very own project directly to <strong className="text-ig-cyan-soft font-bold">GitHub</strong>!
+                I've analyzed everything and crafted a personalized path
+                especially for you. Stick to this plan, and in just{" "}
+                <strong className="text-ig-cyan-soft font-bold">
+                  {totalWeeks} weeks
+                </strong>
+                , you'll launch your very own project directly to{" "}
+                <strong className="text-ig-cyan-soft font-bold">GitHub</strong>!
               </p>
               <p
                 className="rm-reveal rm-fade mt-3 text-sm text-ig-muted"
@@ -462,21 +480,23 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
                   <Lock className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-ig-text/25" />
                 </div>
                 <StageCard stage={stage} on={revealed > i} />
-                
+
                 {/* Inline CTA below the last card */}
                 {i === dynamicStages.length - 1 && (
                   <div
                     id="rm-cta"
-                    data-on={celebrated}
-                    className="absolute inset-x-0 flex flex-col gap-2.5 mt-4"
+                    data-on={celebrated || revealed >= dynamicStages.length}
+                    className="absolute inset-x-0 z-30 flex flex-col gap-2.5 mt-4"
                     style={{ top: LABEL_H + FINISH_H }}
+                    onPointerDown={(e) => e.stopPropagation()}
                   >
                     <div className="rm-reveal rm-pop" style={delay(250)}>
                       <button
                         type="button"
                         onClick={commit}
+                        onPointerDown={(e) => e.stopPropagation()}
                         aria-live="polite"
-                        className={`group flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-extrabold text-ig-bg transition duration-300 focus-visible:ring-2 focus-visible:ring-ig-text focus-visible:outline-none ${
+                        className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-extrabold text-ig-bg transition duration-300 focus-visible:ring-2 focus-visible:ring-ig-text focus-visible:outline-none ${
                           committed
                             ? "bg-ig-teal shadow-[0_10px_30px_-8px_rgb(94_234_212/0.55)]"
                             : "rm-cta-idle bg-ig-cyan shadow-[0_10px_30px_-8px_rgb(0_169_255/0.6)] hover:-translate-y-0.5 hover:bg-ig-cyan-soft active:scale-95"

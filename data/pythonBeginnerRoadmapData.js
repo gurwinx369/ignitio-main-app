@@ -23,8 +23,8 @@ export const pythonBeginnerRoadmapData = {
             "This lesson introduces the course as a beginner-to-advanced Python path aimed at AI, ML, and data science careers, complete with notes, projects, and assignments. The instructor explains that no prior experience is required, shares her background, invites students to introduce themselves so teaching can be tailored to their level, and points them to the full playlist before moving into the actual subject matter.",
           videoId: "s5MJpRBQLgo",
           startSec: 0,
-          endSec: 320,
-          durationInMinutes: 5,
+          endSec: 120,
+          durationInMinutes: 2,
         },
         {
           id: "PYTHON_BEGINNER_D1_02",

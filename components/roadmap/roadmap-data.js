@@ -1,4 +1,4 @@
-import { CodeXml, GitBranch, Rocket, Trophy } from "lucide-react";
+import { BrainCircuit, CodeXml, GitBranch, Layers, Rocket, Trophy } from "lucide-react";
 
 export const STAGES = [
   {
@@ -37,6 +37,30 @@ export const STAGES = [
     outcome: "Ship a live project to GitHub",
     accent: "#fdba74",
     icon: Rocket,
+  },
+  {
+    id: "prompt",
+    kind: "stage",
+    number: "04",
+    weekLabel: "Week 5",
+    days: "Days 29–35",
+    title: "Prompt Engineering",
+    concepts: ["Output format", "Context windows", "Few-shot patterns", "Chain-of-thought"],
+    outcome: "Build an AI-powered feature in your project",
+    accent: "#c084fc",
+    icon: BrainCircuit,
+  },
+  {
+    id: "system_design",
+    kind: "stage",
+    number: "05",
+    weekLabel: "Week 6",
+    days: "Days 36–42",
+    title: "System Design",
+    concepts: ["Scalability", "Databases", "Caching", "API design"],
+    outcome: "Design a system you can explain in an interview",
+    accent: "#34d399",
+    icon: Layers,
   },
   {
     id: "live",

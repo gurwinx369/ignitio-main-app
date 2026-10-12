@@ -18,6 +18,7 @@ const LevelContent = ({
   dayNumber,
   showAssignmentModal = false,
   isPreview = false,
+  isFirstLesson = false,
 }) => {
   const askKyleContext = useContext(AskKyleContext);
   const isAskKyleOpen = askKyleContext?.isOpen;
@@ -37,7 +38,8 @@ const LevelContent = ({
   const isPythonRoadmap = roadmapType === "python-beginner";
   const isCRoadmap = roadmapType.startsWith("c-language");
   const showAskKyleTab = isKyleRoadmap && !isPythonRoadmap && !isCRoadmap;
-  const showPracticeTab = !isKyleRoadmap || isPythonRoadmap || isCRoadmap;
+  // ponytail: suppress compiler for the first lesson (course intro) — it makes no sense there
+  const showPracticeTab = (!isKyleRoadmap || isPythonRoadmap || isCRoadmap) && !isFirstLesson;
 
   useEffect(() => {
     if (setIsLessonActive) {

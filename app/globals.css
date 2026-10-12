@@ -5,7 +5,20 @@
 @theme inline {
     --font-sans: var(--font-noto-sans), "Noto Sans", sans-serif;
     --font-pixelify: var(--font-pixelify), "Pixelify Sans", sans-serif;
+    --font-display: var(--font-noto-sans), "Noto Sans", sans-serif;
     --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1 var(--delay, 0ms);
+    /* ── Streak component tokens ───────────────────────────────────── */
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-ink: var(--ink);
+    --color-muted-ink: var(--muted-ink);
+    --color-brew: var(--brew);
+    --color-brew-deep: var(--brew-deep);
+    --color-kibo: var(--kibo);
+    --animate-glint: glint 3.6s ease-in-out infinite;
+    --animate-shine: shine 2.8s ease-in-out infinite;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -79,16 +92,36 @@
     --radius-4xl: calc(var(--radius) + 16px)
 ;
 
-    --animate-shine: shine var(--duration) infinite linear;
-    @keyframes shine {
+    --animate-shine-bg: shine-bg var(--duration) infinite linear;
+    @keyframes shine-bg {
         0% {
             background-position: 0% 0%;}
         50% {
             background-position: 100% 100%;}
         to {
-            background-position: 0% 0%;}}}
+            background-position: 0% 0%;}}
+
+    /* ── Streak component animations ──────────────────────────────── */
+    @keyframes glint {
+        0%, 55% { transform: translateX(0) skewX(-15deg); }
+        100%     { transform: translateX(450%) skewX(-15deg); }
+    }
+    @keyframes shine {
+        0%, 60% { transform: translateX(0) skewX(-12deg); }
+        100%     { transform: translateX(520%) skewX(-12deg); }
+    }}
 
 :root {
+    /* ── Streak design tokens ─────────────────────────────────────── */
+    --canvas: #0a0e14;
+    --surface: #131a24;
+    --line: #223042;
+    --line-strong: #3a4a60;
+    --ink: #eaf1f9;
+    --muted-ink: #8494a8;
+    --brew: #1c9bff;
+    --brew-deep: #0a64ad;
+    --kibo: #19c6ff;
     /* Primary - Warm Beige (Learning-friendly, reduces eye strain) */
     --color-primary-50: #fefcf9;
     --color-primary-100: #fcf5ee;
@@ -477,4 +510,5 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .rm-intro, .rm-confetti { display: none; }
+  .animate-glint, .animate-shine { animation: none; }
 }

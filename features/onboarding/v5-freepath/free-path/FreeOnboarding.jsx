@@ -23,7 +23,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/context/AuthContext";
-import { classifyFreePathSkills, buildFreeRoadmap } from "@/lib/onboarding/free-path-classifier";
+import {
+  classifyFreePathSkills,
+  buildFreeRoadmap,
+} from "@/lib/onboarding/free-path-classifier";
 import { SKILL_ORDER } from "@/lib/onboarding/free-path-questions";
 
 import GoalScreen from "./screens/GoalScreen";
@@ -34,6 +37,23 @@ import FreeDiagnostic from "./FreeDiagnostic";
 import RevealScreen from "./screens/RevealScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import MonthRoadmapResult from "./screens/MonthRoadmapResult";
+
+// ── Additional stage rules ───────────────────────────────────────────────────
+// Returns stage IDs to append after the base free-path skills.
+// The IDs must exist in STAGES in roadmap-data.js.
+//
+// Rules:
+//   1st/2nd year + project goal   → Prompt Engineering (after foundation)
+//   3rd/4th year + internship/job → Prompt Engineering + System Design
+//   everyone else                 → no additional stages
+function getAdditionalStages(goal, year) {
+  const isEarlyYear = year === "1" || year === "2";
+  const isLateYear  = year === "3" || year === "4";
+
+  if (isEarlyYear && goal === "project") return ["prompt"];
+  if (isLateYear && (goal === "internship" || goal === "job")) return ["prompt", "system_design"];
+  return [];
+}
 
 // ── Screen names ────────────────────────────────────────────────────────────
 const SCREENS = {
@@ -92,8 +112,8 @@ export default function FreeOnboarding() {
   const [goal, setGoal] = useState(null);
   const [year, setYear] = useState(null);
   const [diagnosticResults, setDiagnosticResults] = useState(null); // Array<{ skillId, verdict, include }>
-  const [roadmap, setRoadmap] = useState(null);                     // string[] of skillIds
-  const [path, setPath] = useState(null);                           // "A" | "B" | "C"
+  const [roadmap, setRoadmap] = useState(null); // string[] of skillIds
+  const [path, setPath] = useState(null); // "A" | "B" | "C"
   const [notificationAllowed, setNotificationAllowed] = useState(null);
 
   // Restore progress on mount — users should never redo the diagnostic after abandoning
@@ -108,7 +128,8 @@ export default function FreeOnboarding() {
       if (saved.screen) setScreen(saved.screen);
       if (saved.goal) setGoal(saved.goal);
       if (saved.year) setYear(saved.year);
-      if (saved.diagnosticResults) setDiagnosticResults(saved.diagnosticResults);
+      if (saved.diagnosticResults)
+        setDiagnosticResults(saved.diagnosticResults);
       if (saved.roadmap) setRoadmap(saved.roadmap);
       if (saved.path) setPath(saved.path);
     }, 0);
@@ -126,15 +147,18 @@ export default function FreeOnboarding() {
     setScreen(SCREENS.GOAL);
   }, []);
 
-  const handleGoal = useCallback((selectedGoal) => {
-    setGoal(selectedGoal);
-    // Path A shortcut check
-    if (isShortcutPath(selectedGoal, year)) {
-      setScreen(SCREENS.SHORTCUT);
-    } else {
-      setScreen(SCREENS.KNOWLEDGE_CHECK);
-    }
-  }, [year]);
+  const handleGoal = useCallback(
+    (selectedGoal) => {
+      setGoal(selectedGoal);
+      // Path A shortcut check
+      if (isShortcutPath(selectedGoal, year)) {
+        setScreen(SCREENS.SHORTCUT);
+      } else {
+        setScreen(SCREENS.KNOWLEDGE_CHECK);
+      }
+    },
+    [year],
+  );
 
   const handleShortcutFastTrack = useCallback(() => {
     // Path A — exit to Gen AI module's own onboarding
@@ -142,7 +166,10 @@ export default function FreeOnboarding() {
     clearPersisted();
     // Preserve goal/year in a separate key for the Gen AI module to read
     try {
-      localStorage.setItem("ignitio:genai_entry", JSON.stringify({ goal, year }));
+      localStorage.setItem(
+        "ignitio:genai_entry",
+        JSON.stringify({ goal, year }),
+      );
     } catch {
       // ignore
     }
@@ -156,11 +183,11 @@ export default function FreeOnboarding() {
   const handleKnowledgeCheckBeginner = useCallback(() => {
     // Path B — assign all 4 skills, no diagnostic
     setPath("B");
-    const fullRoadmap = [...SKILL_ORDER];
+    const fullRoadmap = [...SKILL_ORDER, ...getAdditionalStages(goal, year)];
     setRoadmap(fullRoadmap);
     setDiagnosticResults(null);
     setScreen(SCREENS.NOTIFICATION);
-  }, []);
+  }, [goal, year]);
 
   const handleKnowledgeCheckKnows = useCallback(() => {
     // Path C — run the diagnostic
@@ -173,13 +200,14 @@ export default function FreeOnboarding() {
     const finalRoadmap = buildFreeRoadmap(results);
 
     // Edge case: if classifier excluded everything somehow, put all skills back in
-    const safeRoadmap = finalRoadmap.length > 0 ? finalRoadmap : [...SKILL_ORDER];
+    const baseRoadmap =
+      finalRoadmap.length > 0 ? finalRoadmap : [...SKILL_ORDER];
 
     setPath("C");
     setDiagnosticResults(results);
-    setRoadmap(safeRoadmap);
+    setRoadmap([...baseRoadmap, ...getAdditionalStages(goal, year)]);
     setScreen(SCREENS.REVEAL);
-  }, []);
+  }, [goal, year]);
 
   const handleRevealNext = useCallback(() => {
     setScreen(SCREENS.NOTIFICATION);
@@ -194,18 +222,46 @@ export default function FreeOnboarding() {
     setScreen(SCREENS.ROADMAP_RESULT);
   }, []);
 
+  // ponytail: same map as streak/page.js — 2 skills, inline is fine
+  const LESSON_ROUTES = {
+    git: '/home/roadmaps/git-github/interactive-overviews/first-overview',
+    python: '/home/roadmaps/python-beginner',
+  }
+
+  // ponytail: skill → roadmap route ID mapping, kept inline (only 4 skills)
+  const SKILL_TO_ROADMAP_ID = {
+    git: "git-github",
+    python: "python-beginner",
+    prompt: "prompt-engineering",
+    system_design: "system-design-fundamentals",
+  };
+
   const handleRoadmapResultContinue = useCallback(async () => {
     // Persist onboarding result before auth so it survives the auth flow
     try {
-      localStorage.setItem("ignitio:onboarding_result", JSON.stringify({
-        goal,
-        year,
-        path,
-        roadmap,
-        diagnosticResults,
-        notificationAllowed,
-        completedAt: new Date().toISOString(),
-      }));
+      localStorage.setItem(
+        "ignitio:onboarding_result",
+        JSON.stringify({
+          goal,
+          year,
+          path,
+          roadmap,
+          diagnosticResults,
+          notificationAllowed,
+          completedAt: new Date().toISOString(),
+        }),
+      );
+      // Durable filter key — never cleared by syncOnboardingFromLocalStorage.
+      // Dashboard reads this to show only the user's assigned roadmaps.
+      if (roadmap?.length) {
+        const roadmapIds = roadmap.map(s => SKILL_TO_ROADMAP_ID[s]).filter(Boolean);
+        localStorage.setItem("ignitio:assigned_roadmaps", JSON.stringify(roadmapIds));
+      }
+      // Set streak phase so /onboarding/streak shows StreakAnticipation
+      localStorage.setItem("ignitio:streak_phase", "anticipated");
+      // Write lesson href separately — survives syncOnboardingFromLocalStorage clearing onboarding_result
+      const firstSkill = roadmap?.[0] || 'python'
+      localStorage.setItem("ignitio:streak_lesson_href", LESSON_ROUTES[firstSkill] ?? '/home/roadmaps/python-beginner')
     } catch {
       // ignore
     }
@@ -215,8 +271,10 @@ export default function FreeOnboarding() {
     if (user) {
       try {
         const idToken = await user.getIdToken();
-        const { deriveScheduleFromBrowser } = await import('@/lib/onboarding/schedule-periods');
-        const { syncOnboardingFromLocalStorage } = await import('@/lib/onboarding/sync-localstorage');
+        const { deriveScheduleFromBrowser } =
+          await import("@/lib/onboarding/schedule-periods");
+        const { syncOnboardingFromLocalStorage } =
+          await import("@/lib/onboarding/sync-localstorage");
 
         const derived = deriveScheduleFromBrowser();
         await syncOnboardingFromLocalStorage(idToken);
@@ -231,7 +289,13 @@ export default function FreeOnboarding() {
             role: "student",
             schedule: {
               timezone: derived.timezone,
-              windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
+              windows: [
+                {
+                  period: derived.period,
+                  startTime: derived.startTime,
+                  endTime: derived.endTime,
+                },
+              ],
             },
           }),
         });
@@ -241,15 +305,25 @@ export default function FreeOnboarding() {
           headers: { Authorization: `Bearer ${idToken}` },
         });
 
-        window.location.href = "/home";
+        // → Streak anticipation screen before entering the roadmap
+        window.location.href = "/onboarding/streak";
       } catch (err) {
         // Fallback if anything fails
-        window.location.href = "/home";
+        window.location.href = "/onboarding/streak";
       }
     } else {
-      router.push("/auth/signup");
+      window.location.href = "/auth/signup";
     }
-  }, [goal, year, path, roadmap, diagnosticResults, notificationAllowed, router, user]);
+  }, [
+    goal,
+    year,
+    path,
+    roadmap,
+    diagnosticResults,
+    notificationAllowed,
+    router,
+    user,
+  ]);
 
   // ── Screen rendering ─────────────────────────────────────────────────────────
 
@@ -259,10 +333,7 @@ export default function FreeOnboarding() {
 
   if (screen === SCREENS.GOAL) {
     return (
-      <GoalScreen
-        onNext={handleGoal}
-        onBack={() => setScreen(SCREENS.YEAR)}
-      />
+      <GoalScreen onNext={handleGoal} onBack={() => setScreen(SCREENS.YEAR)} />
     );
   }
 
@@ -271,6 +342,7 @@ export default function FreeOnboarding() {
       <ShortcutScreen
         onFastTrack={handleShortcutFastTrack}
         onSeeBasics={handleShortcutSeeBasics}
+        onBack={() => setScreen(SCREENS.GOAL)}
       />
     );
   }
@@ -297,7 +369,9 @@ export default function FreeOnboarding() {
   }
 
   if (screen === SCREENS.REVEAL && diagnosticResults) {
-    return <RevealScreen results={diagnosticResults} onNext={handleRevealNext} />;
+    return (
+      <RevealScreen results={diagnosticResults} onNext={handleRevealNext} />
+    );
   }
 
   if (screen === SCREENS.NOTIFICATION) {

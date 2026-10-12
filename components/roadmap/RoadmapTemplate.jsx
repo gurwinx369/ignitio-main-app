@@ -649,6 +649,13 @@ export default function RoadmapTemplate({
             },
           }),
         );
+
+        // First lesson completion after onboarding: trigger streak-sparked screen
+        if (localStorage.getItem("ignitio:streak_phase") === "anticipated") {
+          localStorage.setItem("ignitio:streak_phase", "sparked");
+          window.location.href = "/onboarding/streak";
+          return;
+        }
       }
 
       triggerCompletionToast();
@@ -937,6 +944,7 @@ export default function RoadmapTemplate({
           roadmapType={roadmapData.id}
           dayNumber={dayNumber}
           showAssignmentModal={showAssignmentModal}
+          isFirstLesson={allLevels[0]?.id === selectedLevel.id}
         />
       );
     }

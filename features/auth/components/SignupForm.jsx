@@ -141,11 +141,15 @@ export default function SignupForm() {
                 headers: { Authorization: `Bearer ${idToken}` },
               });
 
-              if (!activateRes.ok) throw new Error("activate_failed");
+              if (!activateRes.ok) throw new Error('activate_failed');
 
-              window.location.href = "/home";
+              window.location.href =
+                localStorage.getItem('ignitio:streak_phase') === 'anticipated'
+                  ? '/onboarding/streak'
+                  : '/home';
             } catch {
               setActivationError(true);
+
               setLoading(false);
             }
           } else {
@@ -227,11 +231,13 @@ export default function SignupForm() {
                 headers: { Authorization: `Bearer ${idToken}` },
               });
 
-              if (!activateRes.ok) throw new Error("activate_failed");
+              if (!activateRes.ok) throw new Error('activate_failed');
 
-              window.location.href = "/home";
+              window.location.href =
+                localStorage.getItem('ignitio:streak_phase') === 'anticipated'
+                  ? '/onboarding/streak'
+                  : '/home';
             } catch {
-              setActivationError(true);
               setLoading(false);
             }
           } else {
@@ -258,6 +264,7 @@ export default function SignupForm() {
       setLoading(false);
     }
   };
+
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && form.email && form.password) {

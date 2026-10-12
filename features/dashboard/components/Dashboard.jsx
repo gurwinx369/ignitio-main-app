@@ -196,8 +196,45 @@ export default function Dashboard() {
       legacySections: [],
     });
 
-    // Filter to ONLY include roadmaps that are in our sequential foundation
-    const filteredRoadmapsData = roadmapsData.filter(r => UNLOCK_ORDER.includes(r.id));
+    // Read assigned roadmaps from localStorage (persisted from onboarding)
+    let assignedIds = null;
+    try {
+      const raw = localStorage.getItem("ignitio:assigned_roadmaps");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) assignedIds = parsed;
+      }
+      if (!assignedIds) {
+        const rawResult = localStorage.getItem("ignitio:onboarding_result");
+        if (rawResult) {
+          const parsed = JSON.parse(rawResult);
+          if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+            const skillMap = {
+              git: "git-github",
+              python: "python-beginner",
+              prompt: "prompt-engineering",
+              system_design: "system-design-fundamentals",
+            };
+            const mapped = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
+            if (mapped.length > 0) assignedIds = mapped;
+          }
+        }
+      }
+    } catch { }
+
+    // If assignedIds exists, only include roadmaps assigned to the user in that order.
+    // Otherwise fallback to UNLOCK_ORDER (for legacy users).
+    const filteredRoadmapsData = assignedIds
+      ? assignedIds
+          .map((id) =>
+            roadmapsData.find(
+              (r) =>
+                r.id === id ||
+                (id === "prompt-engineering" && r.route === redirects.PromptEngineering),
+            ),
+          )
+          .filter(Boolean)
+      : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id));
 
     const progressMap = {};
 
@@ -249,22 +286,18 @@ export default function Dashboard() {
       }
     } catch (e) { }
 
-    // We don't set activeRoadmapToSet here anymore, since we re-evaluate it based on unlocked roadmaps later.
-
-    // Compute which roadmaps are locked based on sequential completion.
-    // A roadmap at position i in UNLOCK_ORDER is locked if position i-1 isn't 100% done.
-    // Roadmaps not in UNLOCK_ORDER (prompt-engineering, DSA) are always unlocked.
-    // ponytail: dev bypass — all cards unlocked in development for testing
+    // Sequential lock order matches the user's assigned roadmaps
+    const sequentialOrder = filteredRoadmapsData.map((r) => r.id);
     const lockedIds = new Set();
     if (process.env.NODE_ENV !== "development") {
-      for (let i = 1; i < UNLOCK_ORDER.length; i++) {
-        const prevId = UNLOCK_ORDER[i - 1];
+      for (let i = 1; i < sequentialOrder.length; i++) {
+        const prevId = sequentialOrder[i - 1];
         const prevProgress = progressMap[prevId];
         const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
         if (!prevDone) {
           // This roadmap and all subsequent ones are locked
-          for (let j = i; j < UNLOCK_ORDER.length; j++) {
-            lockedIds.add(UNLOCK_ORDER[j]);
+          for (let j = i; j < sequentialOrder.length; j++) {
+            lockedIds.add(sequentialOrder[j]);
           }
           break;
         }
@@ -280,9 +313,6 @@ export default function Dashboard() {
       if (r.completedLevels > maxProgress) {
         maxProgress = r.completedLevels;
         activeRoadmapToSet = r;
-      } else if (r.completedLevels === maxProgress && r.id === "git-github") {
-        // Tie-breaker: prefer git-github if it's tied for max progress
-        activeRoadmapToSet = r;
       }
     }
 
@@ -291,10 +321,13 @@ export default function Dashboard() {
       if (foundLastActive) activeRoadmapToSet = foundLastActive;
     }
 
+    if (!activeRoadmapToSet && unlockedRoadmaps.length > 0) {
+      activeRoadmapToSet = unlockedRoadmaps[0];
+    }
+
     setRoadmapProgress(progressMap);
     setActiveRoadmap(activeRoadmapToSet);
     setAllRoadmaps(filteredRoadmapsData);
-    // ponytail: lockedIds stored in state so worlds tab can read it
     setLockedRoadmapIds(lockedIds);
   }, [selectedPromptRoadmap, userRole]); // selectedDsaRoadmap removed (DSA disabled)
 
@@ -425,8 +458,10 @@ export default function Dashboard() {
     )
   });
 
-  // Filter carousel items to ONLY include ones that survived the UNLOCK_ORDER filter in state
-  const filteredCarouselRoadmaps = carouselRoadmaps.filter(cr => allRoadmaps.some(ar => ar.id === cr.id));
+  // Order and filter carousel items to strictly match the roadmaps in allRoadmaps
+  const filteredCarouselRoadmaps = allRoadmaps
+    .map((ar) => carouselRoadmaps.find((cr) => cr.id === ar.id))
+    .filter(Boolean);
 
   /**
    * New-user guard:
@@ -550,9 +585,8 @@ export default function Dashboard() {
             roadmaps={filteredCarouselRoadmaps.map(item => {
               if (!lockedRoadmapIds.has(item.id)) return item;
               // Find which roadmap unlocks this one
-              const lockIdx = UNLOCK_ORDER.indexOf(item.id);
-              const prevId = lockIdx > 0 ? UNLOCK_ORDER[lockIdx - 1] : null;
-              const prevTitle = allRoadmaps.find(r => r.id === prevId)?.title ?? "the previous roadmap";
+              const lockIdx = allRoadmaps.findIndex(r => r.id === item.id);
+              const prevTitle = lockIdx > 0 ? allRoadmaps[lockIdx - 1]?.title : "the previous roadmap";
               return {
                 ...item,
                 component: (
