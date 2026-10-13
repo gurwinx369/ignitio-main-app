@@ -1,6 +1,6 @@
 # Ignitio — End-to-End Onboarding Testing Specification
 
-This document provides a comprehensive end-to-end testing specification for the entire Ignitio onboarding flow, detailing frontend routes, backend APIs, data synchronization, state transitions, error handling, and manual/automated test scenarios in accordance with [AGENTS.md](file:///d:/projects/ignitio-main-app/AGENTS.md).
+This document provides a comprehensive end-to-end testing specification for the entire Ignitio onboarding flow, detailing frontend routes, backend APIs, data synchronization, state transitions, error handling, and manual/automated test scenarios in accordance with [AGENTS.md]( ignitio-main-app/AGENTS.md).
 
 ---
 
@@ -55,7 +55,7 @@ flowchart TD
 ## 2. Route Inventory & Expected Behavior
 
 ### 2.1. Route: `/onboarding` (V5 Free Path)
-* **Frontend Component**: [`FreeOnboarding.jsx`](file:///d:/projects/ignitio-main-app/features/onboarding/v5-freepath/free-path/FreeOnboarding.jsx)
+* **Frontend Component**: [`FreeOnboarding.jsx`]( ignitio-main-app/features/onboarding/v5-freepath/free-path/FreeOnboarding.jsx)
 * **Auth Requirement**: None (Public).
 * **LocalStorage Keys Written**:
   * `ignitio:onboarding_result`: Stores user choices (`{ goal, year, path, roadmap, diagnosticResults, completedAt }`).
@@ -64,7 +64,7 @@ flowchart TD
 * **Expected UI Behavior**:
   * Step progression smoothly updates progress indicators.
   * Quiz evaluates answers with micro-feedback without page reloads.
-  * Displays [`roadmap-result.jsx`](file:///d:/projects/ignitio-main-app/components/roadmap/roadmap-result.jsx) with Kibo animated avatar, dynamic stages, lock status, and calculated duration in weeks.
+  * Displays [`roadmap-result.jsx`]( ignitio-main-app/components/roadmap/roadmap-result.jsx) with Kibo animated avatar, dynamic stages, lock status, and calculated duration in weeks.
   * Clicking **Save & Start Roadmap**:
     * If unauthenticated: redirects to `/auth/signup`.
     * If already authenticated: immediately derives schedule, flushes data to backend, calls activation, and navigates to `/onboarding/streak`.
@@ -72,7 +72,7 @@ flowchart TD
 ---
 
 ### 2.2. Route: `/auth/signup` (Post-Auth Ingestion)
-* **Frontend Component**: [`SignupForm.jsx`](file:///d:/projects/ignitio-main-app/features/auth/components/SignupForm.jsx)
+* **Frontend Component**: [`SignupForm.jsx`]( ignitio-main-app/features/auth/components/SignupForm.jsx)
 * **Triggered APIs on Submission**:
   1. `POST /api/v2/user` → Creates user profile document with `{ onboardingVersion: "v5" }`.
   2. `syncOnboardingFromLocalStorage(idToken)`:
@@ -94,8 +94,8 @@ flowchart TD
 
 ### 2.3. Route: `/onboarding/diagnostic` & `/onboarding/results` (V4 GenAI Flow)
 * **Frontend Components**:
-  * Diagnostic: [`page.js`](file:///d:/projects/ignitio-main-app/app/onboarding/%28v4-genai%29/diagnostic/page.js)
-  * Results: [`DiagnosticResults.jsx`](file:///d:/projects/ignitio-main-app/features/onboarding/v4-genai/results/DiagnosticResults.jsx)
+  * Diagnostic: [`page.js`]( ignitio-main-app/app/onboarding/%28v4-genai%29/diagnostic/page.js)
+  * Results: [`DiagnosticResults.jsx`]( ignitio-main-app/features/onboarding/v4-genai/results/DiagnosticResults.jsx)
 * **APIs**:
   * `POST /api/v2/onboarding/diagnostic`:
     * Evaluates answers Q2–Q8 using rule-based/grading logic.
@@ -110,7 +110,7 @@ flowchart TD
 ---
 
 ### 2.4. Route: `/onboarding/paywall` (Monetization Gate)
-* **Frontend Component**: [`Paywall.jsx`](file:///d:/projects/ignitio-main-app/features/onboarding/v4-genai/paywall/Paywall.jsx)
+* **Frontend Component**: [`Paywall.jsx`]( ignitio-main-app/features/onboarding/v4-genai/paywall/Paywall.jsx)
 * **APIs**:
   * `GET /api/v2/onboarding/paywall/status` → Checks active subscription and entitlement.
   * `POST /api/v2/onboarding/paywall/skip` → Free path fallback; advances step to `"role_selection"`.
@@ -120,7 +120,7 @@ flowchart TD
 ---
 
 ### 2.5. Route: `/onboarding/role-selection` (Core Role & Schedule)
-* **Frontend Component**: [`RoleScheduleController.jsx`](file:///d:/projects/ignitio-main-app/features/onboarding/core/role-selection/RoleScheduleController.jsx)
+* **Frontend Component**: [`RoleScheduleController.jsx`]( ignitio-main-app/features/onboarding/core/role-selection/RoleScheduleController.jsx)
 * **API**: `POST /api/v2/onboarding/role-schedule`
 * **Payload**:
   ```json
@@ -152,9 +152,9 @@ flowchart TD
 ---
 
 ### 2.6. Route: `/onboarding/activation` (Atomic Activation Engine)
-* **Frontend Component**: [`ActivationPage`](file:///d:/projects/ignitio-main-app/app/onboarding/%28core%29/activation/page.js)
+* **Frontend Component**: [`ActivationPage`]( ignitio-main-app/app/onboarding/%28core%29/activation/page.js)
 * **API**: `POST /api/v2/onboarding/activate`
-* **Backend Processing** ([`activation.service.js`](file:///d:/projects/ignitio-main-app/lib/onboarding/activation.service.js)):
+* **Backend Processing** ([`activation.service.js`]( ignitio-main-app/lib/onboarding/activation.service.js)):
   * **State Guard**: Requires `user.onboardingState.step === "activation_pending"`. Returns `409 Conflict` if invalid.
   * **Prerequisites Guard**: Requires `user.role` and valid `schedulePreference`. Returns `422 Unprocessable Entity` if missing.
   * **Foundation Branch (`genAi !== true`)**:
@@ -179,7 +179,7 @@ flowchart TD
 ---
 
 ### 2.7. Route: `/onboarding/streak` (Streak Anticipation)
-* **Frontend Component**: [`page.js`](file:///d:/projects/ignitio-main-app/app/onboarding/%28core%29/streak/page.js)
+* **Frontend Component**: [`page.js`]( ignitio-main-app/app/onboarding/%28core%29/streak/page.js)
 * **Expected Behavior**:
   * Calculates current 7-day week starting from current day.
   * Displays flame streak status with Day 1 anticipation.
@@ -197,7 +197,7 @@ POST /api/v2/onboarding/activate 422 in 223ms
 ```
 
 ### Diagnostic Trace
-1. In [`activation.shared.js`](file:///d:/projects/ignitio-main-app/lib/onboarding/activation.shared.js#L127-L157):
+1. In [`activation.shared.js`]( ignitio-main-app/lib/onboarding/activation.shared.js#L127-L157):
    ```javascript
    export function validateSharedPrerequisites(user) {
      if (!user.role) {
@@ -210,10 +210,10 @@ POST /api/v2/onboarding/activate 422 in 223ms
      return { ok: true };
    }
    ```
-2. In [`FreeOnboarding.jsx`](file:///d:/projects/ignitio-main-app/features/onboarding/v5-freepath/free-path/FreeOnboarding.jsx#L282-L306):
+2. In [`FreeOnboarding.jsx`]( ignitio-main-app/features/onboarding/v5-freepath/free-path/FreeOnboarding.jsx#L282-L306):
    * `fetch("/api/v2/onboarding/role-schedule")` is called.
    * `fetch("/api/v2/onboarding/activate")` is immediately called without checking `if (!roleScheduleRes.ok)`.
-3. In [`schedule-periods.js`](file:///d:/projects/ignitio-main-app/lib/onboarding/schedule-periods.js#L128-L165):
+3. In [`schedule-periods.js`]( ignitio-main-app/lib/onboarding/schedule-periods.js#L128-L165):
    * When `deriveScheduleFromBrowser()` runs near the end of a time window (e.g., 16:50 in NOON, max 17:00), `rawEndMins` is clamped to `maxMins`.
    * If `startMins >= maxMins`, `startTime === endTime`, causing `role-schedule` to reject with a 400 validation error (`endTime must be after startTime`).
    * Because `role-schedule` failed to write `role` and `schedulePreference` to MongoDB, the subsequent call to `/activate` encountered an empty role/schedule and rejected with **422 Unprocessable Entity**.

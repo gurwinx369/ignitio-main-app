@@ -244,6 +244,18 @@ export default function StreakStatusCard({
   const visibleCount = visibleWeek ? visibleWeek.length : 0;
   const lineInset = visibleCount > 0 ? 100 / (2 * visibleCount) : 0;
 
+  const lastCompletedVisibleIdx = useMemo(() => {
+    if (!visibleWeek || visibleWeek.length === 0) return -1;
+    let lastIdx = -1;
+    for (let i = 0; i < visibleWeek.length; i++) {
+      const s = visibleWeek[i].status;
+      if (s === "completed" || s === "today_done") {
+        lastIdx = i;
+      }
+    }
+    return lastIdx;
+  }, [visibleWeek]);
+
   return (
     <div className="flex flex-col gap-2.5 w-full">
 
@@ -560,18 +572,19 @@ export default function StreakStatusCard({
                 role="list"
                 aria-label="This week's streak"
               >
-                {/* BLUE LINE BEHIND CUPS */}
+                {/* BLUE ENERGY LINE BEHIND CUPS */}
                 {visibleCount > 1 && (
                   <>
+                    {/* Neutral wire track across all days */}
                     <div
                       aria-hidden="true"
                       className="
                         absolute
                         top-[31px]
                         sm:top-[34px]
-                        h-[2px]
+                        h-[2.5px]
                         rounded-full
-                        bg-[#19183B]/8
+                        bg-[#19183B]/10
                       "
                       style={{
                         left: `${lineInset}%`,
@@ -579,21 +592,47 @@ export default function StreakStatusCard({
                       }}
                     />
 
-                    <div
-                      aria-hidden="true"
-                      className="
-                        absolute
-                        top-[31px]
-                        sm:top-[34px]
-                        h-[2px]
-                        rounded-full
-                        bg-[#00A9FF]/55
-                      "
-                      style={{
-                        left: `${lineInset}%`,
-                        right: `${lineInset}%`,
-                      }}
-                    />
+                    {/* Solid glowing blue line connecting completed cups */}
+                    {lastCompletedVisibleIdx > 0 && (
+                      <div
+                        aria-hidden="true"
+                        className="
+                          absolute
+                          top-[31px]
+                          sm:top-[34px]
+                          h-[2.5px]
+                          rounded-full
+                          bg-[#00A9FF]
+                          shadow-[0_0_8px_#00A9FF,0_0_12px_rgba(0,169,255,0.7)]
+                        "
+                        style={{
+                          left: `${lineInset}%`,
+                          width: `${(lastCompletedVisibleIdx / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                        }}
+                      />
+                    )}
+
+                    {/* Glowing blue energy beam coming from completed cup to unbrewed cup */}
+                    {lastCompletedVisibleIdx >= 0 &&
+                      lastCompletedVisibleIdx < visibleCount - 1 && (
+                        <div
+                          aria-hidden="true"
+                          className="
+                            absolute
+                            top-[31px]
+                            sm:top-[34px]
+                            h-[2.5px]
+                            rounded-full
+                            shadow-[0_0_8px_rgba(0,169,255,0.7)]
+                          "
+                          style={{
+                            left: `${lineInset + (lastCompletedVisibleIdx / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                            width: `${(1 / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                            backgroundImage:
+                              "linear-gradient(90deg, #00A9FF 0%, rgba(0, 169, 255, 0.7) 60%, rgba(0, 169, 255, 0.15) 100%)",
+                          }}
+                        />
+                      )}
                   </>
                 )}
 
@@ -610,7 +649,7 @@ export default function StreakStatusCard({
                   }}
                 >
                   {visibleWeek.map((day, idx) => {
-                    const { src } =
+                    const { src, done } =
                       getDayCupSrc(day.status);
 
                     const isToday =
@@ -633,6 +672,11 @@ export default function StreakStatusCard({
 
                     const isTodayPending =
                       day.status === "today_pending";
+
+                    const isNext =
+                      lastCompletedVisibleIdx >= 0
+                        ? idx === lastCompletedVisibleIdx + 1
+                        : isTodayPending || idx === 0;
 
                     return (
                       <div
@@ -694,6 +738,51 @@ export default function StreakStatusCard({
                           ring-[#FFFDF9]
                         "
                         >
+                          {/* Glowing aura flash behind brewed cup */}
+                          {done && (
+                            <>
+                              <span
+                                aria-hidden="true"
+                                className="
+                                  absolute
+                                  -inset-2.5
+                                  rounded-full
+                                  bg-[#00A9FF]/30
+                                  blur-md
+                                  animate-pulse
+                                  pointer-events-none
+                                "
+                              />
+                              <span
+                                aria-hidden="true"
+                                className="
+                                  absolute
+                                  -inset-1
+                                  rounded-full
+                                  ring-2
+                                  ring-[#00A9FF]/40
+                                  pointer-events-none
+                                "
+                              />
+                            </>
+                          )}
+
+                          {/* Next cup pulse beacon */}
+                          {isNext && !done && (
+                            <span
+                              aria-hidden="true"
+                              className="
+                                absolute
+                                -inset-1.5
+                                rounded-full
+                                border-2
+                                border-[#00A9FF]/45
+                                animate-pulse
+                                pointer-events-none
+                              "
+                            />
+                          )}
+
                           <Image
                             src={src}
                             alt=""
@@ -701,16 +790,18 @@ export default function StreakStatusCard({
                             width={36}
                             height={36}
                             className={[
-                              "w-6 h-6 sm:w-8 sm:h-8 object-contain transition-opacity duration-200",
-                              isBeforeStart
-                                ? "opacity-[0.14]"
-                                : isFuture
-                                  ? "opacity-35"
-                                  : "opacity-100",
+                              "relative z-10 w-6 h-6 sm:w-8 sm:h-8 object-contain transition-all duration-300",
+                              done
+                                ? "drop-shadow-[0_0_8px_rgba(0,169,255,0.75)] scale-105"
+                                : isBeforeStart
+                                  ? "opacity-[0.14]"
+                                  : isFuture
+                                    ? "opacity-35"
+                                    : "opacity-100",
                             ].join(" ")}
                           />
 
-                          {isTodayPending && (
+                          {isTodayPending && !done && (
                             <span
                               aria-label="Today pending"
                               className="
@@ -735,7 +826,7 @@ export default function StreakStatusCard({
                               absolute
                               -bottom-1
                               -right-1
-
+                              z-20
                               w-3
                               h-3
 

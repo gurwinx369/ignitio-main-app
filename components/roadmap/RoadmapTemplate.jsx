@@ -649,13 +649,6 @@ export default function RoadmapTemplate({
             },
           }),
         );
-
-        // First lesson completion after onboarding: trigger streak-sparked screen
-        if (localStorage.getItem("ignitio:streak_phase") === "anticipated") {
-          localStorage.setItem("ignitio:streak_phase", "sparked");
-          window.location.href = "/onboarding/streak";
-          return;
-        }
       }
 
       triggerCompletionToast();
@@ -798,6 +791,17 @@ export default function RoadmapTemplate({
           }
         }
       }
+    }
+
+    // First lesson completion after onboarding: trigger streak-sparked screen
+    // Placed after patchRoadmapProgress so the streak increment and lesson completion are saved to the backend first!
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("ignitio:streak_phase") === "anticipated"
+    ) {
+      localStorage.setItem("ignitio:streak_phase", "sparked");
+      window.location.href = "/onboarding/streak";
+      return;
     }
 
     // Generic roadmaps use the same optimistic array as before.

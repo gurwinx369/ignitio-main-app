@@ -102,16 +102,18 @@ export function EnergyCup({ charge, fill, sealed, alive }) {
         </filter>
       </defs>
 
-      <image href="/streak/streak_done.png" width="400" height="640" />
-      <motion.image
-        href="/streak/streak_done.png"
-        width="400"
-        height="640"
-        filter={`url(#${id("silhouette")})`}
-        initial={false}
-        animate={{ opacity: sealed ? 1 : 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-      />
+      <g transform="translate(2.5 71)">
+        <image href="/streak/streak_done.png" width="400" height="640" />
+        <motion.image
+          href="/streak/streak_done.png"
+          width="400"
+          height="640"
+          filter={`url(#${id("silhouette")})`}
+          initial={false}
+          animate={{ opacity: sealed ? 1 : 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        />
+      </g>
 
       <g transform="translate(23 0)">
       <path d={BOLT} fill="#081220" />

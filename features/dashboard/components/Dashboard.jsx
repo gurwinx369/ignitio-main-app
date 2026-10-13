@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
@@ -13,6 +13,7 @@ import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
 import useSWR from "swr";
 import { useAuth } from "@/features/context/AuthContext";
+import { patchRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 import {
   getPromptEngineeringRoadmapByRole,
   promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData,
@@ -109,11 +110,105 @@ export default function Dashboard() {
     return data.profile;
   };
 
-  const { data: profileData, isLoading: isLoadingProfile } = useSWR(
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    mutate: mutateProfile,
+  } = useSWR(
     user ? "/api/v2/profile" : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
+
+  // Self-heal streak on dashboard load if user completed lesson locally but server is out of sync
+  const streakHealingAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !profileData || streakHealingAttemptedRef.current) return;
+
+    const isStreakUnsynced =
+      !profileData.streak ||
+      profileData.streak.currentCount === 0 ||
+      (profileData.streak.status !== "completed_today" &&
+        !profileData.streak.week?.some(
+          (d) => d.isToday && d.status === "completed_today",
+        ));
+
+    if (!isStreakUnsynced) return;
+
+    const hasLocalCompletion =
+      typeof window !== "undefined" &&
+      (localStorage.getItem("has_completed_first_lesson") === "true" ||
+        localStorage.getItem("ignitio:streak_phase") === "sparked" ||
+        localStorage.getItem("ignitio:streak_phase") === "completed");
+
+    if (!hasLocalCompletion) return;
+
+    streakHealingAttemptedRef.current = true;
+
+    const reconcileStreak = async () => {
+      try {
+        const candidates = [
+          pythonBeginnerRoadmapData,
+          gitGithubRoadmapData,
+          selectedPromptRoadmap,
+          cppRoadmapData,
+          systemDesignRoadmapData,
+          clangBeginnerRoadmapData,
+        ];
+
+        let targetRoadmap = null;
+        let targetLevelId = null;
+
+        for (const r of candidates) {
+          if (!r?.id) continue;
+          const key = `completed_levels_${r.id}`;
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                targetRoadmap = r;
+                targetLevelId = parsed[0];
+                break;
+              }
+            } catch {}
+          }
+        }
+
+        if (!targetRoadmap) {
+          targetRoadmap = pythonBeginnerRoadmapData;
+          targetLevelId =
+            pythonBeginnerRoadmapData.days?.[0]?.levels?.[0]?.id ||
+            "PYTHON_BEGINNER_D1_01";
+        }
+
+        const allLevels = targetRoadmap.days.flatMap((d) => d.levels);
+        await patchRoadmapProgress({
+          user,
+          roadmapSlug: targetRoadmap.id,
+          payload: {
+            action: "complete_level",
+            roadmapTitle: targetRoadmap.title || "",
+            role: userRole || "other",
+            totalLevels: allLevels.length,
+            allLevelIds: allLevels.map((l) => l.id),
+            days: targetRoadmap.days.map((d) => ({
+              id: d.id,
+              levelIds: d.levels.map((l) => l.id),
+            })),
+            levelId: targetLevelId,
+          },
+        });
+
+        await mutateProfile();
+      } catch (err) {
+        console.warn("[Dashboard] Streak reconciliation failed:", err);
+      }
+    };
+
+    reconcileStreak();
+  }, [user, profileData, userRole, selectedPromptRoadmap, mutateProfile]);
 
   // We store the full list of parsed roadmaps so we can feed them to Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);

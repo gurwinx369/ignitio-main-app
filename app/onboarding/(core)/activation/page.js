@@ -31,6 +31,60 @@ export default function ActivationPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        // Self-healing: if activation failed because schedule windows were not yet persisted,
+        // auto-derive the schedule from the browser and persist it before re-attempting activation.
+        if (
+          res.status === 422 &&
+          typeof data.error === "string" &&
+          data.error.toLowerCase().includes("schedule")
+        ) {
+          try {
+            const { deriveScheduleFromBrowser } = await import(
+              "@/lib/onboarding/schedule-periods"
+            );
+            const derived = deriveScheduleFromBrowser();
+            const schedRes = await fetch("/api/v2/onboarding/role-schedule", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                role: "student",
+                schedule: {
+                  timezone: derived.timezone,
+                  windows: [
+                    {
+                      period: derived.period,
+                      startTime: derived.startTime,
+                      endTime: derived.endTime,
+                    },
+                  ],
+                },
+              }),
+            });
+
+            if (schedRes.ok) {
+              const retryRes = await fetch("/api/v2/onboarding/activate", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({}),
+              });
+              const retryData = await retryRes.json();
+              if (retryRes.ok && retryData.success && retryData.nextStep === "completed") {
+                await mutateProfile();
+                router.replace("/home");
+                return;
+              }
+            }
+          } catch (autoHealErr) {
+            console.error("Auto-heal schedule error:", autoHealErr);
+          }
+        }
+
         setErrorMsg(data.error || "Failed to generate your personalized roadmap.");
         setLoading(false);
         hasRequested.current = false; // Allow manual retry
@@ -71,7 +125,6 @@ export default function ActivationPage() {
     if (hasRequested.current) return;
     hasRequested.current = true;
     
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     performActivation(user);
   }, [user, performActivation]);
 

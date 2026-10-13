@@ -25,6 +25,13 @@ export function CelebrateCta({ visible }) {
   const router = useRouter()
   const [committed, setCommitted] = useState(false)
 
+  const handleContinue = () => {
+    try {
+      localStorage.setItem('ignitio:streak_phase', 'completed')
+    } catch {}
+    router.push(getRoadmapHref())
+  }
+
   return (
     <motion.div
       className="flex w-full flex-col items-center gap-2.5"
@@ -34,7 +41,7 @@ export function CelebrateCta({ visible }) {
     >
       <button
         type="button"
-        onClick={() => router.push(getRoadmapHref())}
+        onClick={handleContinue}
         className="group relative flex h-14 w-full max-w-md items-center justify-center gap-3 overflow-hidden rounded-2xl bg-brew font-display text-lg font-bold uppercase tracking-wide text-[#04121F] shadow-[0_4px_0_0_var(--brew-deep)] transition-[transform,box-shadow] duration-100 hover:brightness-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brew/40 active:translate-y-[4px] active:shadow-[0_0_0_0_var(--brew-deep)]"
       >
         <span aria-hidden="true" className="absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 animate-shine bg-white/35" />

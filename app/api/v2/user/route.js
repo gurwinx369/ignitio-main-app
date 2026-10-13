@@ -29,11 +29,17 @@ async function ensureCanonicalOnboardingState(profile) {
   }
 
   const step = profile.onboardingState?.step;
+  const hasValidWindows =
+    Array.isArray(profile.schedulePreference?.windows) &&
+    profile.schedulePreference.windows.length > 0;
 
-  // Legacy auto-heal: If a user is stuck on "role_selection" (deprecated),
-  // forcefully bump them to "activation_pending" and give them a valid schedule if missing,
-  // so they can pass activation seamlessly.
-  if (!profile.onboardingComplete && step === "role_selection") {
+  // Auto-heal: If a user is stuck on "role_selection" (deprecated) or is at "activation_pending"
+  // with missing/empty schedule windows (e.g. from an interrupted signup cascade or page reload on slow network),
+  // forcefully give them a valid default schedule so they can pass activation seamlessly.
+  if (
+    !profile.onboardingComplete &&
+    (step === "role_selection" || (step === "activation_pending" && !hasValidWindows))
+  ) {
     const defaultSchedule = {
       timezone: "UTC",
       windows: [
@@ -51,7 +57,7 @@ async function ensureCanonicalOnboardingState(profile) {
       {
         $set: {
           role: profile.role || "student",
-          schedulePreference: profile.schedulePreference?.windows?.length > 0 ? profile.schedulePreference : defaultSchedule,
+          schedulePreference: hasValidWindows ? profile.schedulePreference : defaultSchedule,
           "onboardingState.step": "activation_pending",
           onboardingVersion: ONBOARDING_VERSIONS.V5,
         },
@@ -66,7 +72,7 @@ async function ensureCanonicalOnboardingState(profile) {
       .lean();
 
     if (!updatedProfile) {
-      throw new Error("Failed to auto-heal legacy onboarding state");
+      throw new Error("Failed to auto-heal onboarding state");
     }
 
     return updatedProfile;
@@ -278,6 +284,17 @@ export async function POST(request) {
       onboardingVersion: ONBOARDING_VERSIONS.V5,
       onboardingState: {
         step: "activation_pending",
+      },
+      schedulePreference: {
+        timezone: "UTC",
+        windows: [
+          {
+            period: "MORNING",
+            startTime: "09:00",
+            endTime: "10:00",
+          },
+        ],
+        isDefault: true,
       },
     });
 
