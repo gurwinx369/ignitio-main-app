@@ -2410,6 +2410,10 @@ export default function ProfilePage() {
             )
           }
           user={user}
+          accountStartDateLocal={
+            streak?.onboardingStartDate ||
+            null
+          }
           initialMonth={
             currentStreakMonth
           }

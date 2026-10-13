@@ -573,7 +573,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#FCF5EE] font-sans text-[#19183B]">
       {/* ── HOME TAB ── */}
       {activeTab === "home" && (
-        <div className="max-w-[780px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
+        <div className="max-w-[620px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
 
           <HomeHeader
             displayName={displayName}
@@ -632,7 +632,7 @@ export default function Dashboard() {
 
           {/* Existing learner — streak + roadmap */}
           {clientResolved && hasActiveRoadmap && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               {/* Streak module */}
               <StreakStatusCard
                 streak={profileData?.streak}
@@ -641,22 +641,26 @@ export default function Dashboard() {
               />
 
               {/* Current roadmap — actual course card */}
-              <div>
-                <p
-                  className="
-                    text-[11px]
-                    font-bold
-                    text-[#19183B]/55
-                    uppercase
-                    tracking-widest
-                    mb-2
-                    px-1
-                  "
-                >
-                  CONTINUE LEARNING
-                </p>
+              <div className="flex flex-col">
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <p
+                    className="
+                      text-[11px]
+                      font-bold
+                      uppercase
+                      tracking-widest
+                      text-[#19183B]/55
+                    "
+                  >
+                    CONTINUE LEARNING
+                  </p>
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#00A9FF]">
+                    <span>Next lesson powers Day {(profileData?.streak?.currentCount || 0) + 1}</span>
+                    <span aria-hidden="true">⚡</span>
+                  </span>
+                </div>
 
-                <div className="w-full max-w-[460px] mx-auto">
+                <div className="w-full">
                   {(() => {
                     const comp = filteredCarouselRoadmaps.find(
                       (r) => r.id === activeRoadmap.id
