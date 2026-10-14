@@ -2,6 +2,7 @@ import React, { useRef, useState, useLayoutEffect } from "react";
 import { PlayCircle, Clock, CheckCircle2, ArrowRight, BarChart } from "lucide-react";
 import { roadmapThemes } from './theme';
 import { usePostHog } from 'posthog-js/react';
+import { getOrCreateOnboardingSessionId } from '@/lib/analytics/onboardingSession';
 
 const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onStart, onClose, difficulty = "beginner", anchor }) => {
     const theme = roadmapThemes[difficulty] || roadmapThemes.beginner;
@@ -145,11 +146,40 @@ const LessonPopup = ({ level, isCompleted, isUnlocked = true, lockedReason, onSt
                         onClick={() => {
                             if (!isUnlocked || isStarting) return;
                             setIsStarting(true);
+                            const sessionId = getOrCreateOnboardingSessionId();
+                            const hasCompletedFirstLesson =
+                                typeof window !== 'undefined' &&
+                                localStorage.getItem("has_completed_first_lesson") === "true";
+
+                            // Preserve existing event for backward compatibility
                             posthog?.capture("lesson_start_clicked", {
                                 level_id: level.id,
                                 level_title: level.title,
                                 roadmap_difficulty: difficulty
                             });
+
+                            // Capture Step 9 (first_lesson_start) for the onboarding conversion funnel
+                            if (!hasCompletedFirstLesson) {
+                                posthog?.capture("first_lesson_start", {
+                                    level_id: level.id,
+                                    level_title: level.title,
+                                    roadmap_difficulty: difficulty,
+                                    onboarding_session_id: sessionId,
+                                });
+
+                                posthog?.capture("onboarding_step_viewed", {
+                                    step_id: "first_lesson_start",
+                                    step_index: 9,
+                                    onboarding_session_id: sessionId,
+                                });
+
+                                posthog?.capture("onboarding_step_completed", {
+                                    step_id: "first_lesson_start",
+                                    step_index: 9,
+                                    onboarding_session_id: sessionId,
+                                });
+                            }
+
                             requestAnimationFrame(() => {
                                 requestAnimationFrame(() => {
                                     onStart(level);

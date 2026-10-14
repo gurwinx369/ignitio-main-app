@@ -8,6 +8,7 @@ import {
 } from "@/models/v2/user.profile.model";
 import { OnboardingResponseModel } from "@/models/v2/onboarding.model";
 import { evaluateDiagnosticPayload } from "@/lib/onboarding/diagnostic-evaluation";
+import { captureServerException } from "@/lib/analytics/serverAnalytics";
 
 export async function POST(req) {
   try {
@@ -192,6 +193,13 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error("Diagnostic POST Error:", error);
+
+    try {
+      captureServerException(error, decodedToken?.uid || "anonymous", {
+        step_id: "diagnostic_intro",
+        endpoint: "/api/v2/onboarding/diagnostic",
+      });
+    } catch {}
 
     return NextResponse.json(
       {

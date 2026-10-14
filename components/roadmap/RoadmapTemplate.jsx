@@ -37,6 +37,8 @@ import {
   readLocalRoadmapProgress,
   writeLocalRoadmapProgress,
 } from "@/lib/roadmaps/progress.migration";
+import posthog from "posthog-js";
+import { getOrCreateOnboardingSessionId, getTimeSinceSignupMs } from "@/lib/analytics/onboardingSession";
 import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 import {
   checkCertificateUnlock,
@@ -639,6 +641,37 @@ export default function RoadmapTemplate({
       });
 
       if (typeof window !== "undefined") {
+        const isFirstLesson = localStorage.getItem("has_completed_first_lesson") !== "true";
+        const sessionId = getOrCreateOnboardingSessionId();
+        const timeToFirstLesson = getTimeSinceSignupMs();
+
+        try {
+          posthog.capture("lesson_completed", {
+            lesson_id: levelId,
+            roadmap_id: roadmapData.id,
+            is_first_lesson: isFirstLesson,
+            ...(isFirstLesson && timeToFirstLesson ? { time_to_first_lesson_ms: timeToFirstLesson } : {}),
+            onboarding_session_id: sessionId,
+          });
+
+          if (isFirstLesson) {
+            posthog.capture("onboarding_step_viewed", {
+              step_id: "first_lesson_completed",
+              step_index: 10,
+              onboarding_session_id: sessionId,
+            });
+
+            posthog.capture("onboarding_step_completed", {
+              step_id: "first_lesson_completed",
+              step_index: 10,
+              onboarding_session_id: sessionId,
+              time_to_first_lesson_ms: timeToFirstLesson,
+            });
+          }
+        } catch (err) {
+          console.warn("PostHog lesson completion tracking error:", err);
+        }
+
         localStorage.setItem("has_completed_first_lesson", "true");
 
         window.dispatchEvent(
@@ -716,6 +749,41 @@ export default function RoadmapTemplate({
           // reconcile state but do not replay completion side effects.
           if (res?.newCompletion !== true) {
             return;
+          }
+
+          if (typeof window !== "undefined") {
+            const isFirstLesson = localStorage.getItem("has_completed_first_lesson") !== "true";
+            const sessionId = getOrCreateOnboardingSessionId();
+            const timeToFirstLesson = getTimeSinceSignupMs();
+
+            try {
+              posthog.capture("lesson_completed", {
+                lesson_id: levelId,
+                roadmap_id: roadmapData.id,
+                is_first_lesson: isFirstLesson,
+                ...(isFirstLesson && timeToFirstLesson ? { time_to_first_lesson_ms: timeToFirstLesson } : {}),
+                onboarding_session_id: sessionId,
+              });
+
+              if (isFirstLesson) {
+                posthog.capture("onboarding_step_viewed", {
+                  step_id: "first_lesson_completed",
+                  step_index: 10,
+                  onboarding_session_id: sessionId,
+                });
+
+                posthog.capture("onboarding_step_completed", {
+                  step_id: "first_lesson_completed",
+                  step_index: 10,
+                  onboarding_session_id: sessionId,
+                  time_to_first_lesson_ms: timeToFirstLesson,
+                });
+              }
+            } catch (err) {
+              console.warn("PostHog lesson completion tracking error:", err);
+            }
+
+            localStorage.setItem("has_completed_first_lesson", "true");
           }
 
           triggerCompletionToast();
