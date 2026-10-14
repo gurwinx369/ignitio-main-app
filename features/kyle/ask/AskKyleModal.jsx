@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import Image from 'next/image';
 import { User, AlertCircle, Send, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
@@ -33,9 +34,10 @@ function renderBasicMarkdown(text) {
   });
 }
 
-export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking }) {
+export default function AskKyleModal({ isOpen, onClose, options, isThinking, setIsThinking, globalContext, isLessonActive }) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const isLesson = isLessonActive || (pathname && (pathname.includes('/lesson') || pathname.includes('/video') || pathname.includes('/interactive-overviews')));
 
   const setKylePetVisualState = (state) => {
     if (typeof window === 'undefined') return;
@@ -50,7 +52,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
   };
 
   const INITIAL_MESSAGES = [
-    { role: 'kyle', text: "Hi! I'm Kyle. Ask me about your roadmap, focus, learning strategy, or concepts. I’ll guide you." }
+    { role: 'kyle', text: "Hi! I'm Kibo. Ask me about your roadmap, focus, learning strategy, or concepts. I’ll guide you." }
   ];
 
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
@@ -63,10 +65,36 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
   const wasOpenRef = useRef(isOpen);
 
-  // Reset state only when transitioning from OPEN to CLOSED
+  // Load history on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ignitio_kyle_session');
+      if (saved) {
+        let parsed = JSON.parse(saved);
+        parsed = parsed.map(msg => ({
+          ...msg,
+          text: msg.text.replace(/Hi, I'm Kyle/g, "Hi! I'm Kibo").replace(/I'm Kyle/g, "I'm Kibo")
+        }));
+        setMessages(parsed);
+      }
+    } catch (e) {
+      console.warn('Failed to load kyle session');
+    }
+  }, []);
+
+  // Save history on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('ignitio_kyle_session', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Failed to save kyle session');
+    }
+  }, [messages]);
+
+  // Reset transient state only when transitioning from OPEN to CLOSED
   useEffect(() => {
     if (wasOpenRef.current && !isOpen) {
-      setMessages(INITIAL_MESSAGES);
+      // Do not clear messages, keep them persistent
       setQuestion('');
       setError(null);
       setIsHighDemand(false);
@@ -86,22 +114,14 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
     }
   }, [isOpen, messages, isThinking, error, isHighDemand]);
 
-  // Close modal if user navigates to a lesson/contextual page
-  useEffect(() => {
-    if (!isOpen) return;
-    if (pathname && (pathname.includes('/lesson') || pathname.includes('/video') || pathname.includes('/interactive-overviews'))) {
-      onClose();
-    }
-  }, [pathname, isOpen, onClose]);
-
-  if (!isOpen) return null;
+  // Removed auto-close logic so chat persists everywhere
 
   const sendQuestion = async (currentQuestion) => {
     setError(null);
     setIsHighDemand(false);
 
     if (!user) {
-      setError("Please sign in again to ask Kyle.");
+      setError("Please sign in again to ask Kibo.");
       setIsThinking(false);
       setKylePetVisualState(null);
       return;
@@ -111,10 +131,15 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
     setIsThinking(true);
     setKylePetVisualState('thinking');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 25000);
+
     try {
       const idToken = await user.getIdToken();
       if (!idToken) {
-        throw new Error("Please sign in again to ask Kyle.");
+        throw new Error("Please sign in again to ask Kibo.");
       }
 
       // Determine role safely
@@ -125,18 +150,35 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
         role = "student";
       }
 
+      const activeContext = options?.context || globalContext;
+
+      const requestBody = {
+        mode: activeContext ? 'contextual' : 'general',
+        role: role,
+        question: currentQuestion,
+        history: messages.map(m => ({
+          role: m.role === 'kyle' ? 'model' : 'user',
+          text: m.text
+        }))
+      };
+
+      if (activeContext) {
+        requestBody.concept = activeContext.concept;
+        requestBody.transcript = activeContext.transcript;
+      }
+      requestBody.pageContext = `User is currently on this route: ${pathname || 'Unknown'}`;
+
       const response = await fetch('/api/v2/kyle/doubt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify({
-          mode: 'general',
-          role: role,
-          question: currentQuestion
-        })
+        signal: controller.signal,
+        body: JSON.stringify(requestBody)
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -148,10 +190,19 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
         throw new Error(data.error || 'Something went wrong. Please try again.');
       }
 
-      const answer = data?.data?.answer || data?.answer || "Kyle responded, but no answer text was returned.";
+      const rawAnswer = data?.data?.answer || data?.answer || "Kibo responded, but no answer text was returned.";
+      const answer = rawAnswer
+        .replace(/<thinking>[\s\S]*?<\/thinking>\n*/gi, '')
+        .replace(/<\/?thinking>/gi, '') // Catch any stray or unmatched tags
+        .trim();
       setMessages(prev => [...prev, { role: 'kyle', text: answer }]);
     } catch (err) {
-      setError(err.message || 'Failed to connect to Kyle.');
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setIsHighDemand(true);
+        return;
+      }
+      setError(err.message || 'Failed to connect to Kibo.');
     } finally {
       setIsThinking(false);
       setKylePetVisualState(null);
@@ -193,19 +244,34 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}></div>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] animate-in zoom-in-95 duration-200 pointer-events-auto">
+      <div 
+        className={`fixed inset-0 z-[80] bg-black/20 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
+        onClick={onClose}
+      ></div>
+      <div 
+        className={isLesson
+          ? `fixed inset-y-0 left-0 z-[100] w-full sm:w-[400px] max-w-[90vw] pointer-events-none flex transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+          : `fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none transition-all duration-200 ease-out ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`
+        }
+      >
+        <div 
+          className={(isLesson
+            ? "bg-[#fffaf3] w-full h-full sm:rounded-r-3xl shadow-[4px_0_24px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col relative border-r border-[#e5d5c5]/50 "
+            : "bg-[#fffaf3] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col relative h-[80vh] max-h-[800px] "
+          ) + (isOpen ? "pointer-events-auto" : "pointer-events-none")}
+        >
 
         {/* Header */}
         <div className="px-6 py-4 border-b-2 border-[#e5d5c5]/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white p-1 flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-              <Image src="/kyle/kyle.svg" alt="Kyle" width={40} height={40} className="w-full h-full rounded-full object-cover" />
+              <KiboAvatar width={40} height={40} className="w-full h-full rounded-full object-cover" />
             </div>
             <div>
-              <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kyle</h3>
-              <p className="text-[#7775a5] font-semibold text-[13px]">Your Global AI Mentor</p>
+              <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Ask Kibo</h3>
+              <p className="text-[#7775a5] font-semibold text-[13px]">
+                {(options?.context || globalContext) ? `Helping with ${(options?.context || globalContext).concept}` : "Your Global AI Mentor"}
+              </p>
             </div>
           </div>
           <button
@@ -223,7 +289,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
               <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 border-2 ${msg.role === 'user' ? 'bg-[#ddf2ff] text-[#007bcc] border-[#00a9ff] shadow-sm' : 'bg-white p-0.5 overflow-hidden border-[#e5d5c5] shadow-sm'
                   }`}>
-                  {msg.role === 'user' ? <User size={18} /> : <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />}
+                  {msg.role === 'user' ? <User size={18} /> : <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />}
                 </div>
                 <div className={`px-5 py-4 text-[15px] font-semibold leading-relaxed border-2 ${msg.role === 'user'
                   ? 'bg-[#ddf2ff] text-[#001d32] border-[#00a9ff] shadow-[0_3px_0_#3081AD] rounded-2xl rounded-tr-sm'
@@ -235,32 +301,32 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
             </div>
           ))}
 
-          {isThinking && (
+          {isThinking ? (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
                 <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                  <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
+                  <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
                 <div className="px-5 py-4 bg-white text-[#7775a5] font-semibold border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC] rounded-2xl rounded-tl-sm flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-[#7775a5]" />
-                  <span className="text-[15px] italic ml-1">Kyle is thinking...</span>
+                  <span className="text-[15px] italic ml-1">Kibo is thinking...</span>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* High-demand retry card */}
-          {isHighDemand && !isThinking && (
+          {isHighDemand && !isThinking ? (
             <div className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
                 <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-1 bg-white p-0.5 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                  <Image src="/kyle/kyle.svg" alt="Kyle" width={32} height={32} className="w-full h-full rounded-full object-cover" />
+                  <KiboAvatar width={32} height={32} className="w-full h-full rounded-full object-cover" />
                 </div>
                 <div className="bg-white border-2 border-[#ef4444]/30 shadow-[0_3px_0_rgba(239,68,68,0.2)] rounded-2xl rounded-tl-sm px-5 py-4 flex flex-col gap-3">
                   <div className="flex items-start gap-2">
                     <AlertCircle size={18} className="text-[#ef4444] mt-0.5 shrink-0" />
                     <p className="text-[15px] font-semibold text-[#19183b] leading-snug">
-                      Kyle is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span> right now and couldn&apos;t respond. Your question is saved — give it a moment and try again.
+                      Kibo is experiencing <span className="font-extrabold text-[#ef4444]">heavy demand</span>. Please try again.
                     </p>
                   </div>
                   <button
@@ -273,17 +339,17 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Generic error pill */}
-          {error && !isHighDemand && (
+          {error && !isHighDemand ? (
             <div className="flex justify-center my-4">
               <div className="bg-red-50 text-red-600 px-4 py-2 rounded-full text-sm flex items-center gap-2 border border-red-100">
                 <AlertCircle size={16} />
                 {error}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div ref={messagesEndRef} />
         </div>
@@ -300,7 +366,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
                   }
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask Kyle anything..."
+                placeholder="Ask Kibo anything..."
                 className="w-full max-h-32 min-h-[56px] py-4 pl-5 pr-12 bg-transparent resize-none outline-none text-[#19183b] font-semibold text-[15px] scrollbar-thin"
                 rows={1}
               />
@@ -317,7 +383,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
             </button>
           </form>
           <div className="text-center mt-3">
-            <p className="text-[11px] text-slate-400">Kyle can make mistakes. Consider verifying important information.</p>
+            <p className="text-[11px] text-slate-400">Kibo can make mistakes. Consider verifying important information.</p>
           </div>
         </div>
       </div>

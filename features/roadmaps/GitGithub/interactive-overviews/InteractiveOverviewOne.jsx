@@ -22,6 +22,17 @@ export default function InteractiveOverviewOne() {
             timestamp: new Date().toISOString()
         }));
 
+        // First-time onboarding: trigger streak-sparked screen
+        try {
+          if (localStorage.getItem('ignitio:streak_phase') === 'anticipated') {
+            localStorage.setItem('ignitio:streak_phase', 'sparked')
+            router.push('/onboarding/streak')
+            return
+          }
+        } catch {
+          // localStorage unavailable — fall through to normal navigation
+        }
+
         // Navigate to next page (e.g., lessons)
         router.push('/home/roadmaps/git-github/interactive-overviews/second-overview');
     };

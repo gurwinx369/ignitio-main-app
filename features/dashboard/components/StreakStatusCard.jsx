@@ -48,9 +48,15 @@ function getWeeklyCupEnergy(week) {
 /** Returns the correct cup image src and alt for each streak week day status */
 function getDayCupSrc(status) {
   if (status === "completed" || status === "today_done") {
-    return { src: "/streak/streak_done.png", done: true };
+    return { src: "/streak/streak_done.png", done: true, isFreeze: false };
   }
-  return { src: "/streak/streak_pending_or_skipped.png", done: false };
+  if (status === "freeze_used") {
+    return { src: "/streak/streak_freeze.png", done: false, isFreeze: true };
+  }
+  if (status === "missed") {
+    return { src: "/streak/cup-shadow-t.png", done: false, isFreeze: false };
+  }
+  return { src: "/streak/streak_pending_or_skipped.png", done: false, isFreeze: false };
 }
 
 function getAccountStartDateLocal(streak, user) {
@@ -153,6 +159,15 @@ export default function StreakStatusCard({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, [streak?.week]);
 
+  const todayDateLocal = useMemo(() => {
+    const today = streak?.week?.find((day) => day.isToday);
+    if (typeof today?.dateLocal === "string") {
+      return today.dateLocal;
+    }
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, [streak?.week]);
+
   /*
    * Earliest navigable month. Prefers onboardingStartDate,
    * falls back to Firebase account creation time.
@@ -244,6 +259,18 @@ export default function StreakStatusCard({
   const visibleCount = visibleWeek ? visibleWeek.length : 0;
   const lineInset = visibleCount > 0 ? 100 / (2 * visibleCount) : 0;
 
+  const lastCompletedVisibleIdx = useMemo(() => {
+    if (!visibleWeek || visibleWeek.length === 0) return -1;
+    let lastIdx = -1;
+    for (let i = 0; i < visibleWeek.length; i++) {
+      const s = visibleWeek[i].status;
+      if (s === "completed" || s === "today_done") {
+        lastIdx = i;
+      }
+    }
+    return lastIdx;
+  }, [visibleWeek]);
+
   return (
     <div className="flex flex-col gap-2.5 w-full">
 
@@ -266,40 +293,65 @@ export default function StreakStatusCard({
           onClick={() => setCalendarOpen(true)}
           aria-label="View monthly streak calendar"
           className="
-          rounded-md
-          text-xs
+          group
+          flex
+          items-center
+          gap-1
+          rounded-full
+          border border-[#00A9FF]/20
+          bg-[#00A9FF]/[0.06]
+          px-2.5
+          py-0.5
+          text-[11px]
           font-bold
           text-[#00A9FF]
-
-          transition-transform
+          transition-all
           duration-150
-
-          hover:-translate-y-px
-          active:translate-y-[2px]
-
+          hover:bg-[#00A9FF]/[0.12]
+          hover:border-[#00A9FF]/35
+          active:scale-[0.98]
           focus-visible:outline-none
           focus-visible:ring-2
           focus-visible:ring-[#00A9FF]
-          focus-visible:ring-offset-2
         "
         >
-          Monthly Streak →
+          <span>Monthly Streak</span>
+          <span className="transition-transform group-hover:translate-x-0.5">→</span>
         </button>
       </div>
 
-      {/* FIGMA WHITE STREAK STRIP */}
+      {/* GLASSMORPHIC STREAK STRIP */}
       <div
         className="
+        relative
+        overflow-hidden
         rounded-[24px]
-        border border-[#E7BC95]
-        bg-[#FFFDF9]
+        border border-white/80
+        bg-[#FFFDF9]/90
+        backdrop-blur-md
 
         px-3.5 py-3.5
         sm:px-5 sm:py-4
 
-        shadow-[0_8px_22px_rgba(73,42,20,0.08)]
+        shadow-[0_12px_32px_-6px_rgba(25,24,59,0.06),0_1px_3px_rgba(25,24,59,0.03)]
+        ring-1 ring-[#19183B]/[0.05]
       "
       >
+        {/* Subtle ambient cyan light pool reflecting from the circuit */}
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            absolute
+            -top-12
+            right-8
+            w-72
+            h-36
+            rounded-full
+            bg-[#00A9FF]/[0.07]
+            blur-3xl
+          "
+        />
         <div
           className="
           flex
@@ -365,7 +417,8 @@ export default function StreakStatusCard({
                   bottom-0
 
                   rounded-b-lg
-                  bg-[#00A9FF]/25
+                  bg-[#00A9FF]/30
+                  shadow-[0_0_12px_rgba(0,169,255,0.45)]
 
                   transition-[height]
                   duration-700
@@ -560,18 +613,19 @@ export default function StreakStatusCard({
                 role="list"
                 aria-label="This week's streak"
               >
-                {/* BLUE LINE BEHIND CUPS */}
+                {/* BLUE ENERGY LINE BEHIND CUPS */}
                 {visibleCount > 1 && (
                   <>
+                    {/* Neutral wire track across all days */}
                     <div
                       aria-hidden="true"
                       className="
                         absolute
                         top-[31px]
                         sm:top-[34px]
-                        h-[2px]
+                        h-[2.5px]
                         rounded-full
-                        bg-[#19183B]/8
+                        bg-[#19183B]/10
                       "
                       style={{
                         left: `${lineInset}%`,
@@ -579,21 +633,47 @@ export default function StreakStatusCard({
                       }}
                     />
 
-                    <div
-                      aria-hidden="true"
-                      className="
-                        absolute
-                        top-[31px]
-                        sm:top-[34px]
-                        h-[2px]
-                        rounded-full
-                        bg-[#00A9FF]/55
-                      "
-                      style={{
-                        left: `${lineInset}%`,
-                        right: `${lineInset}%`,
-                      }}
-                    />
+                    {/* Solid glowing blue line connecting completed cups */}
+                    {lastCompletedVisibleIdx > 0 && (
+                      <div
+                        aria-hidden="true"
+                        className="
+                          absolute
+                          top-[31px]
+                          sm:top-[34px]
+                          h-[2.5px]
+                          rounded-full
+                          bg-[#00A9FF]
+                          shadow-[0_0_8px_#00A9FF,0_0_12px_rgba(0,169,255,0.7)]
+                        "
+                        style={{
+                          left: `${lineInset}%`,
+                          width: `${(lastCompletedVisibleIdx / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                        }}
+                      />
+                    )}
+
+                    {/* Glowing blue energy beam coming from completed cup to unbrewed cup */}
+                    {lastCompletedVisibleIdx >= 0 &&
+                      lastCompletedVisibleIdx < visibleCount - 1 && (
+                        <div
+                          aria-hidden="true"
+                          className="
+                            absolute
+                            top-[31px]
+                            sm:top-[34px]
+                            h-[2.5px]
+                            rounded-full
+                            shadow-[0_0_8px_rgba(0,169,255,0.7)]
+                          "
+                          style={{
+                            left: `${lineInset + (lastCompletedVisibleIdx / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                            width: `${(1 / (visibleCount - 1)) * (100 - 2 * lineInset)}%`,
+                            backgroundImage:
+                              "linear-gradient(90deg, #00A9FF 0%, rgba(0, 169, 255, 0.7) 60%, rgba(0, 169, 255, 0.15) 100%)",
+                          }}
+                        />
+                      )}
                   </>
                 )}
 
@@ -610,7 +690,7 @@ export default function StreakStatusCard({
                   }}
                 >
                   {visibleWeek.map((day, idx) => {
-                    const { src } =
+                    const { src, done, isFreeze } =
                       getDayCupSrc(day.status);
 
                     const isToday =
@@ -634,6 +714,11 @@ export default function StreakStatusCard({
                     const isTodayPending =
                       day.status === "today_pending";
 
+                    const isNext =
+                      lastCompletedVisibleIdx >= 0
+                        ? idx === lastCompletedVisibleIdx + 1
+                        : isTodayPending || idx === 0;
+
                     return (
                       <div
                         key={day.dateLocal || idx}
@@ -644,12 +729,47 @@ export default function StreakStatusCard({
                             : `${day.dayLabel}: ${day.status}`
                         }
                         className="
+                        group
+                        relative
                         flex
                         flex-col
                         items-center
                         min-w-0
+                        cursor-default
+                        transition-transform
+                        duration-150
+                        hover:-translate-y-0.5
                       "
                       >
+                        {/* Micro-Tooltip */}
+                        <div
+                          role="tooltip"
+                          className="
+                            pointer-events-none
+                            absolute
+                            -top-6
+                            left-1/2
+                            -translate-x-1/2
+                            whitespace-nowrap
+                            rounded-md
+                            bg-[#04121F]/90
+                            px-1.5
+                            py-0.5
+                            text-[8px]
+                            sm:text-[9px]
+                            font-bold
+                            text-white
+                            opacity-0
+                            shadow-sm
+                            backdrop-blur-sm
+                            transition-opacity
+                            duration-150
+                            group-hover:opacity-100
+                            z-30
+                          "
+                        >
+                          {done ? "Brewed" : isNext ? "Next brew" : isToday ? "Today" : day.dayLabel}
+                        </div>
                         {/* DAY */}
                         <span
                           className={[
@@ -694,6 +814,51 @@ export default function StreakStatusCard({
                           ring-[#FFFDF9]
                         "
                         >
+                          {/* Glowing aura flash behind brewed cup */}
+                          {done && (
+                            <>
+                              <span
+                                aria-hidden="true"
+                                className="
+                                  absolute
+                                  -inset-2.5
+                                  rounded-full
+                                  bg-[#00A9FF]/30
+                                  blur-md
+                                  animate-pulse
+                                  pointer-events-none
+                                "
+                              />
+                              <span
+                                aria-hidden="true"
+                                className="
+                                  absolute
+                                  -inset-1
+                                  rounded-full
+                                  ring-2
+                                  ring-[#00A9FF]/40
+                                  pointer-events-none
+                                "
+                              />
+                            </>
+                          )}
+
+                          {/* Next cup pulse beacon */}
+                          {isNext && !done && (
+                            <span
+                              aria-hidden="true"
+                              className="
+                                absolute
+                                -inset-1.5
+                                rounded-full
+                                border-2
+                                border-[#00A9FF]/45
+                                animate-pulse
+                                pointer-events-none
+                              "
+                            />
+                          )}
+
                           <Image
                             src={src}
                             alt=""
@@ -701,16 +866,20 @@ export default function StreakStatusCard({
                             width={36}
                             height={36}
                             className={[
-                              "w-6 h-6 sm:w-8 sm:h-8 object-contain transition-opacity duration-200",
-                              isBeforeStart
-                                ? "opacity-[0.14]"
-                                : isFuture
-                                  ? "opacity-35"
-                                  : "opacity-100",
+                              "relative z-10 w-6 h-6 sm:w-8 sm:h-8 object-contain transition-all duration-300",
+                              done
+                                ? "drop-shadow-[0_0_8px_rgba(0,169,255,0.75)] scale-105"
+                                : isFreeze
+                                  ? "drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] scale-105"
+                                  : isBeforeStart
+                                    ? "opacity-[0.14]"
+                                    : isFuture
+                                      ? "opacity-35"
+                                      : "opacity-100",
                             ].join(" ")}
                           />
 
-                          {isTodayPending && (
+                          {isTodayPending && !done && (
                             <span
                               aria-label="Today pending"
                               className="
@@ -735,7 +904,7 @@ export default function StreakStatusCard({
                               absolute
                               -bottom-1
                               -right-1
-
+                              z-20
                               w-3
                               h-3
 
@@ -751,19 +920,24 @@ export default function StreakStatusCard({
                         <span
                           className={[
                             "mt-1.5",
-                            "h-3",
+                            "h-3.5",
                             "text-[7px]",
-                            "sm:text-[9px]",
-                            "font-bold",
+                            "sm:text-[8px]",
+                            "font-extrabold",
                             "uppercase",
-                            "tracking-wide",
-
-                            isToday
-                              ? "text-[#00A9FF]"
-                              : "text-transparent",
+                            "tracking-wider",
+                            "flex",
+                            "items-center",
+                            "justify-center",
                           ].join(" ")}
                         >
-                          {isToday ? "Today" : "·"}
+                          {isToday ? (
+                            <span className="rounded-full bg-[#00A9FF]/10 px-1.5 py-0.5 text-[#00A9FF]">
+                              TODAY
+                            </span>
+                          ) : (
+                            <span className="text-transparent">·</span>
+                          )}
                         </span>
                       </div>
                     );
@@ -827,6 +1001,8 @@ export default function StreakStatusCard({
           open={true}
           onClose={() => setCalendarOpen(false)}
           user={user}
+          accountStartDateLocal={accountStartDateLocal}
+          todayDateLocal={todayDateLocal}
           initialMonth={currentMonth}
           currentMonth={currentMonth}
           minimumMonth={minimumMonth}

@@ -282,6 +282,24 @@ export default function ProfilePage() {
     avatarFrame: "cyan",
   });
 
+  const [
+    localActiveRoadmapTitle,
+    setLocalActiveRoadmapTitle,
+  ] = useState(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ignitio:last_active_roadmap");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.title) {
+          setLocalActiveRoadmapTitle(parsed.title);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+
   /* =======================================================
      LOAD PROFILE
   ======================================================= */
@@ -1982,7 +2000,7 @@ export default function ProfilePage() {
               Current Roadmap
             </h2>
 
-            {currentRoadmap ? (
+            {currentRoadmap || localActiveRoadmapTitle ? (
               <div
                 className="
                   flex
@@ -2035,7 +2053,7 @@ export default function ProfilePage() {
                       sm:text-xl
                     "
                   >
-                    {currentRoadmap.replace(
+                    {(localActiveRoadmapTitle || currentRoadmap).replace(
                       /-/g,
                       " ",
                     )}
@@ -2392,6 +2410,10 @@ export default function ProfilePage() {
             )
           }
           user={user}
+          accountStartDateLocal={
+            streak?.onboardingStartDate ||
+            null
+          }
           initialMonth={
             currentStreakMonth
           }

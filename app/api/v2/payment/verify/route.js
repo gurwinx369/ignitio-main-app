@@ -17,6 +17,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { verifyPayment } from "@/lib/subscription/subscription.service";
+import { sensitiveRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
 const VerifyPaymentSchema = z.object({
   razorpayPaymentId:      z.string().min(1).trim(),
@@ -25,6 +26,10 @@ const VerifyPaymentSchema = z.object({
 });
 
 export async function POST(request) {
+  // Step 0: Rate Limit
+  const rateLimitError = await enforceRateLimit(sensitiveRateLimiter, getClientIp(request));
+  if (rateLimitError) return rateLimitError;
+
   // Step 1: Auth.
   const { decodedToken, error: authError, status: authStatus } =
     await verifyFirebaseToken(request);

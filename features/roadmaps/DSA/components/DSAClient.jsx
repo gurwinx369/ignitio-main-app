@@ -8,55 +8,33 @@ import { useAuth } from '@/features/context/AuthContext';
 import { getDsaRoadmapByRole, isDsaAllowedRole } from '@/data/dsa';
 
 export default function DSAClient({ isPreview = false }) {
-    const { user } = useAuth();
+    const { user, userProfile, isProfileLoading } = useAuth();
     const router = useRouter();
     const [selectedRoadmap, setSelectedRoadmap] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notAllowed, setNotAllowed] = useState(false);
 
     useEffect(() => {
-        const fetchUserRole = async () => {
-            let role = "other";
-            if (user) {
-                try {
-                    const token = await user.getIdToken();
-                    const res = await fetch("/api/v2/user", {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        role = data.user?.role || "other";
-                    } else {
-                        role = localStorage.getItem("profession") || "other";
-                    }
-                } catch (error) {
-                    if (process.env.NODE_ENV === "development") {
-                        console.error("Failed to fetch user role:", error?.message || "unknown error");
-                    }
-                    role = localStorage.getItem("profession") || "other";
-                }
-            } else {
-                role = localStorage.getItem("profession") || "other";
-            }
-            
-            // In preview, skip the role gate — everyone can try any roadmap
-            if (!isPreview && !isDsaAllowedRole(role)) {
-                setNotAllowed(true);
-                setIsLoading(false);
-                return;
-            }
-
-            setSelectedRoadmap(getDsaRoadmapByRole(role));
-            setIsLoading(false);
-        };
-
-        // In preview, user is always null — no need to wait for auth resolution
-        if (isPreview || user !== undefined) {
-            fetchUserRole();
+        if (!isPreview && isProfileLoading) {
+            return;
         }
-    }, [user]);
+
+        let role = "other";
+        if (isPreview) {
+            role = typeof window !== 'undefined' ? (localStorage.getItem("profession") || "other") : "other";
+        } else if (userProfile) {
+            role = userProfile.role || "other";
+        }
+
+        if (!isPreview && !isDsaAllowedRole(role)) {
+            setNotAllowed(true);
+            setIsLoading(false);
+            return;
+        }
+
+        setSelectedRoadmap(getDsaRoadmapByRole(role));
+        setIsLoading(false);
+    }, [isPreview, userProfile, isProfileLoading]);
 
     if (isLoading) {
         return (

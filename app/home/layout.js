@@ -3,18 +3,20 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {NotificationProvider} from "@/features/notifications/context/NotificationContext";
 import NotificationModal from "@/features/notifications/components/NotificationModal";
-import KylePet from "@/features/kyle/pet/KylePet";
+import KiboPet from "@/features/kyle/pet/KiboPet";
 import { AskKyleProvider } from "@/features/kyle/ask/AskKyleProvider";
 import RequiredConsentModal from "@/features/legal-consent/RequiredConsentModal";
 import TimezoneSync from "@/features/timezone/TimezoneSync";
+import OnboardingSync from "@/components/OnboardingSync";
 
 export default function ProtectedLayout({children}) {
     return (<ProtectedRoute>
             <TimezoneSync />
+            <OnboardingSync />
             <NotificationProvider>
                 <NotificationModal/>
                 <AskKyleProvider>
-                    <KylePet />
+                    <KiboPet />
                     {children}
                     <RequiredConsentModal />
                 </AskKyleProvider>

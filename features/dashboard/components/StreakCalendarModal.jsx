@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     CalendarDays,
     Check,
@@ -9,6 +10,7 @@ import {
     Shield,
     Sparkles,
     X,
+    Zap,
 } from "lucide-react";
 
 import {
@@ -122,6 +124,7 @@ function buildCalendarDays({
     historyDays = [],
     liveWeek = [],
     lastCompletedDateLocal = null,
+    accountStartDateLocal = null,
 }) {
     const [
         year,
@@ -195,6 +198,18 @@ function buildCalendarDays({
             !liveDay.dateLocal.startsWith(
                 `${month}-`,
             )
+        ) {
+            continue;
+        }
+
+        /*
+         * Never mark dates prior to account start as "missed".
+         * Brand new learners have no penalties before registering.
+         */
+        if (
+            accountStartDateLocal &&
+            liveDay.dateLocal < accountStartDateLocal &&
+            liveDay.status === "missed"
         ) {
             continue;
         }
@@ -323,16 +338,7 @@ function buildCalendarDays({
     }
 
     /*
-     * IMPORTANT:
-     *
-     * Keep these property names as:
-     *
-     * day
-     * dateLocal
-     * history
-     *
-     * because the existing JSX renderer
-     * already consumes exactly this shape.
+     * Populate cells for all days in month.
      */
     for (
         let day = 1;
@@ -347,48 +353,65 @@ function buildCalendarDays({
                 "0",
             )}`;
 
+        const isPreAccount = Boolean(
+            accountStartDateLocal &&
+            dateLocal < accountStartDateLocal,
+        );
+
+        let history =
+            historyByDate.get(
+                dateLocal,
+            ) ||
+            null;
+
+        if (
+            isPreAccount &&
+            history?.status === "missed"
+        ) {
+            history = null;
+        }
+
         cells.push({
             day,
-
             dateLocal,
-
-            history:
-                historyByDate.get(
-                    dateLocal,
-                ) ||
-                null,
+            history,
+            isPreAccount,
         });
     }
 
     return cells;
 }
 
-function DayStatusIcon({
+function DayStatusCup({
     status,
 }) {
     if (
         status === "completed"
     ) {
         return (
-            <Check className="h-3.5 w-3.5" />
+            <Image
+                src="/streak/streak_done.png"
+                alt="Brewed cup"
+                width={20}
+                height={20}
+                className="h-4 w-4 sm:h-5 sm:w-5 object-contain drop-shadow-[0_0_6px_rgba(0,169,255,0.6)]"
+            />
         );
     }
 
     if (
-        status === "freeze_used"
-    ) {
-        return (
-            <Shield className="h-3.5 w-3.5" />
-        );
-    }
-
-    if (
+        status === "freeze_used" ||
         status === "grace_used" ||
-        status ===
-        "earnback_recovered"
+        status === "earnback_recovered"
     ) {
         return (
-            <Sparkles className="h-3.5 w-3.5" />
+            <Image
+                src="/streak/streak_freeze.png"
+                alt="Freeze cup"
+                width={20}
+                height={20}
+                className="h-4 w-4 sm:h-5 sm:w-5 object-contain drop-shadow-[0_0_5px_rgba(56,189,248,0.45)]"
+            />
         );
     }
 
@@ -396,65 +419,130 @@ function DayStatusIcon({
         status === "missed"
     ) {
         return (
-            <X className="h-3.5 w-3.5" />
+            <Image
+                src="/streak/cup-shadow-t.png"
+                alt="Missed cup"
+                width={20}
+                height={20}
+                className="h-3.5 w-3.5 sm:h-4 sm:w-4 object-contain opacity-55"
+            />
         );
     }
 
     return null;
 }
 
+function formatCellTitle(cell, isToday, isPreAccount) {
+    if (!cell) return "";
+    if (isPreAccount) {
+        return `${cell.dateLocal}: Prior to account registration`;
+    }
+    const status = cell.history?.status;
+    if (status === "completed") {
+        return `${cell.dateLocal}: Lesson Completed ⚡`;
+    }
+    if (status === "freeze_used") {
+        return `${cell.dateLocal}: Streak Freeze Used 🛡️`;
+    }
+    if (status === "grace_used" || status === "earnback_recovered") {
+        return `${cell.dateLocal}: Streak Protected ✨`;
+    }
+    if (status === "missed") {
+        return `${cell.dateLocal}: Missed`;
+    }
+    if (isToday) {
+        return `${cell.dateLocal}: Today (In progress)`;
+    }
+    return `${cell.dateLocal}`;
+}
+
 function getDayClasses(
     status,
+    isToday = false,
+    isPreAccount = false,
 ) {
+    const classes = [];
+
     switch (status) {
         case "completed":
-            return [
-                "border-emerald-200",
-                "bg-emerald-50",
-                "text-emerald-700",
-            ].join(" ");
+            classes.push(
+                "border-[#00A9FF]/40",
+                "bg-[#00A9FF]/12",
+                "text-[#0088cc]",
+                "shadow-[0_0_8px_rgba(0,169,255,0.14)]",
+            );
+            break;
 
         case "freeze_used":
-            return [
-                "border-blue-200",
-                "bg-blue-50",
-                "text-blue-600",
-            ].join(" ");
+            classes.push(
+                "border-sky-200",
+                "bg-sky-50/80",
+                "text-sky-600",
+            );
+            break;
 
         case "grace_used":
-            return [
-                "border-cyan-200",
-                "bg-cyan-50",
-                "text-cyan-700",
-            ].join(" ");
+            classes.push(
+                "border-violet-200",
+                "bg-violet-50/80",
+                "text-violet-600",
+            );
+            break;
 
         case "earnback_recovered":
-            return [
+            classes.push(
                 "border-violet-200",
-                "bg-violet-50",
+                "bg-violet-50/80",
                 "text-violet-700",
-            ].join(" ");
+            );
+            break;
 
         case "missed":
-            return [
-                "border-slate-200",
-                "bg-slate-50",
+            classes.push(
+                "border-slate-200/90",
+                "bg-slate-50/80",
                 "text-slate-400",
-            ].join(" ");
+            );
+            break;
 
         default:
-            return [
-                "border-slate-100",
-                "bg-white",
-                "text-slate-500",
-            ].join(" ");
+            if (isPreAccount) {
+                classes.push(
+                    "border-slate-100/60",
+                    "bg-slate-50/40",
+                    "text-slate-400/70",
+                );
+            } else {
+                classes.push(
+                    "border-slate-100",
+                    "bg-white",
+                    "text-slate-600",
+                    "hover:border-slate-200",
+                );
+            }
+            break;
     }
+
+    if (isToday) {
+        classes.push(
+            "ring-2",
+            "ring-[#00A9FF]",
+            "ring-offset-2",
+            "ring-offset-white",
+            "font-extrabold",
+            "z-10",
+        );
+    }
+
+    return classes.join(" ");
 }
 
 export default function StreakCalendarModal({
     open,
     onClose,
     user,
+    accountStartDateLocal = null,
+    todayDateLocal = null,
     initialMonth,
     currentMonth,
     minimumMonth,
@@ -463,6 +551,38 @@ export default function StreakCalendarModal({
     currentCount = 0,
     longestCount = 0,
 }) {
+    /*
+     * Resolve account start date to shield new users
+     * from unfair pre-registration "missed" penalties.
+     */
+    const resolvedAccountStartDate = useMemo(() => {
+        if (typeof accountStartDateLocal === "string" && accountStartDateLocal) {
+            return accountStartDateLocal;
+        }
+        const creationTime = user?.metadata?.creationTime;
+        if (!creationTime) return null;
+        const createdAt = new Date(creationTime);
+        if (Number.isNaN(createdAt.getTime())) return null;
+        return `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, "0")}-${String(createdAt.getDate()).padStart(2, "0")}`;
+    }, [accountStartDateLocal, user?.metadata?.creationTime]);
+
+    /*
+     * Authoritative local date for today indicator.
+     */
+    const resolvedTodayDate = useMemo(() => {
+        if (typeof todayDateLocal === "string" && todayDateLocal) {
+            return todayDateLocal;
+        }
+        const todayInWeek = Array.isArray(liveWeek)
+            ? liveWeek.find((day) => day.isToday)
+            : null;
+        if (typeof todayInWeek?.dateLocal === "string") {
+            return todayInWeek.dateLocal;
+        }
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    }, [todayDateLocal, liveWeek]);
+
     /*
      * Clamp the first visible month so even if
      * bad input arrives we never start before
@@ -667,12 +787,16 @@ export default function StreakCalendarModal({
                     liveWeek,
 
                     lastCompletedDateLocal,
+
+                    accountStartDateLocal:
+                        resolvedAccountStartDate,
                 }),
             [
                 month,
                 days,
                 liveWeek,
                 lastCompletedDateLocal,
+                resolvedAccountStartDate,
             ],
         );
 
@@ -732,10 +856,12 @@ export default function StreakCalendarModal({
                 ].join(" ")}
             >
                 {/* Header */}
-                <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white p-5 sm:p-6">
+                <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white/95 backdrop-blur-md p-5 sm:p-6">
                     <div>
                         <div className="mb-1 flex items-center gap-2">
-                            <Flame className="h-5 w-5 text-orange-500" />
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#00A9FF]/10 text-[#00A9FF]">
+                                <Zap className="h-4 w-4 fill-[#00A9FF]" />
+                            </div>
 
                             <h2
                                 id="streak-calendar-title"
@@ -746,7 +872,7 @@ export default function StreakCalendarModal({
                         </div>
 
                         <p className="text-sm text-slate-500">
-                            Your learning history.
+                            Track your daily momentum &amp; learning history.
                         </p>
                     </div>
 
@@ -765,26 +891,34 @@ export default function StreakCalendarModal({
                 <div className="p-4 sm:p-6">
                     {/* Stats */}
                     <div className="mb-5 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-                            <p className="text-2xl font-pixelify font-black text-slate-900">
-                                {
-                                    currentCount
-                                }
-                            </p>
+                        <div className="relative overflow-hidden rounded-2xl border border-[#00A9FF]/25 bg-gradient-to-br from-[#00A9FF]/10 via-[#00A9FF]/5 to-transparent p-4 shadow-[0_2px_12px_rgba(0,169,255,0.06)]">
+                            <div className="flex items-center justify-between">
+                                <p className="text-2xl font-pixelify font-black text-[#04121F]">
+                                    {
+                                        currentCount
+                                    }
+                                </p>
 
-                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-orange-600">
+                                <Zap className="h-4 w-4 text-[#00A9FF] fill-[#00A9FF]" />
+                            </div>
+
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#0088cc]">
                                 Current streak
                             </p>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                            <p className="text-2xl font-pixelify font-black text-slate-900">
-                                {
-                                    longestCount
-                                }
-                            </p>
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-2xl font-pixelify font-black text-slate-900">
+                                    {
+                                        longestCount
+                                    }
+                                </p>
 
-                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                <Sparkles className="h-4 w-4 text-slate-400" />
+                            </div>
+
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                 Longest streak
                             </p>
                         </div>
@@ -996,6 +1130,9 @@ export default function StreakCalendarModal({
                                     const status =
                                         cell.history
                                             ?.status;
+                                    const isToday =
+                                        cell.dateLocal ===
+                                        resolvedTodayDate;
 
                                     return (
                                         <div
@@ -1003,11 +1140,11 @@ export default function StreakCalendarModal({
                                                 cell
                                                     .dateLocal
                                             }
-                                            title={
-                                                status
-                                                    ? `${cell.dateLocal}: ${status}`
-                                                    : `${cell.dateLocal}: no recorded history`
-                                            }
+                                            title={formatCellTitle(
+                                                cell,
+                                                isToday,
+                                                cell.isPreAccount,
+                                            )}
                                             className={[
                                                 "relative",
                                                 "flex h-11",
@@ -1019,8 +1156,11 @@ export default function StreakCalendarModal({
                                                 "text-[11px]",
                                                 "font-bold",
                                                 "sm:h-12",
+                                                "transition-colors",
                                                 getDayClasses(
                                                     status,
+                                                    isToday,
+                                                    cell.isPreAccount,
                                                 ),
                                             ].join(" ")}
                                         >
@@ -1030,15 +1170,17 @@ export default function StreakCalendarModal({
                                                 }
                                             </span>
 
-                                            {status && (
+                                            {status ? (
                                                 <span className="mt-0.5">
-                                                    <DayStatusIcon
+                                                    <DayStatusCup
                                                         status={
                                                             status
                                                         }
                                                     />
                                                 </span>
-                                            )}
+                                            ) : isToday ? (
+                                                <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-[#00A9FF] shadow-[0_0_6px_rgba(0,169,255,0.7)]" />
+                                            ) : null}
                                         </div>
                                     );
                                 },
@@ -1047,24 +1189,40 @@ export default function StreakCalendarModal({
                     )}
 
                     {/* Legend */}
-                    <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-100 pt-4 text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+                    <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-100 pt-4 text-[10px] font-semibold text-slate-500 sm:text-[11px]">
                         <span className="flex items-center gap-1.5">
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            <Image
+                                src="/streak/streak_done.png"
+                                alt=""
+                                aria-hidden="true"
+                                width={16}
+                                height={16}
+                                className="h-4 w-4 object-contain drop-shadow-[0_0_4px_rgba(0,169,255,0.5)]"
+                            />
                             Completed
                         </span>
 
                         <span className="flex items-center gap-1.5">
-                            <Shield className="h-3.5 w-3.5 text-blue-500" />
+                            <Image
+                                src="/streak/streak_freeze.png"
+                                alt=""
+                                aria-hidden="true"
+                                width={16}
+                                height={16}
+                                className="h-4 w-4 object-contain drop-shadow-[0_0_3px_rgba(56,189,248,0.4)]"
+                            />
                             Freeze
                         </span>
 
                         <span className="flex items-center gap-1.5">
-                            <Sparkles className="h-3.5 w-3.5 text-cyan-600" />
-                            Protected
-                        </span>
-
-                        <span className="flex items-center gap-1.5">
-                            <X className="h-3.5 w-3.5 text-slate-400" />
+                            <Image
+                                src="/streak/cup-shadow-t.png"
+                                alt=""
+                                aria-hidden="true"
+                                width={16}
+                                height={16}
+                                className="h-3.5 w-3.5 object-contain opacity-60"
+                            />
                             Missed
                         </span>
                     </div>

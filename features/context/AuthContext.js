@@ -1,6 +1,7 @@
 // app/context/AuthContext.js
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import useSWR from "swr";
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -14,6 +15,7 @@ import {
 import { auth, googleProvider } from "../../lib/firebase/firebase";
 import posthog from "posthog-js";
 import { scheduleIdleTask } from "@/lib/utils/idleTask";
+import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
 
 const AuthContext = createContext({});
 
@@ -108,10 +110,17 @@ export const AuthProvider = ({ children }) => {
                 }
                 // Identify user in PostHog
                 try {
+                    const sessionId = getOrCreateOnboardingSessionId();
                     posthog.identify(user.uid, {
                         email: user.email,
-                        name: user.displayName
+                        name: user.displayName,
+                        onboarding_session_id: sessionId,
                     });
+                    if (sessionId) {
+                        try {
+                            posthog.people?.set?.({ onboarding_session_id: sessionId });
+                        } catch {}
+                    }
                 } catch (e) {
                     console.error("Posthog identify error:", e);
                 }
@@ -125,6 +134,30 @@ export const AuthProvider = ({ children }) => {
 
         return () => unsubscribe();
     }, []);
+
+    const fetcher = async (url) => {
+        if (!user) return null;
+        const token = await user.getIdToken();
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+        });
+        if (res.status === 404) return "missing";
+        if (!res.ok) throw new Error("Failed to fetch user profile");
+        const data = await res.json();
+        return data.user || "missing";
+    };
+
+    const { data: userProfile, error: profileError, mutate: mutateProfile, isValidating: isProfileValidating } = useSWR(
+        user ? "/api/v2/user" : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            dedupingInterval: 10000,
+        }
+    );
+
+    const isProfileLoading = user && !userProfile && !profileError;
 
     const signup = async (email, password) => {
         try {
@@ -288,6 +321,10 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         loading,
+        userProfile,
+        mutateProfile,
+        isProfileLoading,
+        profileError,
         signup,
         login,
         loginWithGoogle,

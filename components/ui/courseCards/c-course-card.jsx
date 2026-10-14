@@ -14,6 +14,7 @@ import {
 } from "./CardLoader";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 import useRoadmapCanvasActivity from "./useRoadmapCanvasActivity";
+import { CompilerModal } from "@/features/compiler";
 
 const ANIM_STYLE = `
 @keyframes c-cursor {
@@ -109,7 +110,7 @@ function renderVisibleTokens(tokens, visibleCharacters) {
   });
 }
 
-function CCodeVisual() {
+function CCodeVisual({ onRunClick }) {
   const visualRef =
     useRef(null);
 
@@ -414,34 +415,46 @@ function CCodeVisual() {
           main.c
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            color: running ? "#60a5fa" : "#64748b",
-            transition: "color 0.2s ease",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 8,
-              transform: "translateY(-0.5px)",
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRunClick) onRunClick();
             }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              color: running ? "#60a5fa" : "#64748b",
+              transition: "color 0.2s ease",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: "4px",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+            onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            ▶
-          </span>
+            <span
+              style={{
+                fontSize: 8,
+                transform: "translateY(-0.5px)",
+              }}
+            >
+              ▶
+            </span>
 
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {running ? "Running" : "Run"}
-          </span>
-        </div>
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {running ? "Running" : "Run"}
+            </span>
+          </button>
       </div>
 
       {/* Code editor */}
@@ -678,6 +691,7 @@ export default function CCourseCard({
 
   const [hovered, setHovered] =
     useState(false);
+  const [showCompiler, setShowCompiler] = useState(false);
 
   const {
     state,
@@ -765,7 +779,7 @@ export default function CCourseCard({
               "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
           }}
         >
-          <CCodeVisual />
+          <CCodeVisual onRunClick={() => setShowCompiler(true)} />
 
         {isActive && (
           <div
@@ -911,6 +925,12 @@ export default function CCourseCard({
           </div>
         </div>
       </div>
+
+      <CompilerModal
+        isOpen={showCompiler}
+        onClose={() => setShowCompiler(false)}
+        language="c"
+      />
     </div>
   );
 }

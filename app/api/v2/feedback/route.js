@@ -4,6 +4,9 @@ import connectDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { Feedback } from "@/models/v2/feedback.model";
 import { sendRetentionEmail } from "@/lib/retention/resend.client";
+import { verifyFirebaseToken } from "@/lib/auth";
+import { z } from "zod";
+import { spamRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
 if (!admin.apps.length) {
   try {
@@ -16,31 +19,37 @@ if (!admin.apps.length) {
   }
 }
 
+const FeedbackSchema = z.object({
+  message: z.string().min(5).max(1000).trim(),
+  page: z.string().optional(),
+});
+
 export async function POST(request) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const token = authHeader.split("Bearer ")[1];
-    
-    let decodedToken;
-    try {
-      decodedToken = await admin.auth().verifyIdToken(token);
-    } catch (error) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
+    // 1. Rate Limiting
+    const rateLimitError = await enforceRateLimit(spamRateLimiter, getClientIp(request));
+    if (rateLimitError) return rateLimitError;
+
+    // 2. Auth (using standard verifyFirebaseToken)
+    const { decodedToken, error: authError, status: authStatus } = await verifyFirebaseToken(request);
+    if (authError) return NextResponse.json({ error: authError }, { status: authStatus });
+
     const firebaseUID = decodedToken.uid;
 
-    const body = await request.json();
-    const { message, page } = body;
-
-    if (!message || typeof message !== "string" || message.trim().length < 5 || message.length > 1000) {
-      return NextResponse.json(
-        { error: "Message must be between 5 and 1000 characters." },
-        { status: 400 }
-      );
+    // 3. Parsing and Zod Validation
+    let rawBody;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    const validation = FeedbackSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return NextResponse.json({ error: "Validation failed", details: validation.error.issues }, { status: 422 });
+    }
+
+    const { message, page } = validation.data;
 
     await connectDB();
     const userProfile = await UserProfile.findOne({ firebaseUID }).lean();
@@ -54,7 +63,7 @@ export async function POST(request) {
       firebaseUID,
       email,
       role,
-      message: message.trim(),
+      message,
       page,
       userAgent,
       status: "new",
@@ -71,7 +80,7 @@ export async function POST(request) {
       <p><strong>User Agent:</strong> ${userAgent}</p>
       <hr />
       <p><strong>Message:</strong></p>
-      <p style="white-space: pre-wrap;">${message.trim()}</p>
+      <p style="white-space: pre-wrap;">${message}</p>
     `;
 
     try {
@@ -80,15 +89,11 @@ export async function POST(request) {
     } catch (emailError) {
       console.error("Failed to send feedback email:", emailError);
       await Feedback.updateOne({ _id: feedbackDoc._id }, { status: "email_failed" });
-      // We still return 200 to the client because the feedback was saved to the DB
     }
 
     return NextResponse.json({ ok: true, message: "Feedback submitted successfully" }, { status: 200 });
   } catch (error) {
     console.error("[Feedback API] Failed:", error);
-    return NextResponse.json(
-      { error: "Failed to submit feedback" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to submit feedback" }, { status: 500 });
   }
 }

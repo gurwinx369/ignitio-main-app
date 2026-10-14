@@ -21,22 +21,22 @@ import {
 
 import { useAuth } from "@/features/context/AuthContext";
 
-import PremiumPlanCard from "@/features/onboarding/paywall/components/PremiumPlanCard";
+import PremiumPlanCard from "@/features/onboarding/v4-genai/paywall/components/PremiumPlanCard";
 
 import {
     DEFAULT_SUBSCRIPTION_PLAN,
     getClientSubscriptionPlan,
-} from "@/features/onboarding/paywall/constants/plans";
+} from "@/features/onboarding/v4-genai/paywall/constants/plans";
 
 import {
     loadRazorpay,
     openRazorpayCheckout,
-} from "@/features/onboarding/paywall/hooks/useRazorpayCheckout";
+} from "@/features/onboarding/v4-genai/paywall/hooks/useRazorpayCheckout";
 
-import { createSubscription } from "@/features/onboarding/paywall/services/createSubscription";
-import { verifyPayment } from "@/features/onboarding/paywall/services/verifyPayment";
-import { getSubscriptionStatus } from "@/features/onboarding/paywall/services/subscriptionStatus";
-import { cancelSubscription } from "@/features/onboarding/paywall/services/cancelSubscription";
+import { createSubscription } from "@/features/onboarding/v4-genai/paywall/services/createSubscription";
+import { verifyPayment } from "@/features/onboarding/v4-genai/paywall/services/verifyPayment";
+import { getSubscriptionStatus } from "@/features/onboarding/v4-genai/paywall/services/subscriptionStatus";
+import { cancelSubscription } from "@/features/onboarding/v4-genai/paywall/services/cancelSubscription";
 
 function formatBillingDate(value) {
     if (!value) {

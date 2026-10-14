@@ -11,8 +11,8 @@ const defaultMessages = [
 
 export const kylePetConfig = {
   storageKeys: {
-    position: "ignitio:kyle-pet-position",
-    hidden: "ignitio:kyle-pet-hidden",
+    position: "ignitio:kibo-pet-position",
+    hidden: "ignitio:kibo-pet-hidden",
   },
 
   states: {
@@ -49,6 +49,7 @@ export const kylePetConfig = {
     clickThresholdPx: 6,
     viewportPaddingPx: 12,
     mobileSafeBottomPaddingPx: 110,
+    topSafeZonePx: 60,
   },
 
   bubble: {
@@ -120,6 +121,6 @@ export const kylePetConfig = {
   restoreButton: {
     positionClassName: "bottom-24 right-4 sm:bottom-4 sm:right-4",
     zIndexClassName: "z-[50]",
-    label: "Show Kyle",
+    label: "Show Kibo",
   },
 };

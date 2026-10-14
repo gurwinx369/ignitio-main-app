@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -33,6 +34,15 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     // This must stay in sync with FastAPI's scoring logic so the displayed
     // required score never contradicts the authoritative API-returned `passed`.
     const requiredScore = dayNumber === 1 ? 5 : dayNumber === 2 ? 6 : 7;
+
+    useEffect(() => {
+        if (open) {
+            document.body.setAttribute('data-kibo-exam-mode', 'true');
+        } else {
+            document.body.removeAttribute('data-kibo-exam-mode');
+        }
+        return () => document.body.removeAttribute('data-kibo-exam-mode');
+    }, [open]);
 
     useEffect(() => {
         if (!open) {
@@ -87,7 +97,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 setStatus('ready');
             } catch (err) {
                 console.error("Assignment generate error:", err);
-                setErrorMsg(err.message || "Kyle could not prepare the assignment right now. Please try again in a few seconds.");
+                setErrorMsg(err.message || "Kibo could not prepare the assignment right now. Please try again in a few seconds.");
                 setStatus('error');
             }
         };
@@ -154,7 +164,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
             }
         } catch (err) {
             console.error("Assignment submit error:", err);
-            setErrorMsg(err.message || "Kyle could not score this right now. Please try again.");
+            setErrorMsg(err.message || "Kibo could not score this right now. Please try again.");
             setStatus('error'); // Will let them retry answer if it was scoring failure
         }
     };
@@ -180,17 +190,11 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                 <div className="px-6 py-5 border-b-2 border-[#e5d5c5]/50 flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                            <Image
-                                src="/kyle/kyle.svg"
-                                alt="Kyle"
-                                width={40}
-                                height={40}
-                                className="w-full h-full rounded-full object-cover"
-                            />
+                            <KiboAvatar width={40} height={40} className="w-full h-full rounded-full object-cover" />
                         </div>
                         <div>
                             <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Day {dayNumber} &middot; Assignment</h3>
-                            <p className="text-sm text-[#7775a5] font-semibold">Kyle is reviewing your code.</p>
+                            <p className="text-sm text-[#7775a5] font-semibold">Kibo is reviewing your code.</p>
                         </div>
                     </div>
                     <span className="bg-[#ddf2ff] text-[#007bcc] text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider border border-[#80d4ff]">
@@ -203,14 +207,14 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     {status === 'loading' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
                             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                            <p className="text-gray-500 font-medium tracking-tight">Kyle is preparing your Day {dayNumber} assignment...</p>
+                            <p className="text-gray-500 font-medium tracking-tight">Kibo is preparing your Day {dayNumber} assignment...</p>
                         </div>
                     )}
                     
                     {status === 'scoring' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
                             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                            <p className="text-gray-500 font-medium tracking-tight">Kyle is evaluating your response...</p>
+                            <p className="text-gray-500 font-medium tracking-tight">Kibo is evaluating your response...</p>
                         </div>
                     )}
 
@@ -292,7 +296,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                                     onChange={(e) => setUserResponse(e.target.value)}
                                 ></textarea>
                                 <p className="text-[13px] text-[#7775a5] font-bold px-2 flex justify-between tracking-tight">
-                                    <span>Kyle will review and score your answer out of 10</span>
+                                    <span>Kibo will review and score your answer out of 10</span>
                                     <span>Required: {requiredScore}/10</span>
                                 </p>
                             </div>
@@ -322,14 +326,8 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                             <div className="bg-white p-6 rounded-2xl border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC]">
                                 <h5 className="font-extrabold text-[#19183b] text-[18px] mb-3 flex items-center gap-2 tracking-tight">
                                     <div className="w-6 h-6 shrink-0 flex items-center justify-center overflow-hidden rounded-full border border-[#e5d5c5]">
-                                        <Image
-                                            src="/kyle/kyle.svg"
-                                            alt="Kyle"
-                                            width={20}
-                                            height={20}
-                                            className="w-full h-full rounded-full object-cover"
-                                        />
-                                    </div> Feedback from Kyle
+                                        <KiboAvatar width={20} height={20} className="w-full h-full rounded-full object-cover" />
+                                    </div> Feedback from Kibo
                                 </h5>
                                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">
                                     {scoreData.feedback}

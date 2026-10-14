@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { callKyleFastApi, KyleFastApiError } from "@/features/kyle/server/kyle-fastapi.client";
+import { aiRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
 // ---------------------------------------------------------------------------
 // Browser → Next.js request schema (unchanged)
@@ -37,6 +38,10 @@ const FastApiResponseSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export async function POST(request) {
+  // 0. Rate Limit
+  const rateLimitError = await enforceRateLimit(aiRateLimiter, getClientIp(request));
+  if (rateLimitError) return rateLimitError;
+
   // 1. Verify Firebase ID token — preserves existing 401 behavior.
   const { error, status } = await verifyFirebaseToken(request);
   if (error) return NextResponse.json({ error }, { status });

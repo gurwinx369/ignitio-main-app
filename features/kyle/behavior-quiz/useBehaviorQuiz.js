@@ -350,6 +350,12 @@ export function useBehaviorQuiz({ user, roadmapId }) {
     const correct = selectedOptionValue === currentItem.correctOption;
     setSelectedOption(selectedOptionValue);
     setIsCorrect(correct);
+    
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kyle-pet-state', { 
+        detail: { state: correct ? 'celebrate' : 'sad', duration: 3000 } 
+      }));
+    }
 
     const newResponses = [
       ...responsesRef.current,

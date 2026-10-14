@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 
@@ -8,7 +9,7 @@ function normalizeAnswer(value) {
 }
 
 const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, gateType, onAnswered, onCloseAfterAnswered }) => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     
     // States
     const [status, setStatus] = useState('loading'); // loading, error, ready, submitting, result, already-attempted
@@ -17,20 +18,32 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
     const [errorMsg, setErrorMsg] = useState(null);
     const [isCorrect, setIsCorrect] = useState(null);
     const [retryNonce, setRetryNonce] = useState(0);
+    const [consecutiveFails, setConsecutiveFails] = useState(0);
 
     const hasFetched = useRef(false);
 
     useEffect(() => {
+        if (open) {
+            document.body.setAttribute('data-kibo-exam-mode', 'true');
+        } else {
+            document.body.removeAttribute('data-kibo-exam-mode');
+        }
+        return () => document.body.removeAttribute('data-kibo-exam-mode');
+    }, [open]);
+
+    useEffect(() => {
         if (!open) return;
+        if (loading) return; // Wait for Firebase auth to initialize
         
         // Prevent double fetching due to strict mode or concurrent re-renders.
         // We only check hasFetched.current so we don't fire a second request while the first is pending.
-        if (hasFetched.current) {
+        // We track the gateType to ensure a fetch happens if the user transitions directly from one gate to another.
+        if (hasFetched.current === gateType) {
             return;
         }
         
         const fetchQuiz = async () => {
-            hasFetched.current = true;
+            hasFetched.current = gateType;
             setStatus('loading');
             
             try {
@@ -78,13 +91,18 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
                 setStatus('ready');
             } catch (err) {
                 console.error("Quiz generate error:", err);
-                setErrorMsg(err.message || "Kyle could not prepare the quiz right now. Please try again.");
+                setErrorMsg(err.message || "Kibo could not prepare the quiz right now. Please try again.");
                 setStatus('error');
+                
+                // Important: clear the pet state so it doesn't get stuck in "thinking" if the API call failed
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { action: "clear" } }));
+                }
             }
         };
 
         fetchQuiz();
-    }, [open, user, level, propRole, quiz, retryNonce]);
+    }, [open, user, level, propRole, retryNonce, gateType, loading]);
 
     const handleSubmit = async () => {
         if (!selectedOption || !quiz) return;
@@ -96,12 +114,9 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
         
         setIsCorrect(wasCorrect);
 
+        // Always show thinking while we submit to the backend
         if (typeof window !== 'undefined') {
-            if (wasCorrect) {
-                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'celebrating', duration: 3000 } }));
-            } else {
-                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'thinking', duration: 2000 } }));
-            }
+            window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'thinking' } }));
         }
 
         try {
@@ -138,11 +153,43 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
             }
 
             setStatus('result');
+            
+            if (typeof window !== 'undefined') {
+                if (wasCorrect) {
+                    setConsecutiveFails(0);
+                    window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { state: 'celebrate', duration: 3000 } }));
+                } else {
+                    const newFails = consecutiveFails + 1;
+                    setConsecutiveFails(newFails);
+                    
+                    // The user requested empathy after one wrong answer (>= 1 fail)
+                    if (newFails >= 1) {
+                        window.dispatchEvent(new CustomEvent('kyle-pet-state', { 
+                            detail: { 
+                                state: 'empathetic', 
+                                action: 'say', 
+                                message: "This concept is tricky. Take a breath—you're doing great.", 
+                                duration: 12000 
+                            } 
+                        }));
+                    } else {
+                        window.dispatchEvent(new CustomEvent('kyle-pet-state', { 
+                            detail: { state: 'sad', duration: 3000 } 
+                        }));
+                    }
+                }
+            }
+
             onAnswered({ wasCorrect });
         } catch (err) {
             console.error("Quiz submit error:", err);
             setErrorMsg(err.message || "Failed to submit quiz.");
             setStatus('error'); // Let them retry submit or bypass
+            
+            // Failsafe: clear Kibo's state if the submit API crashes
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('kyle-pet-state', { detail: { action: "clear" } }));
+            }
         }
     };
     
@@ -151,7 +198,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
         setQuiz(null);
         setSelectedOption(null);
         setIsCorrect(null);
-        hasFetched.current = false;
+        hasFetched.current = null; // Reset so the effect triggers a re-fetch
         setRetryNonce(prev => prev + 1);
         setStatus('loading'); // Re-trigger effect
     };
@@ -173,13 +220,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
                 {/* Header */}
                 <div className="px-6 py-5 border-b-2 border-[#e5d5c5]/50 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#e5d5c5] shadow-sm">
-                        <Image
-                            src="/kyle/kyle.svg"
-                            alt="Kyle"
-                            width={40}
-                            height={40}
-                            className="w-full h-full rounded-full object-cover"
-                        />
+                        <KiboAvatar width={40} height={40} className="w-full h-full rounded-full object-cover" />
                     </div>
                     <div>
                         <h3 className="text-[20px] font-extrabold text-[#19183b] tracking-tight">Knowledge Check</h3>
@@ -198,7 +239,7 @@ const KyleQuizModal = ({ open, level, roadmapType, dayNumber, role: propRole, ga
                     {status === 'loading' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
                             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                            <p className="text-gray-500 font-medium tracking-tight">Kyle is preparing your checkpoint...</p>
+                            <p className="text-gray-500 font-medium tracking-tight">Kibo is preparing your checkpoint...</p>
                         </div>
                     )}
 

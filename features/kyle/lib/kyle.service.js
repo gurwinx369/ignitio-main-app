@@ -112,15 +112,15 @@ function getStaticGeneralKyleResponse(question) {
 
   const greetings = ["hi", "hello", "hey", "hi buddy", "hello kyle"];
   if (greetings.includes(q)) {
-    return "Hi, I’m Kyle. I can help you with roadmap guidance, learning focus, concepts, and study strategy. What are you learning today?";
+    return "Hi, I’m Kibo. I can help you with roadmap guidance, learning focus, concepts, and study strategy. What are you learning today?";
   }
 
-  if (q.includes("who are you") || q.includes("what is kyle") || q.includes("who made you") || q.includes("whom do you belong to") || q.includes("what can you do") || q.includes("whom you belong to")) {
-    return "I’m Kyle, Ignitio’s AI mentor. I’m part of the Ignitio learning platform and I’m here to guide learners with roadmap direction, concepts, focus, and study strategy. I give hints and explanations, not full code solutions.";
+  if (q.includes("who are you") || q.includes("what is kibo") || q.includes("who made you") || q.includes("whom do you belong to") || q.includes("what can you do") || q.includes("whom you belong to")) {
+    return "I’m Kibo, Ignitio’s AI mentor. I’m part of the Ignitio learning platform and I’m here to guide learners with roadmap direction, concepts, focus, and study strategy. I give hints and explanations, not full code solutions.";
   }
 
   if (q.includes("what is ignitio") || q.includes("tell me about ignitio")) {
-    return "Ignitio is a gamified learning platform that helps learners build technical skills through structured roadmaps, progress tracking, assignments, quizzes, and AI mentor guidance. Kyle is the AI mentor layer inside Ignitio.";
+    return "Ignitio is a gamified learning platform that helps learners build technical skills through structured roadmaps, progress tracking, assignments, quizzes, and AI mentor guidance. Kibo is the AI mentor layer inside Ignitio.";
   }
 
   const dangerous = ["how to make a gun", "weapon making", "bomb", "hacking someone", "illegal activity"];
@@ -134,7 +134,7 @@ function getStaticGeneralKyleResponse(question) {
 function getStaticContextualKyleResponse({ question, concept }) {
   const q = question.toLowerCase().trim().replace(/[?!.]/g, '');
 
-  const greetings = ["hi", "hello", "hey", "hi buddy", "hello kyle", "good morning", "good evening"];
+  const greetings = ["hi", "hello", "hey", "hi buddy", "hello kibo", "good morning", "good evening"];
   if (greetings.includes(q)) {
     if (concept) {
       return `Hey! I’m here to help with “${concept}.” Ask me what part feels confusing, and I’ll explain it simply.`;
@@ -142,18 +142,18 @@ function getStaticContextualKyleResponse({ question, concept }) {
     return "Hey! I’m here to help with this lesson. Ask me what part feels confusing, and I’ll explain it simply.";
   }
 
-  if (q.includes("who are you") || q.includes("what is kyle") || q.includes("what can you do") || q.includes("who made you")) {
+  if (q.includes("who are you") || q.includes("what is kibo") || q.includes("what can you do") || q.includes("who made you")) {
     if (concept) {
-      return `I’m Kyle, Ignitio’s AI mentor. In this lesson, I can help explain “${concept},” clear doubts, and guide you with hints.`;
+      return `I’m Kibo, Ignitio’s AI mentor. In this lesson, I can help explain “${concept},” clear doubts, and guide you with hints.`;
     }
-    return "I’m Kyle, Ignitio’s AI mentor. In this lesson, I can help clear doubts and guide you with hints.";
+    return "I’m Kibo, Ignitio’s AI mentor. In this lesson, I can help clear doubts and guide you with hints.";
   }
 
   return null;
 }
 
 // Answers a learner's doubt. Can use current level context or general mentor prompt.
-export async function answerDoubt({ concept, transcript, role, question, mode }) {
+export async function answerDoubt({ concept, transcript, role, question, mode, pageContext }) {
   const isGeneralMode = mode === "general" || !concept;
 
   if (isGeneralMode) {
@@ -171,8 +171,8 @@ export async function answerDoubt({ concept, transcript, role, question, mode })
   const model = getModel();
   
   const systemInstruction = isGeneralMode
-    ? buildGeneralDoubtSystemPrompt(getRoleContext(role))
-    : buildDoubtSystemPrompt(concept, transcript, getRoleContext(role));
+    ? buildGeneralDoubtSystemPrompt(getRoleContext(role), pageContext)
+    : buildDoubtSystemPrompt(concept, transcript, getRoleContext(role), pageContext);
 
   const result = await model.generateContent({
     systemInstruction,

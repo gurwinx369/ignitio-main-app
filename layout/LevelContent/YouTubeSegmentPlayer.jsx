@@ -146,7 +146,7 @@ const YouTubeSegmentPlayer = ({
         lastCurrentTimeRef.current = currentTime;
       }
     }, 250); // Poll frequently for accurate tracking
-  }, [stopMonitoring, startSec, endSec, onWatchTimeUpdate]);
+  }, [stopMonitoring, startSec, endSec, onWatchTimeUpdate, showBoundaryNotice]);
 
   // Handle player state changes
   const handleStateChange = useCallback((event) => {
@@ -186,7 +186,7 @@ const YouTubeSegmentPlayer = ({
       // BUFFERING, UNSTARTED, etc. - pause tracking
       stopMonitoring();
     }
-  }, [startMonitoring, stopMonitoring, startSec, endSec]);
+  }, [startMonitoring, stopMonitoring, startSec, endSec, showBoundaryNotice]);
 
   // Handle player ready
   const handlePlayerReady = useCallback(() => {
@@ -267,6 +267,7 @@ const YouTubeSegmentPlayer = ({
 
   // Reset position tracking and notice when videoId/segment changes
   useEffect(() => {
+    // eslint-disable-next-line react-compiler/react-compiler
     resetBoundaryNotice();
     lastCurrentTimeRef.current = null;
   }, [videoId, startSec, endSec, resetBoundaryNotice]);

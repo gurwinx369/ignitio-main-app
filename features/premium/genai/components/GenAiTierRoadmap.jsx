@@ -97,7 +97,7 @@ export default function GenAiTierRoadmap({
     maxWeek
 }) {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, userProfile, isProfileLoading } = useAuth();
     const [runtimeData, setRuntimeData] = useState(null);
     const [runtimeError, setRuntimeError] = useState(false);
     const [scheduleState, setScheduleState] =
@@ -176,76 +176,36 @@ export default function GenAiTierRoadmap({
             status !== "premium" ||
             hasGenAiAccess !== true ||
             calibration.status !== "ready" ||
-            !user
+            !user ||
+            isProfileLoading
         ) {
             return;
         }
 
-        const controller = new AbortController();
-        let isActive = true;
+        if (userProfile === "missing") {
+            setScheduleState({
+                status: "error",
+                checkedUid: user.uid,
+                error: new Error("Profile not found"),
+            });
+            return;
+        }
 
-        const checkSchedule = async () => {
-            if (isActive) {
-                setScheduleState({
-                    status: "loading",
-                    checkedUid: user.uid,
-                    error: null,
-                });
-            }
+        const windows = userProfile?.schedulePreference?.windows;
+        const hasRealSchedule = Array.isArray(windows) && windows.length > 0;
 
-            try {
-                const token = await user.getIdToken();
-                const res = await fetch("/api/v2/user", {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    cache: "no-store",
-                    signal: controller.signal,
-                });
-
-                if (!res.ok) {
-                    throw new Error("Failed to verify schedule");
-                }
-
-                const data = await res.json();
-                const windows = data?.user?.schedulePreference?.windows;
-                const hasRealSchedule = Array.isArray(windows) && windows.length > 0;
-
-                if (isActive) {
-                    setScheduleState({
-                        status: hasRealSchedule
-                            ? "ready"
-                            : "required",
-                        checkedUid: user.uid,
-                        error: null,
-                    });
-                }
-            } catch (err) {
-                if (err?.name === "AbortError") {
-                    return;
-                }
-                if (isActive) {
-                    setScheduleState({
-                        status: "error",
-                        checkedUid: user.uid,
-                        error: err,
-                    });
-                }
-            }
-        };
-
-        void checkSchedule();
-
-        return () => {
-            isActive = false;
-            controller.abort();
-        };
+        setScheduleState({
+            status: hasRealSchedule ? "ready" : "required",
+            checkedUid: user.uid,
+            error: null,
+        });
     }, [
         status,
         hasGenAiAccess,
         calibration.status,
         user,
+        userProfile,
+        isProfileLoading,
         scheduleRetryKey,
     ]);
 

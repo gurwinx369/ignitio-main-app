@@ -1,32 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
-import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
+// DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+// import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
+import useSWR from "swr";
 import { useAuth } from "@/features/context/AuthContext";
+import { patchRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
 import {
   getPromptEngineeringRoadmapByRole,
   promptEngineeringRoadmapData as genericPromptEngineeringRoadmapData,
 } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
-import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
+// import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
 import { Globe2 } from "lucide-react";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import GenAiPremiumCard from "@/features/premium/components/GenAiPremiumCard";
-import { migrateRoadmapProgress } from "@/features/roadmaps/lib/progressApi";
-import { submitDiagnostic } from "@/features/onboarding/diagnostic/services/submitDiagnostic";
-import CertificateUnlockedModal from "@/features/certificates/CertificateUnlockedModal";
 
 // Layout Components
 import HomeHeader from "./HomeHeader";
@@ -36,30 +36,27 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 
-const getRedirects = (isPreview) => ({
-  GitGithub: isPreview
-    ? "/preview/roadmaps/git-github"
-    : "/home/roadmaps/git-github",
-  CPP: isPreview
-    ? "/preview/roadmaps/cpp"
-    : "/home/roadmaps/cpp",
-  PromptEngineering: isPreview
-    ? "/preview/roadmaps/prompt-engineering"
-    : "/home/roadmaps/prompt-engineering",
-  SystemDesign: isPreview
-    ? "/preview/roadmaps/system-design-fundamentals"
-    : "/home/roadmaps/system-design-fundamentals",
-  Python: isPreview
-    ? "/preview/roadmaps/python-beginner"
-    : "/home/roadmaps/python-beginner",
-  CLang: isPreview
-    ? "/preview/roadmaps/c-beginner"
-    : "/home/roadmaps/c-beginner",
-});
+// Sequential unlock order — git-github is always first.
+// Each roadmap unlocks only when the previous one is 100% done.
+const UNLOCK_ORDER = [
+  "git-github",
+  "cpp",
+  "python-beginner",
+  "c-language-course",
+  "system-design-fundamentals",
+  // prompt-engineering and DSA are always unlocked (role-specific, supplemental)
+];
 
-export default function Dashboard({ isPreview = false }) {
+export default function Dashboard() {
   const router = useRouter();
-  const redirects = getRedirects(isPreview);
+  const redirects = {
+    GitGithub: "/home/roadmaps/git-github",
+    CPP: "/home/roadmaps/cpp",
+    PromptEngineering: "/home/roadmaps/prompt-engineering",
+    SystemDesign: "/home/roadmaps/system-design-fundamentals",
+    Python: "/home/roadmaps/python-beginner",
+    CLang: "/home/roadmaps/c-beginner",
+  };
   const pathname = usePathname();
   const searchParams =
     useSearchParams();
@@ -67,7 +64,7 @@ export default function Dashboard({ isPreview = false }) {
   const requestedTab =
     searchParams.get("tab");
   const posthog = usePostHog();
-  const { user } = useAuth();
+  const { user, userProfile, isProfileLoading } = useAuth();
   const {
     status,
     retry,
@@ -89,7 +86,6 @@ export default function Dashboard({ isPreview = false }) {
     requestedTab,
   ]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [pendingCertificate, setPendingCertificate] = useState(null);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -98,168 +94,132 @@ export default function Dashboard({ isPreview = false }) {
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
+  const [lockedRoadmapIds, setLockedRoadmapIds] = useState(new Set());
   const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
     genericPromptEngineeringRoadmapData,
   );
   const [userRole, setUserRole] = useState("other");
-  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
+  // const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
-  const [profileData, setProfileData] = useState(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const fetcher = async (url) => {
+    if (!user) return null;
+    const token = await user.getIdToken();
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error("Failed to fetch");
+    const data = await res.json();
+    return data.profile;
+  };
+
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    mutate: mutateProfile,
+  } = useSWR(
+    user ? "/api/v2/profile" : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  );
+
+  // Self-heal streak on dashboard load if user completed lesson locally but server is out of sync
+  const streakHealingAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !profileData || streakHealingAttemptedRef.current) return;
+
+    const isStreakUnsynced =
+      !profileData.streak ||
+      profileData.streak.currentCount === 0 ||
+      (profileData.streak.status !== "completed_today" &&
+        !profileData.streak.week?.some(
+          (d) => d.isToday && d.status === "completed_today",
+        ));
+
+    if (!isStreakUnsynced) return;
+
+    const hasLocalCompletion =
+      typeof window !== "undefined" &&
+      (localStorage.getItem("has_completed_first_lesson") === "true" ||
+        localStorage.getItem("ignitio:streak_phase") === "sparked" ||
+        localStorage.getItem("ignitio:streak_phase") === "completed");
+
+    if (!hasLocalCompletion) return;
+
+    streakHealingAttemptedRef.current = true;
+
+    const reconcileStreak = async () => {
+      try {
+        const candidates = [
+          pythonBeginnerRoadmapData,
+          gitGithubRoadmapData,
+          selectedPromptRoadmap,
+          cppRoadmapData,
+          systemDesignRoadmapData,
+          clangBeginnerRoadmapData,
+        ];
+
+        let targetRoadmap = null;
+        let targetLevelId = null;
+
+        for (const r of candidates) {
+          if (!r?.id) continue;
+          const key = `completed_levels_${r.id}`;
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                targetRoadmap = r;
+                targetLevelId = parsed[0];
+                break;
+              }
+            } catch {}
+          }
+        }
+
+        if (!targetRoadmap) {
+          targetRoadmap = pythonBeginnerRoadmapData;
+          targetLevelId =
+            pythonBeginnerRoadmapData.days?.[0]?.levels?.[0]?.id ||
+            "PYTHON_BEGINNER_D1_01";
+        }
+
+        const allLevels = targetRoadmap.days.flatMap((d) => d.levels);
+        await patchRoadmapProgress({
+          user,
+          roadmapSlug: targetRoadmap.id,
+          payload: {
+            action: "complete_level",
+            roadmapTitle: targetRoadmap.title || "",
+            role: userRole || "other",
+            totalLevels: allLevels.length,
+            allLevelIds: allLevels.map((l) => l.id),
+            days: targetRoadmap.days.map((d) => ({
+              id: d.id,
+              levelIds: d.levels.map((l) => l.id),
+            })),
+            levelId: targetLevelId,
+          },
+        });
+
+        await mutateProfile();
+      } catch (err) {
+        console.warn("[Dashboard] Streak reconciliation failed:", err);
+      }
+    };
+
+    reconcileStreak();
+  }, [user, profileData, userRole, selectedPromptRoadmap, mutateProfile]);
 
   // We store the full list of parsed roadmaps so we can feed them to Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      let role = "other";
-
-      if (isPreview) {
-        try {
-          role =
-            typeof window !== "undefined"
-              ? localStorage.getItem("profession") || "other"
-              : "other";
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.error(
-              "Failed to read preview profession:",
-              error?.message || "unknown error",
-            );
-          }
-        }
-      } else if (user) {
-        try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/v2/user", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-
-            if (data.user?.requiresOnboarding) {
-              router.replace("/home/onboarding");
-              return;
-            }
-
-            role = data.user?.role || "other";
-          } else {
-            if (res.status === 404) {
-              router.replace("/home/onboarding");
-              return;
-            }
-          }
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.error(
-              "Failed to fetch user role:",
-              error?.message || "unknown error",
-            );
-          }
-
-          role = "other";
-        }
-      }
-
-      setUserRole(role);
-      setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
-      setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
-
-      if (!isPreview && user && typeof window !== "undefined") {
-        const previewPayload = localStorage.getItem("ignitio:preview_payload");
-        if (previewPayload) {
-          // ponytail: sync lock to prevent Strict Mode / double-mount race conditions
-          localStorage.removeItem("ignitio:preview_payload");
-          try {
-            const parsedPayload = JSON.parse(previewPayload);
-            if (
-              parsedPayload &&
-              typeof parsedPayload === "object" &&
-              parsedPayload.roadmapId
-            ) {
-              await migrateRoadmapProgress({
-                user,
-                roadmapSlug: parsedPayload.roadmapId,
-                payload: parsedPayload,
-              });
-            }
-          } catch (error) {
-            localStorage.setItem("ignitio:preview_payload", previewPayload);
-            if (process.env.NODE_ENV === "development") {
-              console.error(
-                "Failed to migrate preview roadmap progress:",
-                error?.message || "unknown error",
-              );
-            }
-          }
-        }
-
-        // ponytail: migrate gen ai preview assessment to DB
-        const genAiPreview = localStorage.getItem("genai_preview_assessment");
-        if (genAiPreview) {
-          localStorage.removeItem("genai_preview_assessment");
-          try {
-            const parsedGenAi = JSON.parse(genAiPreview);
-            if (parsedGenAi) {
-              const currentToken = await user.getIdToken();
-              await submitDiagnostic(parsedGenAi, currentToken);
-            }
-          } catch (error) {
-            localStorage.setItem("genai_preview_assessment", genAiPreview);
-            if (process.env.NODE_ENV === "development") {
-              console.error(
-                "Failed to migrate gen ai preview assessment:",
-                error?.message || "unknown error",
-              );
-            }
-          }
-        }
-
-        // ponytail: consume the pending animation key written by PreviewCardLockedModal
-        // Do not remove it here to avoid StrictMode async race conditions. Remove it on close.
-        try {
-          const raw = localStorage.getItem("ignitio:pending_certificate_animation");
-          if (raw) {
-            const cert = JSON.parse(raw);
-            if (cert && cert.certificateKey) {
-              setPendingCertificate(cert);
-            }
-          }
-        } catch {
-          // ignore parsing errors
-        }
-      }
-    };
-
-    const fetchProfile = async () => {
-      if (!user) {
-        setIsLoadingProfile(false);
-        return;
-      }
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("/api/v2/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setProfileData(data.profile);
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
-    if (user !== undefined) {
-      fetchUserRole();
-      fetchProfile();
-    }
-  }, [user, router, isPreview]);
+    if (!userProfile) return;
+    const role = userProfile.role || "other";
+    setUserRole(role);
+    setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
+    // setSelectedDsaRoadmap(getDsaRoadmapByRole(role)); // DSA disabled
+  }, [userProfile]);
 
   useEffect(() => {
     setIsClient(true);
@@ -290,15 +250,16 @@ export default function Dashboard({ isPreview = false }) {
       },
     ];
 
-    if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
-      roadmapsData.splice(1, 0, {
-        id: selectedDsaRoadmap.id,
-        title: selectedDsaRoadmap.title,
-        route: "/home/roadmaps/dsa",
-        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
-        legacySections: [],
-      });
-    }
+    // DSA disabled — not available yet.
+    // if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
+    //   roadmapsData.splice(1, 0, {
+    //     id: selectedDsaRoadmap.id,
+    //     title: selectedDsaRoadmap.title,
+    //     route: "/home/roadmaps/dsa",
+    //     totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
+    //     legacySections: [],
+    //   });
+    // }
 
     roadmapsData.push({
       id: systemDesignRoadmapData.id,
@@ -330,9 +291,49 @@ export default function Dashboard({ isPreview = false }) {
       legacySections: [],
     });
 
+    // Read assigned roadmaps from localStorage (persisted from onboarding)
+    let assignedIds = null;
+    try {
+      const raw = localStorage.getItem("ignitio:assigned_roadmaps");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) assignedIds = parsed;
+      }
+      if (!assignedIds) {
+        const rawResult = localStorage.getItem("ignitio:onboarding_result");
+        if (rawResult) {
+          const parsed = JSON.parse(rawResult);
+          if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+            const skillMap = {
+              git: "git-github",
+              python: "python-beginner",
+              prompt: "prompt-engineering",
+              system_design: "system-design-fundamentals",
+            };
+            const mapped = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
+            if (mapped.length > 0) assignedIds = mapped;
+          }
+        }
+      }
+    } catch { }
+
+    // If assignedIds exists, only include roadmaps assigned to the user in that order.
+    // Otherwise fallback to UNLOCK_ORDER (for legacy users).
+    const filteredRoadmapsData = assignedIds
+      ? assignedIds
+          .map((id) =>
+            roadmapsData.find(
+              (r) =>
+                r.id === id ||
+                (id === "prompt-engineering" && r.route === redirects.PromptEngineering),
+            ),
+          )
+          .filter(Boolean)
+      : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id));
+
     const progressMap = {};
 
-    for (const roadmap of roadmapsData) {
+    for (const roadmap of filteredRoadmapsData) {
       let completedLevelsCount = 0;
       const canonicalKey = `completed_levels_${roadmap.id}`;
       const saved = localStorage.getItem(canonicalKey);
@@ -380,20 +381,50 @@ export default function Dashboard({ isPreview = false }) {
       }
     } catch (e) { }
 
-    let activeRoadmapToSet = bestRoadmap;
-    if (lastActiveRoadmapId) {
-      const foundLastActive = roadmapsData.find(
-        (r) => r.id === lastActiveRoadmapId,
-      );
-      if (foundLastActive) {
-        activeRoadmapToSet = foundLastActive;
+    // Sequential lock order matches the user's assigned roadmaps
+    const sequentialOrder = filteredRoadmapsData.map((r) => r.id);
+    const lockedIds = new Set();
+    if (process.env.NODE_ENV !== "development") {
+      for (let i = 1; i < sequentialOrder.length; i++) {
+        const prevId = sequentialOrder[i - 1];
+        const prevProgress = progressMap[prevId];
+        const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
+        if (!prevDone) {
+          // This roadmap and all subsequent ones are locked
+          for (let j = i; j < sequentialOrder.length; j++) {
+            lockedIds.add(sequentialOrder[j]);
+          }
+          break;
+        }
       }
+    }
+
+    // Only allow unlocked roadmaps as the active (home tab) roadmap
+    const unlockedRoadmaps = filteredRoadmapsData.filter(r => !lockedIds.has(r.id));
+
+    let activeRoadmapToSet = null;
+    let maxProgress = -1;
+    for (const r of unlockedRoadmaps) {
+      if (r.completedLevels > maxProgress) {
+        maxProgress = r.completedLevels;
+        activeRoadmapToSet = r;
+      }
+    }
+
+    if (lastActiveRoadmapId) {
+      const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId);
+      if (foundLastActive) activeRoadmapToSet = foundLastActive;
+    }
+
+    if (!activeRoadmapToSet && unlockedRoadmaps.length > 0) {
+      activeRoadmapToSet = unlockedRoadmaps[0];
     }
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(activeRoadmapToSet);
-    setAllRoadmaps(roadmapsData);
-  }, [selectedPromptRoadmap, selectedDsaRoadmap, userRole]);
+    setAllRoadmaps(filteredRoadmapsData);
+    setLockedRoadmapIds(lockedIds);
+  }, [selectedPromptRoadmap, userRole]); // selectedDsaRoadmap removed (DSA disabled)
 
   const handleRedirect = (route) => {
     if (isNavigating) return;
@@ -405,7 +436,7 @@ export default function Dashboard({ isPreview = false }) {
   const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub);
   const handleRedirectCPP = () => handleRedirect(redirects.CPP);
   const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
-  const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa");
+  // const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa"); // DSA disabled
   const handleRedirectSystemDesign = () =>
     handleRedirect(redirects.SystemDesign);
 
@@ -415,7 +446,7 @@ export default function Dashboard({ isPreview = false }) {
   const handleRedirectCLang = () =>
     handleRedirect(redirects.CLang);
 
-  const displayName = profileData?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
+  const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
   const carouselRoadmaps = [];
 
@@ -483,20 +514,20 @@ export default function Dashboard({ isPreview = false }) {
     )
   });
 
-  // DSA
-  if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
-    carouselRoadmaps.push({
-      id: selectedDsaRoadmap.id,
-      component: (
-        <DsaCourseCard
-          onClick={handleRedirectDsa}
-          levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
-          totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
-          roadmapData={selectedDsaRoadmap}
-        />
-      )
-    });
-  }
+  // DSA disabled — not available yet. Re-enable when DSA paid course is ready.
+  // if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
+  //   carouselRoadmaps.push({
+  //     id: selectedDsaRoadmap.id,
+  //     component: (
+  //       <DsaCourseCard
+  //         onClick={handleRedirectDsa}
+  //         levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+  //         totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
+  //         roadmapData={selectedDsaRoadmap}
+  //       />
+  //     )
+  //   });
+  // }
 
   // CPP
   carouselRoadmaps.push({
@@ -522,6 +553,11 @@ export default function Dashboard({ isPreview = false }) {
     )
   });
 
+  // Order and filter carousel items to strictly match the roadmaps in allRoadmaps
+  const filteredCarouselRoadmaps = allRoadmaps
+    .map((ar) => carouselRoadmaps.find((cr) => cr.id === ar.id))
+    .filter(Boolean);
+
   /**
    * New-user guard:
    * Only show the empty state after client-side resolution completes.
@@ -537,7 +573,7 @@ export default function Dashboard({ isPreview = false }) {
     <div className="min-h-screen bg-[#FCF5EE] font-sans text-[#19183B]">
       {/* ── HOME TAB ── */}
       {activeTab === "home" && (
-        <div className="max-w-[780px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
+        <div className="max-w-[620px] mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-40">
 
           <HomeHeader
             displayName={displayName}
@@ -570,7 +606,10 @@ export default function Dashboard({ isPreview = false }) {
               </p>
 
               <button
-                onClick={() => setActiveTab("worlds")}
+                onClick={() => {
+                  setActiveTab("worlds");
+                  router.replace("/home?tab=worlds", { scroll: false });
+                }}
                 className="
                   px-8 py-3.5
                   bg-[#00A9FF]
@@ -593,7 +632,7 @@ export default function Dashboard({ isPreview = false }) {
 
           {/* Existing learner — streak + roadmap */}
           {clientResolved && hasActiveRoadmap && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               {/* Streak module */}
               <StreakStatusCard
                 streak={profileData?.streak}
@@ -602,24 +641,28 @@ export default function Dashboard({ isPreview = false }) {
               />
 
               {/* Current roadmap — actual course card */}
-              <div>
-                <p
-                  className="
-                    text-[11px]
-                    font-bold
-                    text-[#19183B]/55
-                    uppercase
-                    tracking-widest
-                    mb-2
-                    px-1
-                  "
-                >
-                  CONTINUE LEARNING
-                </p>
+              <div className="flex flex-col">
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <p
+                    className="
+                      text-[11px]
+                      font-bold
+                      uppercase
+                      tracking-widest
+                      text-[#19183B]/55
+                    "
+                  >
+                    CONTINUE LEARNING
+                  </p>
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#00A9FF]">
+                    <span>Next lesson powers Day {(profileData?.streak?.currentCount || 0) + 1}</span>
+                    <span aria-hidden="true">⚡</span>
+                  </span>
+                </div>
 
-                <div className="w-full max-w-[460px] mx-auto">
+                <div className="w-full">
                   {(() => {
-                    const comp = carouselRoadmaps.find(
+                    const comp = filteredCarouselRoadmaps.find(
                       (r) => r.id === activeRoadmap.id
                     )?.component;
 
@@ -637,9 +680,64 @@ export default function Dashboard({ isPreview = false }) {
       {/* ── WORLDS TAB ── */}
       {activeTab === "worlds" && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
-          {/* RoadmapWorldsCarousel renders its own "Roadmap Worlds" heading internally */}
           <RoadmapWorldsCarousel
-            roadmaps={carouselRoadmaps}
+            roadmaps={filteredCarouselRoadmaps.map(item => {
+              if (!lockedRoadmapIds.has(item.id)) return item;
+              // Find which roadmap unlocks this one
+              const lockIdx = allRoadmaps.findIndex(r => r.id === item.id);
+              const prevTitle = lockIdx > 0 ? allRoadmaps[lockIdx - 1]?.title : "the previous roadmap";
+              return {
+                ...item,
+                component: (
+                  <div
+                    key={item.id}
+                    className="relative w-full h-full select-none"
+                    style={{ borderRadius: 24 }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {/* Greyscale + dim the underlying card */}
+                    <div
+                      style={{
+                        filter: "grayscale(1) brightness(0.72)",
+                        pointerEvents: "none",
+                        height: "100%",
+                        width: "100%",
+                      }}
+                    >
+                      {React.cloneElement(item.component, { onClick: undefined })}
+                    </div>
+
+                    {/* Lock overlay */}
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
+                      style={{
+                        background: "rgba(25,24,59,0.45)",
+                        borderRadius: 24,
+                        backdropFilter: "blur(2px)",
+                      }}
+                    >
+                      {/* Lock icon */}
+                      <div
+                        className="flex items-center justify-center rounded-full bg-white/15"
+                        style={{ width: 52, height: 52 }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </div>
+
+                      <p className="text-white font-bold text-[15px] leading-snug">
+                        Locked
+                      </p>
+                      <p className="text-white/80 text-[13px] leading-relaxed">
+                        Complete <span className="font-semibold text-white">{prevTitle}</span> to unlock this roadmap.
+                      </p>
+                    </div>
+                  </div>
+                ),
+              };
+            })}
             initialActiveId={activeRoadmap?.id}
           />
         </div>
@@ -663,7 +761,7 @@ export default function Dashboard({ isPreview = false }) {
                   handleRedirect("/home/premium/genai")
                 }
                 onNavigatePaywall={() =>
-                  handleRedirect("/home/onboarding/diagnostic")
+                  handleRedirect("/onboarding/diagnostic")
                 }
               />
             </div>
@@ -673,16 +771,6 @@ export default function Dashboard({ isPreview = false }) {
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {pendingCertificate && (
-        <CertificateUnlockedModal
-          certificate={pendingCertificate}
-          onClose={() => {
-            setPendingCertificate(null);
-            localStorage.removeItem("ignitio:pending_certificate_animation");
-          }}
-        />
-      )}
     </div>
   );
 }

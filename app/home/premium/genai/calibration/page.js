@@ -11,7 +11,7 @@ import Loader from "@/layout/Loader";
 import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import { useCalibrationStatus } from "@/features/premium/calibration/useCalibrationStatus";
 import { submitCalibration } from "@/features/premium/calibration/calibrationApi";
-import DiagnosticAssessment from "@/features/onboarding/diagnostic/DiagnosticAssessment";
+import DiagnosticAssessment from "@/features/onboarding/v4-genai/diagnostic/DiagnosticAssessment";
 
 function VerificationError({
     message,

@@ -12,7 +12,7 @@ export default function robots() {
       ],
       disallow: [
         '/api/',
-        '/home/onboarding/',
+        '/onboarding/',
         '/home/profile',
         '/home/settings',
       ],

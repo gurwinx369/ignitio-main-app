@@ -8,7 +8,10 @@ const RoadmapNode = ({ level, index, status, theme, onClick, showStartHint }) =>
 
     if (isUnlocked) {
         return (
-            <div className="relative group flex flex-col items-center">
+            <div 
+                className="relative group flex flex-col items-center cursor-pointer"
+                onClick={(e) => onClick(level, e)}
+            >
 
                 {/* Start hint tooltip — shown once until user clicks */}
                 {showStartHint && (

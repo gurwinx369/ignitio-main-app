@@ -23,16 +23,16 @@ import { usePremiumAccess } from "@/features/premium/access/usePremiumAccess";
 import {
     loadRazorpay,
     openRazorpayCheckout,
-} from "@/features/onboarding/paywall/hooks/useRazorpayCheckout";
-import { createSubscription } from "@/features/onboarding/paywall/services/createSubscription";
-import { verifyPayment } from "@/features/onboarding/paywall/services/verifyPayment";
-import PaymentStatus from "@/features/onboarding/paywall/components/PaymentStatus";
-import PremiumPlanCard from "@/features/onboarding/paywall/components/PremiumPlanCard";
+} from "@/features/onboarding/v4-genai/paywall/hooks/useRazorpayCheckout";
+import { createSubscription } from "@/features/onboarding/v4-genai/paywall/services/createSubscription";
+import { verifyPayment } from "@/features/onboarding/v4-genai/paywall/services/verifyPayment";
+import PaymentStatus from "@/features/onboarding/v4-genai/paywall/components/PaymentStatus";
+import PremiumPlanCard from "@/features/onboarding/v4-genai/paywall/components/PremiumPlanCard";
 import {
     DEFAULT_SUBSCRIPTION_PLAN,
     getClientSubscriptionPlan,
-} from "@/features/onboarding/paywall/constants/plans";
-import { validateCoupon } from "@/features/onboarding/paywall/services/validateCoupon";
+} from "@/features/onboarding/v4-genai/paywall/constants/plans";
+import { validateCoupon } from "@/features/onboarding/v4-genai/paywall/services/validateCoupon";
 
 /* =========================================================
    ROUTE LOADER
