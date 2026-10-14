@@ -118,21 +118,22 @@ const buildGrid = ({ width, height, pixelSize, gap, pattern, randomness }) => {
 const buildKeyframes = ({ ease, startScale, endScale, spin, fade }) => {
   const window = [];
   const content = [];
+  const hasSpin = spin !== 0;
 
   for (let step = 0; step <= KEYFRAME_STEPS; step += 1) {
     const progress = step / KEYFRAME_STEPS;
     const eased = ease(progress);
     const scale = startScale + (endScale - startScale) * eased;
-    const angle = spin * (1 - eased);
+    const angle = hasSpin ? spin * (1 - eased) : 0;
 
     window.push({
       offset: progress,
       opacity: fade ? Math.min(1, eased * 1.6) : 1,
-      transform: `rotate(${angle}deg) scale(${scale})`
+      transform: hasSpin ? `rotate(${angle}deg) scale(${scale})` : `scale(${scale})`
     });
     content.push({
       offset: progress,
-      transform: `scale(${1 / scale}) rotate(${-angle}deg)`
+      transform: hasSpin ? `scale(${1 / scale}) rotate(${-angle}deg)` : `scale(${1 / scale})`
     });
   }
 
@@ -142,6 +143,7 @@ const buildKeyframes = ({ ease, startScale, endScale, spin, fade }) => {
 function PixelSwap({
   firstContent,
   secondContent,
+  pixelColor,
   pixelSize = 64,
   gap = 0,
   pixelRadius = 0,
@@ -191,7 +193,7 @@ function PixelSwap({
 
   // Snapshot the animation inputs so a transition already in flight is never
   // rebuilt halfway through by an unrelated prop change.
-  const config = { duration, pixelDuration, pixelSpin, pixelScale, pixelRadius, fade, easing, onComplete };
+  const config = { pixelColor, duration, pixelDuration, pixelSpin, pixelScale, pixelRadius, fade, easing, onComplete };
   const configRef = useRef(config);
   const gridRef = useRef(grid);
   configRef.current = config;
@@ -243,8 +245,10 @@ function PixelSwap({
       settings.onComplete?.(to);
     };
 
-    const source = layerRefs.current[to ? 1 : 0];
-    if (!source || !frozenGrid.pixels.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const isSolid = Boolean(settings.pixelColor);
+    const source = isSolid ? null : layerRefs.current[to ? 1 : 0];
+
+    if ((!isSolid && !source) || !frozenGrid.pixels.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       finish();
       return;
     }
@@ -265,32 +269,42 @@ function PixelSwap({
       const pixelElement = pixelRefs.current[index];
       if (!pixelElement) return;
 
-      // Clone the rendered layer instead of re-rendering the content through
-      // React once per pixel: same visual result, a fraction of the cost.
-      const content = document.createElement('div');
-      content.className = 'absolute';
-      content.style.left = `${-pixel.left}px`;
-      content.style.top = `${-pixel.top}px`;
-      content.style.width = `${frozenGrid.width}px`;
-      content.style.height = `${frozenGrid.height}px`;
-      // Counter-transform about the pixel's centre, not the content's, so the
-      // two transforms cancel to an exact identity at every frame.
-      const originX = pixel.left + frozenGrid.size / 2;
-      const originY = pixel.top + frozenGrid.size / 2;
-      content.style.transformOrigin = `${originX}px ${originY}px`;
-
-      const clone = source.cloneNode(true);
-      clone.classList.remove('invisible');
-      clone.dataset.visible = 'true';
-      clone.removeAttribute('aria-hidden');
-      content.appendChild(clone);
-      pixelElement.replaceChildren(content);
-
       const timing = { duration: pixelMs, delay: pixel.offset * spread, easing: 'linear', fill: 'both' };
-      animationsRef.current.push(
-        pixelElement.animate(keyframes.window, timing),
-        content.animate(keyframes.content, timing)
-      );
+
+      if (isSolid) {
+        pixelElement.style.backgroundColor = settings.pixelColor;
+        pixelElement.style.willChange = 'transform, opacity';
+        pixelElement.replaceChildren();
+        animationsRef.current.push(
+          pixelElement.animate(keyframes.window, timing)
+        );
+      } else {
+        // Clone the rendered layer instead of re-rendering the content through
+        // React once per pixel: same visual result, a fraction of the cost.
+        const content = document.createElement('div');
+        content.className = 'absolute';
+        content.style.left = `${-pixel.left}px`;
+        content.style.top = `${-pixel.top}px`;
+        content.style.width = `${frozenGrid.width}px`;
+        content.style.height = `${frozenGrid.height}px`;
+        // Counter-transform about the pixel's centre, not the content's, so the
+        // two transforms cancel to an exact identity at every frame.
+        const originX = pixel.left + frozenGrid.size / 2;
+        const originY = pixel.top + frozenGrid.size / 2;
+        content.style.transformOrigin = `${originX}px ${originY}px`;
+
+        const clone = source.cloneNode(true);
+        clone.classList.remove('invisible');
+        clone.dataset.visible = 'true';
+        clone.removeAttribute('aria-hidden');
+        content.appendChild(clone);
+        pixelElement.replaceChildren(content);
+
+        animationsRef.current.push(
+          pixelElement.animate(keyframes.window, timing),
+          content.animate(keyframes.content, timing)
+        );
+      }
     });
 
     timerRef.current = window.setTimeout(finish, total);
@@ -387,4 +401,5 @@ function PixelSwap({
   );
 }
 
+export { PixelSwap };
 export default PixelSwap;

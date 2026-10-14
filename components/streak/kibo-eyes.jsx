@@ -27,6 +27,25 @@ const motions = {
     animate: { x: '0%', y: ['0%', '-4%', '0%'], rotate: 0, scaleX: [1, 1.18, 1], scaleY: [1, 1.18, 1] },
     transition: { duration: 0.5, repeat: Infinity, ease: 'easeInOut' },
   },
+  attentive: {
+    animate: {
+      x: ['-4%', '-2%', '-4%'],
+      y: ['0%', '-2%', '0%'],
+      rotate: [-3, -1, -3],
+      scaleX: 1,
+      scaleY: [1, 1, 0.15, 1, 1],
+    },
+    transition: {
+      duration: 3.6,
+      repeat: Infinity,
+      times: [0, 0.9, 0.94, 0.98, 1],
+      ease: 'easeInOut',
+    },
+  },
+  curious: {
+    animate: { x: '-5%', y: '-3%', rotate: -4, scaleX: 1.04, scaleY: [1.04, 1.04, 0.2, 1.04, 1.04] },
+    transition: { duration: 3.8, repeat: Infinity, times: [0, 0.88, 0.92, 0.96, 1] },
+  },
   busted: {
     animate: { x: ['0%', '-5%', '5%', '-3%', '0%'], y: '0%', rotate: 0, scaleX: 1.05, scaleY: 0.7 },
     transition: { duration: 0.45 },

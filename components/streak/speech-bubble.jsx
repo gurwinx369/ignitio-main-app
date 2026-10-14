@@ -22,6 +22,7 @@ export function SpeechBubble({
   typing,
   segments = [],
   typedChars = 0,
+  tail = 'left',
 }) {
   const fullText = segments.map((s) => s.text).join('')
   const done = typedChars >= fullText.length
@@ -44,17 +45,23 @@ export function SpeechBubble({
     }
   }
 
+  const isTailRight = tail === 'right'
+
   return (
     <motion.div
-      className="relative"
-      initial={{ opacity: 0, scale: 0.88, x: -6 }}
-      animate={visible ? { opacity: 1, scale: 1, x: 0 } : { opacity: 0, scale: 0.88, x: -6 }}
+      className="relative isolate"
+      initial={{ opacity: 0, scale: 0.88, x: isTailRight ? 6 : -6 }}
+      animate={visible ? { opacity: 1, scale: 1, x: 0 } : { opacity: 0, scale: 0.88, x: isTailRight ? 6 : -6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
     >
-      {/* Tail — matches roadmap-result: rotated div at top-left pointing toward Kibo */}
+      {/* Tail — rotated square pointing toward Kibo (left or right) */}
       <div
         aria-hidden="true"
-        className="absolute -left-3 top-8 w-6 h-6 border-l border-t border-ig-text/10 -rotate-45"
+        className={`absolute top-7 md:top-8 size-5 border-ig-text/10 ${
+          isTailRight
+            ? '-right-2.5 border-r border-t rotate-45'
+            : '-left-2.5 border-l border-t -rotate-45'
+        }`}
         style={{
           background: 'rgba(252,245,238,0.05)',
           backdropFilter: 'blur(12px)',
@@ -64,7 +71,9 @@ export function SpeechBubble({
 
       {/* Bubble — matches roadmap-result header bubble exactly */}
       <div
-        className="relative rounded-3xl rounded-tl-sm border border-ig-text/10 px-5 py-4 backdrop-blur-md md:px-6 md:py-5"
+        className={`relative rounded-3xl border border-ig-text/10 px-5 py-4 backdrop-blur-md md:px-6 md:py-5 ${
+          isTailRight ? 'rounded-tr-sm' : 'rounded-tl-sm'
+        }`}
         style={{
           background: 'rgba(252,245,238,0.05)',
           boxShadow: '0 8px 32px -12px rgba(0,0,0,0.2)',

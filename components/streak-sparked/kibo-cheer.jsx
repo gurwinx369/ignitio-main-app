@@ -39,9 +39,9 @@ export function KiboCheer({ visible }) {
   }, [typing, typedChars])
 
   return (
-    <div className="flex w-full items-center gap-3">
-      <div className="min-w-0 flex-1 pr-3">
-        <SpeechBubble visible={visible} typing={typing} segments={MESSAGE} typedChars={typedChars} />
+    <div className="flex w-full items-center gap-3 md:gap-4">
+      <div className="min-w-0 flex-1">
+        <SpeechBubble visible={visible} typing={typing} segments={MESSAGE} typedChars={typedChars} tail="right" />
       </div>
       <motion.div
         className="relative aspect-[515/640] h-[clamp(88px,14dvh,128px)] shrink-0"

@@ -115,7 +115,7 @@ export function EnergyCup({ charge, fill, sealed, alive }) {
         />
       </g>
 
-      <g transform="translate(23 0)">
+      <g transform="translate(23 0) translate(177 448) scale(0.72) translate(-177 -448)">
       <path d={BOLT} fill="#081220" />
 
       <motion.path

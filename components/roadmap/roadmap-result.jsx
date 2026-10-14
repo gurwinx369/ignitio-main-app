@@ -31,6 +31,7 @@ import {
   stageX,
 } from "./roadmap-data";
 import { RoadmapIntro } from "./roadmap-intro";
+import { PixelSwap } from "@/components/ui/PixelSwap";
 import { delay, prefersReducedMotion } from "@/lib/onboarding/reveal-utils";
 import { StageCard } from "./stage-card";
 import KiboBody from "@/features/kyle/pet/KiboBody";
@@ -140,6 +141,8 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
 
   const [phase, setPhase] = useState("intro");
   const [introExiting, setIntroExiting] = useState(false);
+  const [pixelActive, setPixelActive] = useState(false);
+  const [pixelSwapDone, setPixelSwapDone] = useState(false);
   const [headerOn, setHeaderOn] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [linked, setLinked] = useState(0);
@@ -221,6 +224,8 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
 
   const showEverything = useCallback(() => {
     clearTimers();
+    setPixelActive(false);
+    setPixelSwapDone(true);
     setPhase("reveal");
     setIntroExiting(false);
     setHeaderOn(true);
@@ -228,7 +233,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
     setLinked(dynamicStages.length - 1);
     setCelebrated(true);
     setDone(true);
-  }, [clearTimers]);
+  }, [clearTimers, dynamicStages.length]);
 
   const run = useCallback(
     ({ withIntro, reset }) => {
@@ -243,20 +248,36 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         setDone(false);
         setBursts([]);
         setIntroExiting(false);
+        setPixelActive(false);
+        setPixelSwapDone(false);
         window.scrollTo({ top: 0 });
         scrollerRef.current?.scrollTo({ left: 0 });
       }
 
       setPhase(withIntro ? "intro" : "reveal");
+      setPixelActive(false);
+      setPixelSwapDone(!withIntro);
 
       let t = reset ? 140 : 40;
       if (withIntro) {
-        at(t + INTRO_MS, () => setIntroExiting(true));
-        at(t + INTRO_MS + 550, () => setPhase("reveal"));
-        t += INTRO_MS;
-      }
+        // Steps in intro run at 200ms, 1200ms, 2200ms, 3200ms
+        // By 3700ms, all checkmarks have completed and settled
+        // Trigger PixelSwap to transition from beige to dark mode navy blue
+        const swapStart = t + 3700;
+        const swapDuration = 1800;
+        at(swapStart, () => setPixelActive(true));
 
-      at(t, () => setHeaderOn(true));
+        const revealStart = swapStart + swapDuration;
+        at(revealStart, () => {
+          setPixelSwapDone(true);
+          setPhase("reveal");
+          setHeaderOn(true);
+        });
+
+        t = revealStart;
+      } else {
+        at(t, () => setHeaderOn(true));
+      }
 
       const first = t + HEADER_MS;
       dynamicStages.forEach((stage, i) => {
@@ -288,7 +309,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
       });
       at(finishAt + 1400, () => setDone(true));
     },
-    [at, burstAtKey, clearTimers, follow],
+    [at, burstAtKey, clearTimers, dynamicStages, follow],
   );
 
   useEffect(() => {
@@ -370,24 +391,67 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         }}
       />
 
-      {phase === "intro" && (
-        <RoadmapIntro
-          exiting={introExiting}
-          title="Building your custom roadmap"
-          icon={() => (
-            <KiboHeaderAvatar
-              size={72}
-              className="rm-float"
-              eyeTracking={false}
-            />
-          )}
-          steps={[
-            { label: "Analyzing your diagnostic answers...", at: 200 },
-            { label: "Matching your pace and goals...", at: 1200 },
-            { label: "Crafting a path especially for you...", at: 2200 },
-            { label: "Finalizing custom roadmap...", at: 3200 },
-          ]}
-        />
+      {!pixelSwapDone && phase === "intro" && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <PixelSwap
+            firstContent={
+              <RoadmapIntro
+                exiting={false}
+                theme="beige"
+                title="Building your custom roadmap"
+                icon={() => (
+                  <KiboHeaderAvatar
+                    size={72}
+                    className="rm-float"
+                    eyeTracking={false}
+                  />
+                )}
+                steps={[
+                  { label: "Analyzing your diagnostic answers...", at: 200 },
+                  { label: "Matching your pace and goals...", at: 1200 },
+                  { label: "Crafting a path especially for you...", at: 2200 },
+                  { label: "Finalizing custom roadmap...", at: 3200 },
+                ]}
+              />
+            }
+            secondContent={
+              <div
+                className="relative isolate flex h-full w-full min-h-screen items-center justify-center overflow-hidden bg-ig-bg text-ig-text"
+                style={{ backgroundColor: "#13122e" }}
+              >
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 -z-10"
+                  style={{
+                    background:
+                      "radial-gradient(44rem 28rem at 85% 85%, rgb(92 200 255 / 0.22), transparent 65%)",
+                  }}
+                />
+              </div>
+            }
+            active={pixelActive}
+            trigger="none"
+            pixelColor="#13122e"
+            pattern="center"
+            pixelSize={64}
+            gap={0}
+            pixelRadius={6}
+            duration={1800}
+            pixelDuration={700}
+            randomness={0.08}
+            easing="cubic-bezier(0.16, 1, 0.3, 1)"
+            aspectRatio="auto"
+            className="h-full w-full"
+            style={{ width: "100vw", height: "100vh" }}
+            onComplete={(to) => {
+              if (to) {
+                setPixelSwapDone(true);
+                setPhase("reveal");
+                setHeaderOn(true);
+              }
+            }}
+          />
+        </div>
       )}
 
       <header

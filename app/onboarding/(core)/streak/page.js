@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { StreakAnticipation } from '@/components/streak/streak-anticipation'
 import { StreakSparked } from '@/components/streak-sparked/streak-sparked'
+import { NotificationAsk } from '@/components/streak-sparked/notification-ask'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -31,16 +32,34 @@ function getLessonHref() {
   }
 }
 
+// ponytail: single flag — no need for a full permission-state machine here
+function hasAskedNotification() {
+  try {
+    return localStorage.getItem('ignitio:notification_asked') === '1'
+  } catch {
+    return true // if storage fails, skip the ask
+  }
+}
+
+function markNotificationAsked() {
+  try {
+    localStorage.setItem('ignitio:notification_asked', '1')
+  } catch {}
+}
 
 export default function StreakPage() {
   // ponytail: 'anticipated' default — no flicker since we check on mount
   const [phase, setPhase] = useState('anticipated')
   const [lessonHref, setLessonHref] = useState('/home')
+  // 'notification' shown once after first lesson, then 'celebration'
+  const [view, setView] = useState('celebration')
 
   useEffect(() => {
     try {
-      if (localStorage.getItem('ignitio:streak_phase') === 'sparked') {
+      const sparked = localStorage.getItem('ignitio:streak_phase') === 'sparked'
+      if (sparked) {
         setPhase('sparked')
+        setView(hasAskedNotification() ? 'celebration' : 'notification')
       }
       setLessonHref(getLessonHref())
     } catch {
@@ -48,7 +67,24 @@ export default function StreakPage() {
     }
   }, [])
 
+  const handleNotificationResponse = (allowed) => {
+    if (allowed && typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission().catch(() => {})
+    }
+    markNotificationAsked()
+    setView('celebration')
+  }
+
   const days = getDays()
+
+  if (phase === 'sparked' && view === 'notification') {
+    return (
+      <NotificationAsk
+        onAllow={() => handleNotificationResponse(true)}
+        onSkip={() => handleNotificationResponse(false)}
+      />
+    )
+  }
 
   if (phase === 'sparked') return <StreakSparked days={days} />
   return <StreakAnticipation days={days} lessonHref={lessonHref} />

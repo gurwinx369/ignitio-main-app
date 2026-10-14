@@ -4,17 +4,19 @@
  * FreeOnboarding — the global onboarding controller.
  *
  * State machine:
- *   goal → year → [shortcut | knowledge_check] → [diagnostic | beginner_stitch] → [reveal] → notification → roadmap_result → auth
+ *   goal → year → [shortcut | knowledge_check] → [diagnostic | beginner_stitch] → [reveal] → roadmap_result → auth
  *
  * Paths:
  *   A (Shortcut):   goal + year = 3rd/4th + internship/job/gen_ai → shortcut → exits to Gen AI module
- *   B (Beginner):   knowledge_check "no" → assigns all 4 skills → notification → roadmap_result → auth
- *   C (Diagnostic): knowledge_check "yes" → 12-card diagnostic → reveal → notification → roadmap_result → auth
+ *   B (Beginner):   knowledge_check "no" → assigns all 4 skills → roadmap_result → auth
+ *   C (Diagnostic): knowledge_check "yes" → 12-card diagnostic → reveal → roadmap_result → auth
  *
  * Tap budget:
  *   A: goal(1) + year(1) + shortcut(1) = 3 taps
- *   B: goal(1) + year(1) + knowledge_check(1) + notification(1) = 4 taps
- *   C: goal(1) + year(1) + knowledge_check(1) + [diagnostic auto-advances] + reveal(1) + notification(1) = 6 taps
+ *   B: goal(1) + year(1) + knowledge_check(1) = 3 taps
+ *   C: goal(1) + year(1) + knowledge_check(1) + [diagnostic auto-advances] + reveal(1) = 5 taps
+ *
+ * Notification ask moved to post-first-lesson (streak celebration screen).
  *
  * onboarding_progress localStorage key persists across refreshes so users
  * never redo goal/year/diagnostic after abandoning before signup.
@@ -35,7 +37,6 @@ import ShortcutScreen from "./screens/ShortcutScreen";
 import KnowledgeCheckScreen from "./screens/KnowledgeCheckScreen";
 import FreeDiagnostic from "./FreeDiagnostic";
 import RevealScreen from "./screens/RevealScreen";
-import NotificationScreen from "./screens/NotificationScreen";
 import MonthRoadmapResult from "./screens/MonthRoadmapResult";
 
 // ── Additional stage rules ───────────────────────────────────────────────────
@@ -63,7 +64,6 @@ const SCREENS = {
   KNOWLEDGE_CHECK: "knowledge_check",
   DIAGNOSTIC: "diagnostic",
   REVEAL: "reveal",
-  NOTIFICATION: "notification",
   ROADMAP_RESULT: "roadmap_result",
 };
 
@@ -114,7 +114,6 @@ export default function FreeOnboarding() {
   const [diagnosticResults, setDiagnosticResults] = useState(null); // Array<{ skillId, verdict, include }>
   const [roadmap, setRoadmap] = useState(null); // string[] of skillIds
   const [path, setPath] = useState(null); // "A" | "B" | "C"
-  const [notificationAllowed, setNotificationAllowed] = useState(null);
 
   // Restore progress on mount — users should never redo the diagnostic after abandoning
   useEffect(() => {
@@ -186,7 +185,7 @@ export default function FreeOnboarding() {
     const fullRoadmap = [...SKILL_ORDER, ...getAdditionalStages(goal, year)];
     setRoadmap(fullRoadmap);
     setDiagnosticResults(null);
-    setScreen(SCREENS.NOTIFICATION);
+    setScreen(SCREENS.ROADMAP_RESULT);
   }, [goal, year]);
 
   const handleKnowledgeCheckKnows = useCallback(() => {
@@ -210,17 +209,10 @@ export default function FreeOnboarding() {
   }, [goal, year]);
 
   const handleRevealNext = useCallback(() => {
-    setScreen(SCREENS.NOTIFICATION);
-  }, []);
-
-  const handleNotification = useCallback((allowed) => {
-    setNotificationAllowed(allowed);
-    // Request browser notification permission if allowed
-    if (allowed && typeof window !== "undefined" && "Notification" in window) {
-      Notification.requestPermission().catch(() => {});
-    }
     setScreen(SCREENS.ROADMAP_RESULT);
   }, []);
+
+
 
   // ponytail: same map as streak/page.js — 2 skills, inline is fine
   const LESSON_ROUTES = {
@@ -247,7 +239,6 @@ export default function FreeOnboarding() {
           path,
           roadmap,
           diagnosticResults,
-          notificationAllowed,
           completedAt: new Date().toISOString(),
         }),
       );
@@ -320,7 +311,6 @@ export default function FreeOnboarding() {
     path,
     roadmap,
     diagnosticResults,
-    notificationAllowed,
     router,
     user,
   ]);
@@ -374,22 +364,13 @@ export default function FreeOnboarding() {
     );
   }
 
-  if (screen === SCREENS.NOTIFICATION) {
-    return (
-      <NotificationScreen
-        onAllow={() => handleNotification(true)}
-        onSkip={() => handleNotification(false)}
-      />
-    );
-  }
-
   if (screen === SCREENS.ROADMAP_RESULT && roadmap) {
     return (
       <MonthRoadmapResult
         roadmap={roadmap}
         path={path}
         onContinue={handleRoadmapResultContinue}
-        onBack={() => setScreen(SCREENS.NOTIFICATION)}
+        onBack={() => setScreen(path === "C" ? SCREENS.REVEAL : SCREENS.KNOWLEDGE_CHECK)}
       />
     );
   }
