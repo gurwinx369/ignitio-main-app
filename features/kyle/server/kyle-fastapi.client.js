@@ -16,7 +16,7 @@ function getBaseUrl() {
     // Treated as a request-time configuration failure — not a startup crash.
     // Sanitized message: no env-variable names or values reach the browser.
     throw new KyleFastApiError(
-      "Kyle AI service is not configured",
+      "Kibo service is not configured",
       500
     );
   }
@@ -96,11 +96,11 @@ export async function callKyleFastApi({ request, path, body, timeoutMs = DEFAULT
     } catch (fetchErr) {
       if (fetchErr?.name === "AbortError") {
         console.error("[kyle-fastapi.client] Request timed out after", timeoutMs, "ms:", path);
-        throw new KyleFastApiError("Kyle AI request timed out", 504);
+        throw new KyleFastApiError("Kibo request timed out", 504);
       }
       // Network-level failure (ECONNREFUSED, DNS, etc.) — message is safe to log.
       console.error("[kyle-fastapi.client] Connection error:", path, fetchErr?.message);
-      throw new KyleFastApiError("Kyle AI service is unreachable", 502);
+      throw new KyleFastApiError("Kibo service is unreachable", 502);
     }
 
     // Step 2 — status check (still inside the active timeout)
@@ -111,7 +111,7 @@ export async function callKyleFastApi({ request, path, body, timeoutMs = DEFAULT
         path,
         "status:", response.status
       );
-      throw new KyleFastApiError("Kyle AI returned an error", 502, response.status);
+      throw new KyleFastApiError("Kibo returned an error", 502, response.status);
     }
 
     // Step 3 — body reading (still inside the active timeout)
@@ -121,15 +121,15 @@ export async function callKyleFastApi({ request, path, body, timeoutMs = DEFAULT
     } catch (readErr) {
       if (readErr?.name === "AbortError") {
         console.error("[kyle-fastapi.client] Body read timed out after", timeoutMs, "ms:", path);
-        throw new KyleFastApiError("Kyle AI request timed out", 504);
+        throw new KyleFastApiError("Kibo request timed out", 504);
       }
       console.error("[kyle-fastapi.client] Body read error:", path, readErr?.message);
-      throw new KyleFastApiError("Kyle AI returned an unreadable response", 502, response.status);
+      throw new KyleFastApiError("Kibo returned an unreadable response", 502, response.status);
     }
 
     if (!text || !text.trim()) {
       console.error("[kyle-fastapi.client] Empty response body from:", path);
-      throw new KyleFastApiError("Kyle AI returned an empty response", 502, response.status);
+      throw new KyleFastApiError("Kibo returned an empty response", 502, response.status);
     }
 
     // Step 4 — JSON parse (still inside the active timeout)
@@ -138,7 +138,7 @@ export async function callKyleFastApi({ request, path, body, timeoutMs = DEFAULT
       json = JSON.parse(text);
     } catch (parseErr) {
       console.error("[kyle-fastapi.client] JSON parse error from:", path, parseErr?.message);
-      throw new KyleFastApiError("Kyle AI returned a malformed response", 502, response.status);
+      throw new KyleFastApiError("Kibo returned a malformed response", 502, response.status);
     }
 
     return json;
