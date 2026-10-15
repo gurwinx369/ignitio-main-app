@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, ThumbsDown, ThumbsUp, Flag, ArrowRight } from 'lucide-react';
+import { CheckCircle, ThumbsDown, ThumbsUp, Flag, ArrowRight, Sparkles } from 'lucide-react';
 import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
 import { scheduleIdleTask } from '@/lib/utils/idleTask';
 import { AskKyleContext } from '@/features/kyle/ask/AskKyleProvider';
 import { useContext } from 'react';
+import ConceptVisualizerModal from '@/features/visualizer/components/ConceptVisualizerModal';
+import { shouldShowVisualizer } from '@/features/visualizer/lib/roadmapConceptRegistry';
 const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkComplete, feedback, setFeedback, hasMetWatchThreshold, canMarkComplete, roadmapType = 'git-github', isVisible = true, shouldPauseVideo = false, hasNextStep = false, onNextStep }) => {
     const { openAskKyle } = useContext(AskKyleContext);
     const midpointCalledRef = useRef(false);
@@ -105,6 +107,7 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
 
     // Lazy initialization for isLoaded
     const [isLoaded, setIsLoaded] = useState(() => isSegmentBased);
+    const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
 
     const safeSegmentDuration = Math.max(0, Number(segmentDuration) || 0);
     const safeWatchThreshold = Math.max(0, Number(watchThreshold) || 0);
@@ -201,18 +204,34 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                             onReady={() => setIsLoaded(true)}
                             autoplay={true}
                             isVisible={isVisible}
-                            shouldPauseVideo={shouldPauseVideo}
+                            shouldPauseVideo={shouldPauseVideo || isVisualizerOpen}
                         />
                     </div>
 
                     {/* Video Info */}
                     <div className="space-y-3 sm:space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-                                {level.title || 'Video Title'}
-                            </h1>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                                    {level.title || 'Video Title'}
+                                </h1>
+                                {/* 3D Tactile Push-Button: Visualize It (Positioned on the LEFT with the concept title) */}
+                                {shouldShowVisualizer(level) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsVisualizerOpen(true)}
+                                        className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 text-white font-bold rounded-full transition-all duration-150 border-b-[4px] active:border-b-0 active:translate-y-[4px] text-xs sm:text-sm bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 hover:from-cyan-500 hover:via-sky-500 hover:to-blue-500 border-cyan-800 hover:border-cyan-700 shadow-md hover:shadow-lg cursor-pointer"
+                                        title="Explore an interactive physical apparatus explaining this concept"
+                                    >
+                                        <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                                        <span>Visualize It</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Complete / Continue Button (Positioned on the far RIGHT) */}
                             {!hasWatched && canMarkComplete && (
-                                <div className="flex flex-col items-center gap-1">
+                                <div className="flex flex-col items-center gap-1 shrink-0 self-end sm:self-center">
                                     <button
                                         onClick={hasNextStep ? onNextStep : onMarkComplete}
                                         className={`inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 text-white rounded-full transition-all duration-150 border-b-[4px] active:border-b-0 active:translate-y-[4px] text-sm sm:text-base font-bold ${
@@ -310,6 +329,14 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                             <ThumbsDown className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                     </div>
+
+                    {/* Interactive Concept Visualizer Modal */}
+                    <ConceptVisualizerModal
+                        isOpen={isVisualizerOpen}
+                        onClose={() => setIsVisualizerOpen(false)}
+                        level={level}
+                        roadmapType={roadmapType}
+                    />
                 </div>
             </div>
         );
