@@ -1,4 +1,4 @@
-import { BrainCircuit, CodeXml, GitBranch, Layers, Rocket, Trophy } from "lucide-react";
+import { BrainCircuit, CodeXml, Database, GitBranch, Layers, Rocket, Trophy } from "lucide-react";
 
 export const STAGES = [
   {
@@ -25,6 +25,18 @@ export const STAGES = [
     outcome: "Push your first repo live",
     accent: "#5eead4",
     icon: GitBranch,
+  },
+  {
+    id: "dsa",
+    kind: "stage",
+    number: "03",
+    weekLabel: "Weeks 4–5",
+    days: "Days 22–35",
+    title: "Data Structures & Algorithms",
+    concepts: ["Big O & Sorting", "Arrays & Lists", "Trees & Graphs", "Dynamic Programming"],
+    outcome: "Solve 20+ algorithmic interview problems",
+    accent: "#38bdf8",
+    icon: Database,
   },
   {
     id: "ship",

@@ -122,7 +122,9 @@ export function StageCard({ stage, on }) {
                 {stage.number}
               </div>
               <h3
-                className="rm-reveal rm-fade text-balance text-xl font-extrabold leading-tight tracking-tight text-ig-text"
+                className={`rm-reveal rm-fade text-balance font-extrabold leading-tight tracking-tight text-ig-text ${
+                  stage.title.length > 18 ? "text-base sm:text-lg" : "text-xl"
+                }`}
                 style={delay(440)}
               >
                 {stage.title}

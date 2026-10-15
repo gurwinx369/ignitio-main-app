@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowRight, CalendarCheck, CalendarPlus } from 'lucide-react'
 
-// ponytail: inline map, 2 skills max — no need for a config file
+// ponytail: inline map, skills routing for celebration
 const ROADMAP_ROUTES = {
   git: '/home/roadmaps/git-github',
   python: '/home/roadmaps/python-beginner',
+  dsa: '/home/roadmaps/dsa',
 }
 
 function getRoadmapHref() {

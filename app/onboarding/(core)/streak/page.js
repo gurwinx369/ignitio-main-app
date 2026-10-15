@@ -7,10 +7,11 @@ import { NotificationAsk } from '@/components/streak-sparked/notification-ask'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-// ponytail: same map as celebrate-cta.jsx — 2 skills, no config file needed
+// ponytail: same map as celebrate-cta.jsx — skills routing for streak start
 const LESSON_ROUTES = {
   git: '/home/roadmaps/git-github/interactive-overviews/first-overview',
   python: '/home/roadmaps/python-beginner',
+  dsa: '/home/roadmaps/dsa',
 }
 
 function getDays() {
