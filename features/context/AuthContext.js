@@ -15,6 +15,7 @@ import {
 import { auth, googleProvider } from "../../lib/firebase/firebase";
 import posthog from "posthog-js";
 import { scheduleIdleTask } from "@/lib/utils/idleTask";
+import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
 
 const AuthContext = createContext({});
 
@@ -109,10 +110,17 @@ export const AuthProvider = ({ children }) => {
                 }
                 // Identify user in PostHog
                 try {
+                    const sessionId = getOrCreateOnboardingSessionId();
                     posthog.identify(user.uid, {
                         email: user.email,
-                        name: user.displayName
+                        name: user.displayName,
+                        onboarding_session_id: sessionId,
                     });
+                    if (sessionId) {
+                        try {
+                            posthog.people?.set?.({ onboarding_session_id: sessionId });
+                        } catch {}
+                    }
                 } catch (e) {
                     console.error("Posthog identify error:", e);
                 }

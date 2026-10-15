@@ -6,6 +6,8 @@ import KiboBody from "@/features/kyle/pet/KiboBody";
 import TextType from "@/components/ui/TextType";
 import { useKiboEyeTracking } from "@/features/kyle/pet/useKiboEyeTracking";
 
+import { useOnboardingStepTracker } from "@/lib/analytics/useOnboardingStepTracker";
+
 const BG = "#FCF5EE";
 const HEADING = "#001D32";
 
@@ -54,6 +56,12 @@ export default function WelcomeScreen({ onContinue }) {
   // Activate Kibo eye tracking
   useKiboEyeTracking({ eyesRef, wrapperRef, active: true, trackFullPage: true });
 
+  // PostHog Step 1 tracking (viewed, abandoned, completed)
+  const { markStepCompleted } = useOnboardingStepTracker({
+    stepId: "welcome",
+    stepIndex: 1,
+  });
+
   const isLastStep = step === 1;
 
   const handleContinue = () => {
@@ -62,6 +70,7 @@ export default function WelcomeScreen({ onContinue }) {
       setIsTyping(true);
       return;
     }
+    markStepCompleted();
     if (onContinue) {
       onContinue();
     } else {

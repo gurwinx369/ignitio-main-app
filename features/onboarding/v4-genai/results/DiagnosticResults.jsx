@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
+import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
 
 import { useAuth } from "@/features/context/AuthContext";
 import { ONBOARDING_STEP_ROUTES } from "@/features/onboarding/v4-genai/diagnostic/constants/routes";
@@ -28,6 +30,82 @@ export default function DiagnosticResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAnimatingLoader, setIsAnimatingLoader] = useState(true);
+
+  // ── PostHog Steps 4 & 5 Tracking (roadmap_loading & roadmap_reveal) ──────
+  const loadingStartedAtRef = useRef(Date.now());
+  const hasCompletedLoaderRef = useRef(false);
+  const hasCompletedRevealRef = useRef(false);
+  const revealStartedAtRef = useRef(null);
+
+  useEffect(() => {
+    loadingStartedAtRef.current = Date.now();
+    const sessionId = getOrCreateOnboardingSessionId();
+
+    try {
+      posthog.capture("onboarding_step_viewed", {
+        step_id: "roadmap_loading",
+        step_index: 4,
+        onboarding_session_id: sessionId,
+      });
+    } catch {}
+
+    const handleLeave = () => {
+      if (!hasCompletedLoaderRef.current) {
+        try {
+          posthog.capture("onboarding_step_abandoned", {
+            step_id: "roadmap_loading",
+            step_index: 4,
+            onboarding_session_id: sessionId,
+            time_on_step_ms: Date.now() - loadingStartedAtRef.current,
+            saw_full_stepper: false,
+          });
+        } catch {}
+      } else if (!hasCompletedRevealRef.current && revealStartedAtRef.current) {
+        try {
+          posthog.capture("onboarding_step_abandoned", {
+            step_id: "roadmap_reveal",
+            step_index: 5,
+            onboarding_session_id: sessionId,
+            time_on_step_ms: Date.now() - revealStartedAtRef.current,
+            saw_full_stepper: true,
+          });
+        } catch {}
+      }
+    };
+
+    window.addEventListener("pagehide", handleLeave);
+    return () => window.removeEventListener("pagehide", handleLeave);
+  }, []);
+
+  const handleLoaderComplete = () => {
+    hasCompletedLoaderRef.current = true;
+    const sessionId = getOrCreateOnboardingSessionId();
+    const timeSpent = Date.now() - loadingStartedAtRef.current;
+
+    try {
+      posthog.capture("onboarding_step_completed", {
+        step_id: "roadmap_loading",
+        step_index: 4,
+        onboarding_session_id: sessionId,
+        time_on_step_ms: timeSpent,
+        saw_full_stepper: true,
+      });
+
+      try {
+        localStorage.setItem("ignitio:saw_full_stepper", "true");
+      } catch {}
+
+      revealStartedAtRef.current = Date.now();
+      posthog.capture("onboarding_step_viewed", {
+        step_id: "roadmap_reveal",
+        step_index: 5,
+        onboarding_session_id: sessionId,
+        saw_full_stepper: true,
+      });
+    } catch {}
+
+    setIsAnimatingLoader(false);
+  };
 
   // "idle" | "preparing" | "error"
   const [
@@ -187,6 +265,18 @@ export default function DiagnosticResults() {
         );
       }
 
+      hasCompletedRevealRef.current = true;
+      try {
+        const sessionId = getOrCreateOnboardingSessionId();
+        posthog.capture("onboarding_step_completed", {
+          step_id: "roadmap_reveal",
+          step_index: 5,
+          onboarding_session_id: sessionId,
+          time_on_step_ms: revealStartedAtRef.current ? Date.now() - revealStartedAtRef.current : 0,
+          saw_full_stepper: true,
+        });
+      } catch {}
+
       const destination =
         ONBOARDING_STEP_ROUTES[
         res.nextStep
@@ -208,6 +298,14 @@ export default function DiagnosticResults() {
         "Continue error:",
         err,
       );
+
+      try {
+        posthog.captureException(err, {
+          step_id: "roadmap_reveal",
+          onboarding_session_id: getOrCreateOnboardingSessionId(),
+          api_endpoint: "/api/v2/onboarding/results/continue",
+        });
+      } catch {}
 
       setPreparationError(err);
       setPreparationStatus("error");
@@ -247,7 +345,7 @@ export default function DiagnosticResults() {
     <div className="min-h-dvh flex flex-col bg-[#07131D] text-white relative">
       <AnimatePresence mode="wait">
         {(loading || isAnimatingLoader) && !error ? (
-          <ResultsLoader key="loader" onComplete={() => setIsAnimatingLoader(false)} />
+          <ResultsLoader key="loader" onComplete={handleLoaderComplete} />
         ) : data ? (
           <motion.div
             key="results"

@@ -7,6 +7,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
 import { usePostHog } from 'posthog-js/react';
+import { getOrCreateOnboardingSessionId, recordSignupTimestamp } from "@/lib/analytics/onboardingSession";
+import { trackOnboardingFriction } from "@/lib/analytics/friction";
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
 import { syncOnboardingFromLocalStorage } from '@/lib/onboarding/sync-localstorage';
 import { deriveScheduleFromBrowser } from '@/lib/onboarding/schedule-periods';
@@ -51,6 +53,76 @@ export default function SignupForm() {
   const isResumingRef = useRef(false);
   const posthog = usePostHog();
 
+  // ── PostHog Step 8 Tracking ───────────────────────────────────────────────
+  const signupEnteredAtRef = useRef(Date.now());
+  const hasCompletedSignupRef = useRef(false);
+
+  useEffect(() => {
+    signupEnteredAtRef.current = Date.now();
+    const sessionId = getOrCreateOnboardingSessionId();
+    try {
+      posthog?.capture("onboarding_step_viewed", {
+        step_id: "signup",
+        step_index: 8,
+        onboarding_session_id: sessionId,
+      });
+    } catch {}
+
+    const handleLeave = () => {
+      if (!hasCompletedSignupRef.current) {
+        try {
+          posthog?.capture("onboarding_step_abandoned", {
+            step_id: "signup",
+            step_index: 8,
+            onboarding_session_id: sessionId,
+            time_on_step_ms: Date.now() - signupEnteredAtRef.current,
+          });
+        } catch {}
+      }
+    };
+
+    window.addEventListener("pagehide", handleLeave);
+    return () => window.removeEventListener("pagehide", handleLeave);
+  }, [posthog]);
+
+  const trackSignupConversion = (firebaseUser, method) => {
+    recordSignupTimestamp();
+    const sessionId = getOrCreateOnboardingSessionId();
+    const hasDiagnostic = typeof window !== "undefined" && (
+      !!localStorage.getItem("ignitio:preview_payload") ||
+      !!localStorage.getItem("genai_preview_assessment")
+    );
+
+    try {
+      posthog?.identify(firebaseUser.uid, {
+        email: firebaseUser.email,
+        signup_method: method,
+      });
+
+      posthog?.people?.set({
+        onboarding_session_id: sessionId,
+        signup_method: method,
+      });
+
+      posthog?.capture("user_signed_up", {
+        signup_method: method,
+        onboarding_session_id: sessionId,
+        diagnostic_completed: hasDiagnostic,
+      });
+
+      hasCompletedSignupRef.current = true;
+      posthog?.capture("onboarding_step_completed", {
+        step_id: "signup",
+        step_index: 8,
+        onboarding_session_id: sessionId,
+        signup_method: method,
+        time_on_step_ms: Date.now() - signupEnteredAtRef.current,
+      });
+    } catch (e) {
+      console.warn("PostHog user_signed_up tracking error:", e);
+    }
+  };
+
   const { signup, loginWithGoogle, user } = useAuth();
   const router = useRouter();
 
@@ -81,6 +153,10 @@ export default function SignupForm() {
     setLoading(true);
 
     if (form.password.length < 6) {
+      trackOnboardingFriction("signup", "form_error", {
+        field_name: "password",
+        error_type: "length_under_6",
+      });
       setError("Password must be at least 6 characters");
       setLoading(false);
       return;
@@ -91,6 +167,7 @@ export default function SignupForm() {
       const result = await signup(form.email, form.password);
 
       if (result.success) {
+        trackSignupConversion(result.user, "email");
         try {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
           const idToken = await result.user.getIdToken();
@@ -181,6 +258,7 @@ export default function SignupForm() {
       const result = await loginWithGoogle();
 
       if (result.success) {
+        trackSignupConversion(result.user, "google");
         try {
           const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
           const idToken = await result.user.getIdToken();

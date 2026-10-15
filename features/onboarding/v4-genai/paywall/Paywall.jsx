@@ -25,6 +25,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/context/AuthContext";
+import posthog from "posthog-js";
+import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
+import { trackOnboardingFriction } from "@/lib/analytics/friction";
 import PaywallSkeleton from "./components/PaywallSkeleton";
 
 import { ONBOARDING_ROUTES } from "./constants/routes";
@@ -71,6 +74,48 @@ export default function Paywall() {
   const [statusVariant, setStatusVariant] = useState("idle"); // "idle"|"dismissed"|"error"|"success"
   const [statusMessage, setStatusMessage] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(DEFAULT_SUBSCRIPTION_PLAN);
+
+  // ── PostHog Step 6 & 7 Tracking ───────────────────────────────────────────
+  const paywallEnteredAtRef = useRef(Date.now());
+  const paymentEnteredAtRef = useRef(null);
+  const hasCompletedPaywallRef = useRef(false);
+  const paymentAttemptCountRef = useRef(0);
+  const initialPlanRef = useRef(selectedPlan);
+
+  // Track Step 6 (paywall_viewed & onboarding_step_viewed)
+  useEffect(() => {
+    paywallEnteredAtRef.current = Date.now();
+    const sessionId = getOrCreateOnboardingSessionId();
+
+    try {
+      posthog.capture("onboarding_step_viewed", {
+        step_id: "paywall",
+        step_index: 6,
+        onboarding_session_id: sessionId,
+      });
+
+      posthog.capture("paywall_viewed", {
+        onboarding_session_id: sessionId,
+        default_tier: initialPlanRef.current,
+      });
+    } catch {}
+
+    const handleLeave = () => {
+      if (!hasCompletedPaywallRef.current) {
+        try {
+          posthog.capture("onboarding_step_abandoned", {
+            step_id: "paywall",
+            step_index: 6,
+            onboarding_session_id: sessionId,
+            time_on_step_ms: Date.now() - paywallEnteredAtRef.current,
+          });
+        } catch {}
+      }
+    };
+
+    window.addEventListener("pagehide", handleLeave);
+    return () => window.removeEventListener("pagehide", handleLeave);
+  }, []);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState("");
@@ -179,6 +224,10 @@ export default function Paywall() {
       if (!isMounted.current) return;
 
       if (!result.valid) {
+        trackOnboardingFriction("paywall", "form_error", {
+          field_name: "coupon",
+          error_type: result.message ?? "invalid_coupon",
+        });
         setCouponError(result.message ?? "This coupon is not valid.");
         return;
       }
@@ -187,6 +236,11 @@ export default function Paywall() {
       setAppliedCoupon(result.coupon);
     } catch (err) {
       console.error("[Paywall] Coupon validation error:", err);
+
+      trackOnboardingFriction("paywall", "form_error", {
+        field_name: "coupon",
+        error_type: "validation_exception",
+      });
 
       if (isMounted.current) {
         setCouponError("Could not validate the coupon. Please try again.");
@@ -205,6 +259,40 @@ export default function Paywall() {
     setIsPremiumLoading(true);
     setStatusVariant("idle");
     setStatusMessage(null);
+
+    paymentAttemptCountRef.current += 1;
+    paymentEnteredAtRef.current = Date.now();
+    const sessionId = getOrCreateOnboardingSessionId();
+
+    if (paymentAttemptCountRef.current > 1) {
+      trackOnboardingFriction("payment", "payment_retry", {
+        attempt_count: paymentAttemptCountRef.current,
+      });
+    }
+
+    try {
+      hasCompletedPaywallRef.current = true;
+      posthog.capture("onboarding_step_completed", {
+        step_id: "paywall",
+        step_index: 6,
+        onboarding_session_id: sessionId,
+        time_on_step_ms: Date.now() - paywallEnteredAtRef.current,
+      });
+
+      posthog.capture("onboarding_step_viewed", {
+        step_id: "payment",
+        step_index: 7,
+        onboarding_session_id: sessionId,
+        tier: selectedPlan,
+      });
+
+      posthog.capture("payment_attempted", {
+        onboarding_session_id: sessionId,
+        tier: selectedPlan,
+        attempt_count: paymentAttemptCountRef.current,
+        has_coupon: !!appliedCoupon,
+      });
+    } catch {}
 
     try {
       // 1. Get a fresh token.
@@ -278,6 +366,26 @@ export default function Paywall() {
             if (!isMounted.current) return;
 
             if (verifyRes.success) {
+              try {
+                posthog.capture("payment_succeeded", {
+                  onboarding_session_id: sessionId,
+                  tier: selectedPlan,
+                  payment_id: razorpayPaymentId,
+                  subscription_id: rzpSubId,
+                });
+
+                posthog.capture("onboarding_step_completed", {
+                  step_id: "payment",
+                  step_index: 7,
+                  onboarding_session_id: sessionId,
+                  time_on_step_ms: paymentEnteredAtRef.current
+                    ? Date.now() - paymentEnteredAtRef.current
+                    : 0,
+                });
+
+                posthog.people.set({ pricing_tier: selectedPlan });
+              } catch {}
+
               setStatusVariant("success");
               setStatusMessage(
                 "Payment confirmed. Preparing your Premium access…",
@@ -316,6 +424,14 @@ export default function Paywall() {
               );
               setIsPremiumLoading(false);
             } else {
+              try {
+                posthog.capture("payment_failed", {
+                  onboarding_session_id: sessionId,
+                  tier: selectedPlan,
+                  failure_reason: verifyRes.message ?? "Payment verification failed",
+                });
+              } catch {}
+
               setStatusVariant("error");
               setStatusMessage(
                 verifyRes.message ??
@@ -325,6 +441,21 @@ export default function Paywall() {
             }
           } catch (err) {
             console.error("[Paywall] Verification error:", err);
+
+            try {
+              posthog.capture("payment_failed", {
+                onboarding_session_id: sessionId,
+                tier: selectedPlan,
+                failure_reason: err.message ?? "Verification exception",
+              });
+
+              posthog.captureException(err, {
+                step_id: "payment",
+                onboarding_session_id: sessionId,
+                api_endpoint: "/api/v2/payment/verify",
+              });
+            } catch {}
+
             if (isMounted.current) {
               setStatusVariant("error");
               setStatusMessage(
@@ -337,6 +468,14 @@ export default function Paywall() {
 
         onDismiss: () => {
           // User closed the modal without paying. Neutral — not an error.
+          try {
+            posthog.capture("payment_failed", {
+              onboarding_session_id: sessionId,
+              tier: selectedPlan,
+              failure_reason: "user_dismissed",
+            });
+          } catch {}
+
           if (!isMounted.current) return;
           setStatusVariant("dismissed");
           setStatusMessage(null);
@@ -345,6 +484,15 @@ export default function Paywall() {
       });
     } catch (err) {
       console.error("[Paywall] Premium checkout error:", err);
+
+      try {
+        posthog.capture("payment_failed", {
+          onboarding_session_id: sessionId,
+          tier: selectedPlan,
+          failure_reason: err.message ?? "checkout_initialization_error",
+        });
+      } catch {}
+
       if (isMounted.current) {
         setStatusVariant("error");
         setStatusMessage(
@@ -364,6 +512,17 @@ export default function Paywall() {
     setIsSkipping(true);
     setStatusVariant("idle");
     setStatusMessage(null);
+
+    hasCompletedPaywallRef.current = true;
+    try {
+      posthog.capture("onboarding_step_completed", {
+        step_id: "paywall",
+        step_index: 6,
+        onboarding_session_id: getOrCreateOnboardingSessionId(),
+        time_on_step_ms: Date.now() - paywallEnteredAtRef.current,
+        skipped: true,
+      });
+    } catch {}
 
     try {
       const idToken = await user.getIdToken();
@@ -477,6 +636,12 @@ export default function Paywall() {
                 setSelectedPlan(plan);
                 setAppliedCoupon(null);
                 setCouponError(null);
+                try {
+                  posthog.capture("pricing_tier_selected", {
+                    onboarding_session_id: getOrCreateOnboardingSessionId(),
+                    tier: plan,
+                  });
+                } catch {}
               }}
               onContinue={handlePremium}
               disabled={isPremiumLoading || isSkipping}

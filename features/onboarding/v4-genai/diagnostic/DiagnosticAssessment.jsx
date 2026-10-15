@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ONBOARDING_STEP_ROUTES } from "./constants/routes";
+import posthog from "posthog-js";
+import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
+import { trackOnboardingFriction } from "@/lib/analytics/friction";
 
 import { useAuth } from "@/features/context/AuthContext";
 import {
@@ -125,7 +128,87 @@ export default function DiagnosticAssessment({
 
   const currentValue = answers[activeQuestionId];
 
+  // ── PostHog Step & Friction Tracking ─────────────────────────────────────
+  const stepEnteredAtRef = useRef(Date.now());
+  const pauseTimerRef = useRef(null);
+  const hasCompletedStepRef = useRef(false);
+
+  const currentQIndex = resolvedRoute.indexOf(activeQuestionId) >= 0
+    ? resolvedRoute.indexOf(activeQuestionId)
+    : 0;
+  const currentStepId = `diagnostic_skill_check_${currentQIndex}`;
+
+  // Track diagnostic_intro on initial assessment mount
+  useEffect(() => {
+    try {
+      const sessionId = getOrCreateOnboardingSessionId();
+      posthog.capture("onboarding_step_viewed", {
+        step_id: "diagnostic_intro",
+        step_index: 2,
+        onboarding_session_id: sessionId,
+      });
+      posthog.capture("onboarding_step_completed", {
+        step_id: "diagnostic_intro",
+        step_index: 2,
+        onboarding_session_id: sessionId,
+      });
+    } catch {}
+  }, []);
+
+  // Track each question step view, abandonment, and 15s pause friction
+  useEffect(() => {
+    stepEnteredAtRef.current = Date.now();
+    hasCompletedStepRef.current = false;
+    const sessionId = getOrCreateOnboardingSessionId();
+
+    try {
+      posthog.capture("onboarding_step_viewed", {
+        step_id: currentStepId,
+        step_index: currentQIndex,
+        onboarding_session_id: sessionId,
+        question_id: activeQuestionId,
+      });
+    } catch {}
+
+    // Flag long pause if user has no interaction for >15s on a question
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      trackOnboardingFriction(currentStepId, "long_pause", {
+        pause_ms: 15000,
+        question_id: activeQuestionId,
+      });
+    }, 15000);
+
+    const handleLeave = () => {
+      if (!hasCompletedStepRef.current) {
+        try {
+          posthog.capture("onboarding_step_abandoned", {
+            step_id: currentStepId,
+            step_index: currentQIndex,
+            onboarding_session_id: sessionId,
+            time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+            question_id: activeQuestionId,
+          });
+        } catch {}
+      }
+    };
+
+    window.addEventListener("pagehide", handleLeave);
+    return () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      window.removeEventListener("pagehide", handleLeave);
+    };
+  }, [currentStepId, currentQIndex, activeQuestionId]);
+
   const handleAnswerChange = (value) => {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+
+    if (currentValue !== null && currentValue !== undefined && currentValue !== value) {
+      trackOnboardingFriction(currentStepId, "retry", {
+        question_id: activeQuestionId,
+      });
+    }
+
     const nextAnswers = {
       ...answers,
       [activeQuestionId]: value,
@@ -147,6 +230,16 @@ export default function DiagnosticAssessment({
   };
 
   const handleBack = () => {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+
+    if (visitedQuestionIds.length > 1) {
+      const prevQuestionId = visitedQuestionIds[visitedQuestionIds.length - 2];
+      trackOnboardingFriction(currentStepId, "back_navigation", {
+        from_step: activeQuestionId,
+        to_step: prevQuestionId,
+      });
+    }
+
     setVisitedQuestionIds((previousHistory) => {
       if (previousHistory.length <= 1) {
         return previousHistory;
@@ -174,6 +267,18 @@ export default function DiagnosticAssessment({
     if (currentIndex >= latestResolvedRoute.length - 1) {
       return false;
     }
+
+    // Step completed tracking
+    hasCompletedStepRef.current = true;
+    try {
+      posthog.capture("onboarding_step_completed", {
+        step_id: currentStepId,
+        step_index: currentQIndex,
+        onboarding_session_id: getOrCreateOnboardingSessionId(),
+        time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+        question_id: activeQuestionId,
+      });
+    } catch {}
 
     const nextQuestionId =
       latestResolvedRoute[currentIndex + 1];
@@ -257,6 +362,17 @@ export default function DiagnosticAssessment({
     setError("");
 
     try {
+      hasCompletedStepRef.current = true;
+      try {
+        posthog.capture("onboarding_step_completed", {
+          step_id: currentStepId,
+          step_index: currentQIndex,
+          onboarding_session_id: getOrCreateOnboardingSessionId(),
+          time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+          question_id: activeQuestionId,
+        });
+      } catch {}
+
       const payload = buildDiagnosticPayload(answers);
 
       if (!user) {
@@ -294,6 +410,14 @@ export default function DiagnosticAssessment({
         "Diagnostic submission error:",
         error,
       );
+
+      try {
+        posthog.captureException(error, {
+          step_id: currentStepId,
+          onboarding_session_id: getOrCreateOnboardingSessionId(),
+          api_endpoint: "/api/v2/onboarding/diagnostic",
+        });
+      } catch {}
 
       setError(
         error instanceof Error
