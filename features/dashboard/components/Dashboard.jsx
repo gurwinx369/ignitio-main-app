@@ -36,12 +36,18 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 
-// Sequential unlock order — git-github is always first.
+// Foundational roadmaps — peer entry tracks that do not lock each other
+const FOUNDATIONAL_ROADMAPS = new Set([
+  "python-beginner",
+  "git-github",
+]);
+
+// Sequential unlock order for catalog/legacy fallback.
 // Each roadmap unlocks only when the previous one is 100% done.
 const UNLOCK_ORDER = [
+  "python-beginner",
   "git-github",
   "cpp",
-  "python-beginner",
   "c-language-course",
   "system-design-fundamentals",
   // prompt-engineering and DSA are always unlocked (role-specific, supplemental)
@@ -386,13 +392,22 @@ export default function Dashboard() {
     const lockedIds = new Set();
     if (process.env.NODE_ENV !== "development") {
       for (let i = 1; i < sequentialOrder.length; i++) {
+        const currentId = sequentialOrder[i];
+
+        // Foundational tracks (e.g. Python & Git/GitHub) are unlocked peer worlds
+        if (FOUNDATIONAL_ROADMAPS.has(currentId)) {
+          continue;
+        }
+
         const prevId = sequentialOrder[i - 1];
         const prevProgress = progressMap[prevId];
         const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
         if (!prevDone) {
-          // This roadmap and all subsequent ones are locked
+          // This roadmap and all subsequent non-foundational ones are locked
           for (let j = i; j < sequentialOrder.length; j++) {
-            lockedIds.add(sequentialOrder[j]);
+            if (!FOUNDATIONAL_ROADMAPS.has(sequentialOrder[j])) {
+              lockedIds.add(sequentialOrder[j]);
+            }
           }
           break;
         }
