@@ -51,6 +51,7 @@ function getAdditionalStages(goal, year) {
   const isEarlyYear = year === "1" || year === "2";
   const isLateYear  = year === "3" || year === "4";
 
+  if (goal === "dsa") return ["dsa"];
   if (isEarlyYear && goal === "project") return ["prompt"];
   if (isLateYear && (goal === "internship" || goal === "job")) return ["prompt", "system_design"];
   return [];
@@ -129,7 +130,17 @@ export default function FreeOnboarding() {
       if (saved.year) setYear(saved.year);
       if (saved.diagnosticResults)
         setDiagnosticResults(saved.diagnosticResults);
-      if (saved.roadmap) setRoadmap(saved.roadmap);
+      if (saved.roadmap) {
+        const isDsaGoal = saved.goal === "dsa";
+        const hasDsa = saved.roadmap.includes("dsa");
+        let roadmapAdjusted = saved.roadmap;
+        if (isDsaGoal && !hasDsa) {
+          roadmapAdjusted = [...saved.roadmap, "dsa"];
+        } else if (!isDsaGoal && hasDsa) {
+          roadmapAdjusted = saved.roadmap.filter((s) => s !== "dsa");
+        }
+        setRoadmap(roadmapAdjusted);
+      }
       if (saved.path) setPath(saved.path);
     }, 0);
   }, [user, router]);
@@ -180,9 +191,13 @@ export default function FreeOnboarding() {
   }, []);
 
   const handleKnowledgeCheckBeginner = useCallback(() => {
-    // Path B — assign all 4 skills, no diagnostic
+    // Path B — assign skills, no diagnostic
     setPath("B");
-    const fullRoadmap = [...SKILL_ORDER, ...getAdditionalStages(goal, year)];
+    const additional = getAdditionalStages(goal, year).filter((s) => s !== "dsa");
+    const fullRoadmap =
+      goal === "dsa"
+        ? [...SKILL_ORDER, "dsa", ...additional]
+        : [...SKILL_ORDER, ...additional];
     setRoadmap(fullRoadmap);
     setDiagnosticResults(null);
     setScreen(SCREENS.ROADMAP_RESULT);
@@ -204,7 +219,14 @@ export default function FreeOnboarding() {
 
     setPath("C");
     setDiagnosticResults(results);
-    setRoadmap([...baseRoadmap, ...getAdditionalStages(goal, year)]);
+    const additional = getAdditionalStages(goal, year).filter((s) => s !== "dsa");
+    const combined =
+      goal === "dsa"
+        ? (baseRoadmap.includes("dsa")
+            ? [...baseRoadmap, ...additional]
+            : [...baseRoadmap, "dsa", ...additional])
+        : [...baseRoadmap.filter((s) => s !== "dsa"), ...additional];
+    setRoadmap(combined);
     setScreen(SCREENS.REVEAL);
   }, [goal, year]);
 
@@ -214,18 +236,20 @@ export default function FreeOnboarding() {
 
 
 
-  // ponytail: same map as streak/page.js — 2 skills, inline is fine
+  // ponytail: same map as streak/page.js — skills routing
   const LESSON_ROUTES = {
     git: '/home/roadmaps/git-github/interactive-overviews/first-overview',
     python: '/home/roadmaps/python-beginner',
+    dsa: '/home/roadmaps/dsa',
   }
 
-  // ponytail: skill → roadmap route ID mapping, kept inline (only 4 skills)
+  // ponytail: skill → roadmap route ID mapping
   const SKILL_TO_ROADMAP_ID = {
     git: "git-github",
     python: "python-beginner",
     prompt: "prompt-engineering",
     system_design: "system-design-fundamentals",
+    dsa: "dsa",
   };
 
   const handleRoadmapResultContinue = useCallback(async () => {
@@ -369,6 +393,7 @@ export default function FreeOnboarding() {
       <MonthRoadmapResult
         roadmap={roadmap}
         path={path}
+        goal={goal}
         onContinue={handleRoadmapResultContinue}
         onBack={() => setScreen(path === "C" ? SCREENS.REVEAL : SCREENS.KNOWLEDGE_CHECK)}
       />

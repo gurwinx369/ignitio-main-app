@@ -6,8 +6,7 @@ import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
 import CppCourseCard from "@/components/ui/courseCards/cpp-course-card";
 import PromptEngineeringCourseCard from "@/components/ui/courseCards/prompt-engineering-course-card";
-// DSA disabled — not available yet. Re-enable when DSA paid course is ready.
-// import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
+import DsaCourseCard from "@/components/ui/courseCards/dsa-course-card";
 import SystemDesignCourseCard from "@/components/ui/courseCards/system-design-course-card";
 import PythonCourseCard from "@/components/ui/courseCards/python-course-card";
 import CCourseCard from "@/components/ui/courseCards/c-course-card";
@@ -20,7 +19,7 @@ import {
 } from "@/data/promptEngineering";
 import { gitGithubRoadmapData } from "@/data/gitGithubCourseData";
 import { cppRoadmapData } from "@/data/cppCourseData";
-// import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
+import { getDsaRoadmapByRole, isDsaAllowedRole } from "@/data/dsa";
 import { systemDesignRoadmapData } from "@/data/systemDesignData";
 import { pythonBeginnerRoadmapData } from "@/data/pythonBeginnerRoadmapData";
 import { clangBeginnerRoadmapData } from "@/data/clangBeginnerRoadmap";
@@ -36,12 +35,22 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 
-// Sequential unlock order — git-github is always first.
+// Foundational roadmaps — peer entry tracks that do not lock each other
+const FOUNDATIONAL_ROADMAPS = new Set([
+  "python-beginner",
+  "git-github",
+  "dsa",
+  "dsa-student",
+  "dsa-developer",
+  "dsa-other",
+]);
+
+// Sequential unlock order for catalog/legacy fallback.
 // Each roadmap unlocks only when the previous one is 100% done.
 const UNLOCK_ORDER = [
+  "python-beginner",
   "git-github",
   "cpp",
-  "python-beginner",
   "c-language-course",
   "system-design-fundamentals",
   // prompt-engineering and DSA are always unlocked (role-specific, supplemental)
@@ -56,6 +65,7 @@ export default function Dashboard() {
     SystemDesign: "/home/roadmaps/system-design-fundamentals",
     Python: "/home/roadmaps/python-beginner",
     CLang: "/home/roadmaps/c-beginner",
+    DSA: "/home/roadmaps/dsa",
   };
   const pathname = usePathname();
   const searchParams =
@@ -99,7 +109,7 @@ export default function Dashboard() {
     genericPromptEngineeringRoadmapData,
   );
   const [userRole, setUserRole] = useState("other");
-  // const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
+  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
 
   const fetcher = async (url) => {
     if (!user) return null;
@@ -151,6 +161,7 @@ export default function Dashboard() {
         const candidates = [
           pythonBeginnerRoadmapData,
           gitGithubRoadmapData,
+          selectedDsaRoadmap,
           selectedPromptRoadmap,
           cppRoadmapData,
           systemDesignRoadmapData,
@@ -208,7 +219,7 @@ export default function Dashboard() {
     };
 
     reconcileStreak();
-  }, [user, profileData, userRole, selectedPromptRoadmap, mutateProfile]);
+  }, [user, profileData, userRole, selectedPromptRoadmap, selectedDsaRoadmap, mutateProfile]);
 
   // We store the full list of parsed roadmaps so we can feed them to Carousel
   const [allRoadmaps, setAllRoadmaps] = useState([]);
@@ -218,7 +229,7 @@ export default function Dashboard() {
     const role = userProfile.role || "other";
     setUserRole(role);
     setSelectedPromptRoadmap(getPromptEngineeringRoadmapByRole(role));
-    // setSelectedDsaRoadmap(getDsaRoadmapByRole(role)); // DSA disabled
+    setSelectedDsaRoadmap(getDsaRoadmapByRole(role));
   }, [userProfile]);
 
   useEffect(() => {
@@ -250,16 +261,15 @@ export default function Dashboard() {
       },
     ];
 
-    // DSA disabled — not available yet.
-    // if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
-    //   roadmapsData.splice(1, 0, {
-    //     id: selectedDsaRoadmap.id,
-    //     title: selectedDsaRoadmap.title,
-    //     route: "/home/roadmaps/dsa",
-    //     totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
-    //     legacySections: [],
-    //   });
-    // }
+    if (selectedDsaRoadmap && isDsaAllowedRole(userRole)) {
+      roadmapsData.splice(1, 0, {
+        id: selectedDsaRoadmap.id,
+        title: selectedDsaRoadmap.title,
+        route: redirects.DSA,
+        totalLevels: selectedDsaRoadmap.days.flatMap((day) => day.levels).length,
+        legacySections: [],
+      });
+    }
 
     roadmapsData.push({
       id: systemDesignRoadmapData.id,
@@ -309,6 +319,7 @@ export default function Dashboard() {
               python: "python-beginner",
               prompt: "prompt-engineering",
               system_design: "system-design-fundamentals",
+              dsa: "dsa",
             };
             const mapped = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
             if (mapped.length > 0) assignedIds = mapped;
@@ -319,17 +330,28 @@ export default function Dashboard() {
 
     // If assignedIds exists, only include roadmaps assigned to the user in that order.
     // Otherwise fallback to UNLOCK_ORDER (for legacy users).
-    const filteredRoadmapsData = assignedIds
+    const baseFiltered = assignedIds
       ? assignedIds
           .map((id) =>
             roadmapsData.find(
               (r) =>
                 r.id === id ||
-                (id === "prompt-engineering" && r.route === redirects.PromptEngineering),
+                (id === "prompt-engineering" && r.route === redirects.PromptEngineering) ||
+                (id === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))),
             ),
           )
           .filter(Boolean)
-      : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id));
+      : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id) || r.id.startsWith("dsa"));
+
+    const filteredRoadmapsData = [...baseFiltered];
+    if (
+      selectedDsaRoadmap &&
+      isDsaAllowedRole(userRole) &&
+      !filteredRoadmapsData.some((r) => r.id === selectedDsaRoadmap.id)
+    ) {
+      const dsaEntry = roadmapsData.find((r) => r.id === selectedDsaRoadmap.id);
+      if (dsaEntry) filteredRoadmapsData.push(dsaEntry);
+    }
 
     const progressMap = {};
 
@@ -386,13 +408,22 @@ export default function Dashboard() {
     const lockedIds = new Set();
     if (process.env.NODE_ENV !== "development") {
       for (let i = 1; i < sequentialOrder.length; i++) {
+        const currentId = sequentialOrder[i];
+
+        // Foundational tracks (e.g. Python & Git/GitHub) are unlocked peer worlds
+        if (FOUNDATIONAL_ROADMAPS.has(currentId)) {
+          continue;
+        }
+
         const prevId = sequentialOrder[i - 1];
         const prevProgress = progressMap[prevId];
         const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
         if (!prevDone) {
-          // This roadmap and all subsequent ones are locked
+          // This roadmap and all subsequent non-foundational ones are locked
           for (let j = i; j < sequentialOrder.length; j++) {
-            lockedIds.add(sequentialOrder[j]);
+            if (!FOUNDATIONAL_ROADMAPS.has(sequentialOrder[j])) {
+              lockedIds.add(sequentialOrder[j]);
+            }
           }
           break;
         }
@@ -424,7 +455,7 @@ export default function Dashboard() {
     setActiveRoadmap(activeRoadmapToSet);
     setAllRoadmaps(filteredRoadmapsData);
     setLockedRoadmapIds(lockedIds);
-  }, [selectedPromptRoadmap, userRole]); // selectedDsaRoadmap removed (DSA disabled)
+  }, [selectedPromptRoadmap, userRole, selectedDsaRoadmap]);
 
   const handleRedirect = (route) => {
     if (isNavigating) return;
@@ -436,7 +467,7 @@ export default function Dashboard() {
   const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub);
   const handleRedirectCPP = () => handleRedirect(redirects.CPP);
   const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
-  // const handleRedirectDsa = () => handleRedirect("/home/roadmaps/dsa"); // DSA disabled
+  const handleRedirectDsa = () => handleRedirect(redirects.DSA);
   const handleRedirectSystemDesign = () =>
     handleRedirect(redirects.SystemDesign);
 
@@ -514,20 +545,19 @@ export default function Dashboard() {
     )
   });
 
-  // DSA disabled — not available yet. Re-enable when DSA paid course is ready.
-  // if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
-  //   carouselRoadmaps.push({
-  //     id: selectedDsaRoadmap.id,
-  //     component: (
-  //       <DsaCourseCard
-  //         onClick={handleRedirectDsa}
-  //         levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
-  //         totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
-  //         roadmapData={selectedDsaRoadmap}
-  //       />
-  //     )
-  //   });
-  // }
+  if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
+    carouselRoadmaps.push({
+      id: selectedDsaRoadmap.id,
+      component: (
+        <DsaCourseCard
+          onClick={handleRedirectDsa}
+          levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+          totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
+          roadmapData={selectedDsaRoadmap}
+        />
+      )
+    });
+  }
 
   // CPP
   carouselRoadmaps.push({

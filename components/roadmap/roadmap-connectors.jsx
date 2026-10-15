@@ -11,27 +11,32 @@ import { delay } from "@/lib/onboarding/reveal-utils";
 
 const RADIUS = 22;
 
-const links = STAGES.slice(0, -1).map((stage, i) => {
-  const next = STAGES[i + 1];
-  const x1 = stageX(i) + CARD_W;
-  const y1 = cardTop(i) + ANCHOR_Y;
-  const x2 = stageX(i + 1);
-  const y2 = cardTop(i + 1) + ANCHOR_Y;
-  const xm = (x1 + x2) / 2;
-  const ym = (y1 + y2) / 2;
-  const d = `M${x1} ${y1} H${xm - RADIUS} Q${xm} ${y1} ${xm} ${y1 + RADIUS} V${y2 - RADIUS} Q${xm} ${y2} ${xm + RADIUS} ${y2} H${x2}`;
-  return { id: stage.id, from: stage, to: next, x1, y1, x2, y2, xm, ym, d };
-});
+export function RoadmapConnectors({
+  linked,
+  stages = STAGES,
+  trackWidth = TRACK_WIDTH,
+  trackHeight = TRACK_HEIGHT,
+}) {
+  const links = stages.slice(0, -1).map((stage, i) => {
+    const next = stages[i + 1];
+    const x1 = stageX(i) + CARD_W;
+    const y1 = cardTop(i) + ANCHOR_Y;
+    const x2 = stageX(i + 1);
+    const y2 = cardTop(i + 1) + ANCHOR_Y;
+    const xm = (x1 + x2) / 2;
+    const ym = (y1 + y2) / 2;
+    const d = `M${x1} ${y1} H${xm - RADIUS} Q${xm} ${y1} ${xm} ${y1 + RADIUS} V${y2 - RADIUS} Q${xm} ${y2} ${xm + RADIUS} ${y2} H${x2}`;
+    return { id: `${stage.id}-${next.id}`, from: stage, to: next, x1, y1, x2, y2, xm, ym, d };
+  });
 
-export function RoadmapConnectors({ linked }) {
   return (
     <>
       <svg
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0"
-        width={TRACK_WIDTH}
-        height={TRACK_HEIGHT}
-        viewBox={`0 0 ${TRACK_WIDTH} ${TRACK_HEIGHT}`}
+        width={trackWidth}
+        height={trackHeight}
+        viewBox={`0 0 ${trackWidth} ${trackHeight}`}
         fill="none"
       >
         <defs>
@@ -58,8 +63,8 @@ export function RoadmapConnectors({ linked }) {
               maskUnits="userSpaceOnUse"
               x="0"
               y="0"
-              width={TRACK_WIDTH}
-              height={TRACK_HEIGHT}
+              width={trackWidth}
+              height={trackHeight}
             >
               <path
                 d={link.d}

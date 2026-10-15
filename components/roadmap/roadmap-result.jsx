@@ -63,7 +63,7 @@ function KiboHeaderAvatar({ size = 72, className = "", eyeTracking = true }) {
 }
 
 // ponytail: duration rules for stages to compute dynamic weeks
-const STAGE_WEEKS = { git: 1, python: 2, ship: 1, prompt: 1, system_design: 1 };
+const STAGE_WEEKS = { git: 1, python: 2, dsa: 2, ship: 1, prompt: 1, system_design: 1 };
 
 export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
   // ponytail: compute active stages and dynamic labels inline instead of complex state
@@ -520,7 +520,12 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
             className="relative list-none"
             style={{ width: trackWidth, height: trackHeight }}
           >
-            <RoadmapConnectors linked={linked} />
+            <RoadmapConnectors
+              linked={linked}
+              stages={dynamicStages}
+              trackWidth={trackWidth}
+              trackHeight={trackHeight}
+            />
             {dynamicStages.map((stage, i) => (
               <li
                 key={stage.id}
