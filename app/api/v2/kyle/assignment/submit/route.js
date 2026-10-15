@@ -156,7 +156,7 @@ export async function POST(request) {
         validated.error.issues
       );
       return NextResponse.json(
-        { error: "Kyle AI returned an invalid assignment score" },
+        { error: "Kibo returned an invalid assignment score" },
         { status: 502 }
       );
     }

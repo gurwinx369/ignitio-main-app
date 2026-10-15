@@ -94,7 +94,7 @@ export async function POST(request) {
       "[POST /api/v2/kyle/quiz/generate] Invalid FastAPI response shape:",
       validated.error.issues
     );
-    return NextResponse.json({ error: "Kyle AI returned an invalid quiz" }, { status: 502 });
+    return NextResponse.json({ error: "Kibo returned an invalid quiz" }, { status: 502 });
   }
 
   // 6. Translate snake_case → camelCase and return the existing browser contract.
