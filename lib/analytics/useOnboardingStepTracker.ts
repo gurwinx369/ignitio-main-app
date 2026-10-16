@@ -25,26 +25,41 @@ export function useOnboardingStepTracker({
 }: UseOnboardingStepTrackerOptions) {
   const stepEnteredAtRef = useRef<number>(0);
   const completedRef = useRef<boolean>(false);
+  // Guards against React StrictMode double-mount and parent re-renders
+  // firing onboarding_step_viewed more than once for the same step.
+  const hasFiredViewedRef = useRef<boolean>(false);
+  const lastTrackedStepId = useRef<string>('');
   const resolvedIndex = stepIndex ?? getStepIndex(stepId);
   const serializedExtraProps = useMemo(() => JSON.stringify(extraProps), [extraProps]);
 
   useEffect(() => {
     if (!enabled || !stepId) return;
 
-    stepEnteredAtRef.current = Date.now();
-    completedRef.current = false;
     const sessionId = getOrCreateOnboardingSessionId();
     const props = JSON.parse(serializedExtraProps);
 
-    try {
-      posthog.capture('onboarding_step_viewed', {
-        step_id: stepId,
-        step_index: resolvedIndex,
-        onboarding_session_id: sessionId,
-        ...props,
-      });
-    } catch (e) {
-      console.warn('PostHog capture onboarding_step_viewed error:', e);
+    // Reset per-step state when navigating to a genuinely new step.
+    if (lastTrackedStepId.current !== stepId) {
+      lastTrackedStepId.current = stepId;
+      hasFiredViewedRef.current = false;
+      completedRef.current = false;
+    }
+
+    stepEnteredAtRef.current = Date.now();
+
+    // Only fire viewed once per step, even if the component re-mounts.
+    if (!hasFiredViewedRef.current) {
+      hasFiredViewedRef.current = true;
+      try {
+        posthog.capture('onboarding_step_viewed', {
+          step_id: stepId,
+          step_index: resolvedIndex,
+          onboarding_session_id: sessionId,
+          ...props,
+        });
+      } catch (e) {
+        console.warn('PostHog capture onboarding_step_viewed error:', e);
+      }
     }
 
     const handleLeave = () => {

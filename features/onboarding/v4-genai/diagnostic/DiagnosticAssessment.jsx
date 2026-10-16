@@ -138,23 +138,6 @@ export default function DiagnosticAssessment({
     : 0;
   const currentStepId = `diagnostic_skill_check_${currentQIndex}`;
 
-  // Track diagnostic_intro on initial assessment mount
-  useEffect(() => {
-    try {
-      const sessionId = getOrCreateOnboardingSessionId();
-      posthog.capture("onboarding_step_viewed", {
-        step_id: "diagnostic_intro",
-        step_index: 2,
-        onboarding_session_id: sessionId,
-      });
-      posthog.capture("onboarding_step_completed", {
-        step_id: "diagnostic_intro",
-        step_index: 2,
-        onboarding_session_id: sessionId,
-      });
-    } catch {}
-  }, []);
-
   // Track each question step view, abandonment, and 15s pause friction
   useEffect(() => {
     stepEnteredAtRef.current = Date.now();

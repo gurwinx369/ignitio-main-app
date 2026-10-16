@@ -428,7 +428,7 @@ export default function Paywall() {
                 posthog.capture("payment_failed", {
                   onboarding_session_id: sessionId,
                   tier: selectedPlan,
-                  failure_reason: verifyRes.message ?? "Payment verification failed",
+                  failure_reason: "verification_failed",
                 });
               } catch {}
 
@@ -446,7 +446,7 @@ export default function Paywall() {
               posthog.capture("payment_failed", {
                 onboarding_session_id: sessionId,
                 tier: selectedPlan,
-                failure_reason: err.message ?? "Verification exception",
+                failure_reason: "network_error",
               });
 
               posthog.captureException(err, {
@@ -467,12 +467,11 @@ export default function Paywall() {
         },
 
         onDismiss: () => {
-          // User closed the modal without paying. Neutral — not an error.
+          // User closed the modal intentionally — not a payment error.
           try {
-            posthog.capture("payment_failed", {
+            posthog.capture("checkout_abandoned", {
               onboarding_session_id: sessionId,
               tier: selectedPlan,
-              failure_reason: "user_dismissed",
             });
           } catch {}
 
@@ -489,7 +488,7 @@ export default function Paywall() {
         posthog.capture("payment_failed", {
           onboarding_session_id: sessionId,
           tier: selectedPlan,
-          failure_reason: err.message ?? "checkout_initialization_error",
+          failure_reason: "checkout_init_error",
         });
       } catch {}
 
@@ -515,12 +514,11 @@ export default function Paywall() {
 
     hasCompletedPaywallRef.current = true;
     try {
-      posthog.capture("onboarding_step_completed", {
-        step_id: "paywall",
-        step_index: 6,
+      // paywall_skipped is a distinct event from onboarding_step_completed so
+      // PostHog funnels can separate paying users from users who chose free tier.
+      posthog.capture("paywall_skipped", {
         onboarding_session_id: getOrCreateOnboardingSessionId(),
-        time_on_step_ms: Date.now() - paywallEnteredAtRef.current,
-        skipped: true,
+        time_on_paywall_ms: Date.now() - paywallEnteredAtRef.current,
       });
     } catch {}
 
