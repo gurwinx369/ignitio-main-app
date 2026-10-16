@@ -641,7 +641,13 @@ export default function RoadmapTemplate({
       });
 
       if (typeof window !== "undefined") {
+        // Write first-lesson flag BEFORE capturing so is_first_lesson is
+        // consistent if this block ever re-runs (e.g. hot-reload in dev).
         const isFirstLesson = localStorage.getItem("has_completed_first_lesson") !== "true";
+        if (isFirstLesson) {
+          localStorage.setItem("has_completed_first_lesson", "true");
+        }
+
         const sessionId = getOrCreateOnboardingSessionId();
         const timeToFirstLesson = getTimeSinceSignupMs();
 
@@ -655,12 +661,7 @@ export default function RoadmapTemplate({
           });
 
           if (isFirstLesson) {
-            posthog.capture("onboarding_step_viewed", {
-              step_id: "first_lesson_completed",
-              step_index: 10,
-              onboarding_session_id: sessionId,
-            });
-
+            // No onboarding_step_viewed here — completion IS the event.
             posthog.capture("onboarding_step_completed", {
               step_id: "first_lesson_completed",
               step_index: 10,
@@ -671,8 +672,6 @@ export default function RoadmapTemplate({
         } catch (err) {
           console.warn("PostHog lesson completion tracking error:", err);
         }
-
-        localStorage.setItem("has_completed_first_lesson", "true");
 
         window.dispatchEvent(
           new CustomEvent("lesson_completed", {
@@ -752,7 +751,13 @@ export default function RoadmapTemplate({
           }
 
           if (typeof window !== "undefined") {
+            // Write first-lesson flag BEFORE capturing so is_first_lesson is
+            // consistent if this block ever re-runs (e.g. hot-reload in dev).
             const isFirstLesson = localStorage.getItem("has_completed_first_lesson") !== "true";
+            if (isFirstLesson) {
+              localStorage.setItem("has_completed_first_lesson", "true");
+            }
+
             const sessionId = getOrCreateOnboardingSessionId();
             const timeToFirstLesson = getTimeSinceSignupMs();
 
@@ -766,12 +771,7 @@ export default function RoadmapTemplate({
               });
 
               if (isFirstLesson) {
-                posthog.capture("onboarding_step_viewed", {
-                  step_id: "first_lesson_completed",
-                  step_index: 10,
-                  onboarding_session_id: sessionId,
-                });
-
+                // No onboarding_step_viewed here — completion IS the event.
                 posthog.capture("onboarding_step_completed", {
                   step_id: "first_lesson_completed",
                   step_index: 10,
@@ -782,8 +782,6 @@ export default function RoadmapTemplate({
             } catch (err) {
               console.warn("PostHog lesson completion tracking error:", err);
             }
-
-            localStorage.setItem("has_completed_first_lesson", "true");
           }
 
           triggerCompletionToast();
