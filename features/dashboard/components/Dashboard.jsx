@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
@@ -129,6 +130,7 @@ export default function Dashboard() {
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
+
 
   // Self-heal streak on dashboard load if user completed lesson locally but server is out of sync
   const streakHealingAttemptedRef = useRef(false);
@@ -442,7 +444,11 @@ export default function Dashboard() {
       }
     }
 
-    if (lastActiveRoadmapId) {
+    const serverActiveSlug = profileData?.activeRoadmapSlug || profileData?.currentRoadmap;
+    if (serverActiveSlug) {
+      const foundServerActive = unlockedRoadmaps.find(r => r.id === serverActiveSlug);
+      if (foundServerActive) activeRoadmapToSet = foundServerActive;
+    } else if (lastActiveRoadmapId) {
       const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId);
       if (foundLastActive) activeRoadmapToSet = foundLastActive;
     }
@@ -455,27 +461,46 @@ export default function Dashboard() {
     setActiveRoadmap(activeRoadmapToSet);
     setAllRoadmaps(filteredRoadmapsData);
     setLockedRoadmapIds(lockedIds);
-  }, [selectedPromptRoadmap, userRole, selectedDsaRoadmap]);
+  }, [selectedPromptRoadmap, userRole, selectedDsaRoadmap, profileData?.activeRoadmapSlug, profileData?.currentRoadmap]);
 
-  const handleRedirect = (route) => {
+  const syncActiveRoadmapToServer = async (slug) => {
+    if (!user || !slug) return;
+    try {
+      const token = await user.getIdToken();
+      await fetch("/api/v2/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ activeRoadmapSlug: slug }),
+      });
+      if (mutateProfile) mutateProfile();
+    } catch (e) {
+      // Non-blocking background sync
+    }
+  };
+
+  const handleRedirect = (route, slug) => {
     if (isNavigating) return;
+    if (slug) {
+      localStorage.setItem("ignitio:last_active_roadmap", JSON.stringify({ id: slug }));
+      syncActiveRoadmapToServer(slug);
+    }
     setIsNavigating(true);
     router.push(route);
     setTimeout(() => setIsNavigating(false), 3000);
   };
 
-  const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub);
-  const handleRedirectCPP = () => handleRedirect(redirects.CPP);
-  const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering);
-  const handleRedirectDsa = () => handleRedirect(redirects.DSA);
+  const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub, "git-github");
+  const handleRedirectCPP = () => handleRedirect(redirects.CPP, "cpp");
+  const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering, selectedPromptRoadmap?.id || "prompt-engineering");
+  const handleRedirectDsa = () => handleRedirect(redirects.DSA, selectedDsaRoadmap?.id || "dsa");
   const handleRedirectSystemDesign = () =>
-    handleRedirect(redirects.SystemDesign);
+    handleRedirect(redirects.SystemDesign, systemDesignRoadmapData.id);
 
   const handleRedirectPython = () =>
-    handleRedirect(redirects.Python);
+    handleRedirect(redirects.Python, pythonBeginnerRoadmapData.id);
 
   const handleRedirectCLang = () =>
-    handleRedirect(redirects.CLang);
+    handleRedirect(redirects.CLang, clangBeginnerRoadmapData.id);
 
   const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
@@ -670,6 +695,7 @@ export default function Dashboard() {
                 user={user}
               />
 
+
               {/* Current roadmap — actual course card */}
               <div className="flex flex-col">
                 <div className="mb-2.5 flex items-center justify-between px-1">
@@ -801,6 +827,8 @@ export default function Dashboard() {
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+
     </div>
   );
 }

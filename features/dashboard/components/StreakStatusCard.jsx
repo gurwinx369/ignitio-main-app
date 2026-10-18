@@ -1,9 +1,14 @@
 import {
   Flame,
   Shield,
+  ArrowRight,
+  Clock,
+  Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -11,6 +16,7 @@ import {
 
 import Image from "next/image";
 import StreakCalendarModal from "./StreakCalendarModal";
+import { FreezeCeremonyModal } from "@/components/streak-freeze/freeze-ceremony-modal";
 
 /**
  * Derive a pure "weekly energy" score (0–7) from the streak week array.
@@ -143,6 +149,19 @@ export default function StreakStatusCard({
   ]);
 
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [freezeModalOpen, setFreezeModalOpen] = useState(false);
+  const [dockedPulse, setDockedPulse] = useState(false);
+  const [bonusBanked, setBonusBanked] = useState(0);
+
+  const displayFreezeBank = Math.min(2, (streak?.freezeBank || 0) + bonusBanked);
+
+  const handleFreezeBanked = useCallback(() => {
+    setDockedPulse(true);
+    setBonusBanked((prev) => prev + 1);
+    setTimeout(() => {
+      setDockedPulse(false);
+    }, 1400);
+  }, []);
 
   /*
    * Resolve the authoritative current streak month from the week array.
@@ -288,36 +307,50 @@ export default function StreakStatusCard({
           Your Streak
         </p>
 
-        <button
-          type="button"
-          onClick={() => setCalendarOpen(true)}
-          aria-label="View monthly streak calendar"
-          className="
-          group
-          flex
-          items-center
-          gap-1
-          rounded-full
-          border border-[#00A9FF]/20
-          bg-[#00A9FF]/[0.06]
-          px-2.5
-          py-0.5
-          text-[11px]
-          font-bold
-          text-[#00A9FF]
-          transition-all
-          duration-150
-          hover:bg-[#00A9FF]/[0.12]
-          hover:border-[#00A9FF]/35
-          active:scale-[0.98]
-          focus-visible:outline-none
-          focus-visible:ring-2
-          focus-visible:ring-[#00A9FF]
-        "
-        >
-          <span>Monthly Streak</span>
-          <span className="transition-transform group-hover:translate-x-0.5">→</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* TEST ANIMATION BUTTON */}
+          <button
+            type="button"
+            onClick={() => setFreezeModalOpen(true)}
+            title="Development Tool: Test Freeze Ceremony & Flight Animation"
+            className="group flex items-center gap-1.5 rounded-full border border-cyan-400/50 bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 px-2.5 sm:px-3 py-1 text-[11px] font-bold text-cyan-800 shadow-sm transition-all hover:scale-105 hover:border-cyan-500 hover:shadow-[0_0_12px_rgba(0,169,255,0.25)] active:scale-95"
+          >
+            <Sparkles className="h-3 w-3 text-cyan-600 animate-spin" />
+            <span className="hidden sm:inline">Test Freeze Animation</span>
+            <span className="sm:hidden">Test Freeze</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCalendarOpen(true)}
+            aria-label="View monthly streak calendar"
+            className="
+            group
+            flex
+            items-center
+            gap-1
+            rounded-full
+            border border-[#00A9FF]/20
+            bg-[#00A9FF]/[0.06]
+            px-2.5
+            py-1
+            text-[11px]
+            font-bold
+            text-[#00A9FF]
+            transition-all
+            duration-150
+            hover:bg-[#00A9FF]/[0.12]
+            hover:border-[#00A9FF]/35
+            active:scale-[0.98]
+            focus-visible:outline-none
+            focus-visible:ring-2
+            focus-visible:ring-[#00A9FF]
+          "
+          >
+            <span>Monthly Streak</span>
+            <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          </button>
+        </div>
       </div>
 
       {/* GLASSMORPHIC STREAK STRIP */}
@@ -352,190 +385,203 @@ export default function StreakStatusCard({
             blur-3xl
           "
         />
+
         <div
           className="
           flex
           flex-col
-          gap-3.5
-
-          sm:flex-row
-          sm:items-center
-          sm:gap-6
+          gap-4
+          sm:gap-5
         "
         >
-          {/* BIG CUP + SUMMARY */}
+          {/* TOP SUMMARY ROW: BIG CUP + STATS + FREEZE SHIELD DOCK */}
           <div
             className="
             flex
+            flex-wrap
             items-center
+            justify-between
             gap-3
-
-            shrink-0
-
-            sm:min-w-[220px]
+            w-full
           "
           >
-            <div
-              className="
-              relative
-              flex
-              w-[58px]
-              h-[70px]
-
-              sm:w-[68px]
-              sm:h-[82px]
-
-              items-end
-              justify-center
-              shrink-0
-            "
-              aria-label={`Weekly energy ${weeklyEnergy} of 7`}
-            >
-              {/* energy fill behind cup */}
+            <div className="flex items-center gap-3 sm:gap-4">
               <div
-                aria-hidden="true"
-                className="
-                absolute
-                bottom-[7px]
-                left-1/2
-                -translate-x-1/2
-
-                w-[28px]
-                h-[44px]
-
-                sm:w-[33px]
-                sm:h-[52px]
-
-                overflow-hidden
-                rounded-b-lg
-              "
-              >
-                <div
-                  className="
-                  absolute
-                  inset-x-0
-                  bottom-0
-
-                  rounded-b-lg
-                  bg-[#00A9FF]/30
-                  shadow-[0_0_12px_rgba(0,169,255,0.45)]
-
-                  transition-[height]
-                  duration-700
-                  ease-out
-                "
-                  style={{
-                    height: `${(weeklyEnergy / 7) * 100}%`,
-                  }}
-                />
-              </div>
-
-              <Image
-                src="/streak/big_cup_7_days.png"
-                alt=""
-                aria-hidden="true"
-                width={68}
-                height={82}
-                priority
                 className="
                 relative
-                z-10
-                w-full
-                h-full
-                object-contain
+                flex
+                w-[52px]
+                h-[64px]
+                sm:w-[62px]
+                sm:h-[76px]
+                items-end
+                justify-center
+                shrink-0
               "
-              />
-            </div>
-
-            {/* STREAK COPY */}
-            <div className="min-w-0">
-              {isLoadingProfile ? (
+                aria-label={`Weekly energy ${weeklyEnergy} of 7`}
+              >
+                {/* energy fill behind cup */}
                 <div
+                  aria-hidden="true"
                   className="
-                  mb-2
-                  h-5
-                  w-28
-                  animate-pulse
-                  rounded-full
-                  bg-[#F0CAA8]/55
-                "
-                />
-              ) : (
-                <div
-                  className="
-                  flex
-                  items-baseline
-                  gap-1.5
-                  whitespace-nowrap
+                  absolute
+                  bottom-[6px]
+                  left-1/2
+                  -translate-x-1/2
+                  w-[26px]
+                  h-[40px]
+                  sm:w-[30px]
+                  sm:h-[48px]
+                  overflow-hidden
+                  rounded-b-lg
                 "
                 >
-                  <span
-                    className={[
-                      "text-2xl",
-                      "sm:text-[28px]",
-                      "font-pixelify",
-                      "font-black",
-                      "leading-none",
-                      "text-[#19183B]",
-                      shouldPulse
-                        ? "animate-pulse"
-                        : "",
-                    ].join(" ")}
-                  >
-                    {currentCount}
-                  </span>
-
-                  <span
+                  <div
                     className="
-                    text-xs
-                    sm:text-sm
-                    font-bold
-                    text-[#19183B]/70
+                    absolute
+                    inset-x-0
+                    bottom-0
+                    rounded-b-lg
+                    bg-[#00A9FF]/30
+                    shadow-[0_0_12px_rgba(0,169,255,0.45)]
+                    transition-[height]
+                    duration-700
+                    ease-out
+                  "
+                    style={{
+                      height: `${(weeklyEnergy / 7) * 100}%`,
+                    }}
+                  />
+                </div>
+
+                <Image
+                  src="/streak/big_cup_7_days.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={68}
+                  height={82}
+                  priority
+                  className="
+                  relative
+                  z-10
+                  w-full
+                  h-full
+                  object-contain
+                "
+                />
+              </div>
+
+              {/* STREAK COPY */}
+              <div className="min-w-0">
+                {isLoadingProfile ? (
+                  <div
+                    className="
+                    mb-2
+                    h-5
+                    w-28
+                    animate-pulse
+                    rounded-full
+                    bg-[#F0CAA8]/55
+                  "
+                  />
+                ) : (
+                  <div
+                    className="
+                    flex
+                    items-baseline
+                    gap-1.5
+                    whitespace-nowrap
                   "
                   >
-                    day streak
-                  </span>
-                </div>
-              )}
-
-              <div
-                className="
-                mt-1.5
-                flex
-                flex-wrap
-                items-center
-                gap-x-1.5
-                gap-y-0.5
-
-                text-[11px]
-                sm:text-xs
-                font-semibold
-              "
-              >
-                <span className="text-[#19183B]/65">
-                  Energy{" "}
-                  <strong className="text-[#00A9FF]">
-                    {weeklyEnergy}/7
-                  </strong>
-                </span>
-
-                {longestCount > 0 && (
-                  <>
-                    <span className="text-[#19183B]/25">
-                      •
+                    <span
+                      className={[
+                        "text-2xl",
+                        "sm:text-[28px]",
+                        "font-pixelify",
+                        "font-black",
+                        "leading-none",
+                        "text-[#19183B]",
+                        shouldPulse ? "animate-pulse" : "",
+                      ].join(" ")}
+                    >
+                      {currentCount}
                     </span>
 
-                    <span className="text-[#19183B]/45">
-                      Best {longestCount}
+                    <span
+                      className="
+                      text-xs
+                      sm:text-sm
+                      font-bold
+                      text-[#19183B]/70
+                    "
+                    >
+                      day streak
                     </span>
-                  </>
+                  </div>
                 )}
+
+                <div
+                  className="
+                  mt-1
+                  flex
+                  flex-wrap
+                  items-center
+                  gap-x-2
+                  gap-y-0.5
+                  text-[11px]
+                  sm:text-xs
+                  font-semibold
+                "
+                >
+                  <span className="text-[#19183B]/65">
+                    Energy{" "}
+                    <strong className="text-[#00A9FF]">
+                      {weeklyEnergy}/7
+                    </strong>
+                  </span>
+
+                  {longestCount > 0 && (
+                    <>
+                      <span className="text-[#19183B]/25">•</span>
+                      <span className="text-[#19183B]/45">
+                        Best {longestCount}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* FREEZE SHIELD DOCKING TARGET */}
+            <div className="flex items-center">
+              <button
+                id="streak-freeze-bank-slot"
+                type="button"
+                onClick={() => setFreezeModalOpen(true)}
+                title="Click to open Streak Freeze Ceremony"
+                className={`group/freeze relative inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-tight transition-all duration-300 ${
+                  dockedPulse
+                    ? "scale-115 bg-[#00A9FF] text-white ring-4 ring-[#7FEFFF]/60 shadow-[0_0_18px_#7FEFFF]"
+                    : "bg-[#00A9FF]/10 text-cyan-800 hover:bg-[#00A9FF]/20 active:scale-95 border border-[#00A9FF]/30"
+                }`}
+              >
+                <Shield
+                  className={`h-3.5 w-3.5 transition-transform group-hover/freeze:rotate-12 ${
+                    dockedPulse ? "animate-bounce fill-white text-white" : "fill-[#00A9FF] text-[#0077B6]"
+                  }`}
+                />
+                <span>
+                  {displayFreezeBank} Freeze{displayFreezeBank === 1 ? "" : "s"}
+                </span>
+                <span className="rounded bg-[#00A9FF]/20 px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider text-[#0077B6]">
+                  Forge
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* WEEKLY CONNECTED CUP LINE */}
-          <div className="relative flex-1 min-w-0">
+          {/* WEEKLY CONNECTED CUP LINE (FULL WIDTH ACROSS ALL SCREENS) */}
+          <div className="relative w-full pt-1 sm:pt-2">
 
             {isLoadingProfile ? (
               <div className="relative grid grid-cols-7 gap-1 px-1 pt-1">
@@ -774,13 +820,11 @@ export default function StreakStatusCard({
                         <span
                           className={[
                             "mb-1.5",
-                            "max-w-full",
-                            "truncate",
-                            "text-[8px]",
-                            "sm:text-[10px]",
+                            "text-[9px]",
+                            "sm:text-[11px]",
                             "font-bold",
                             "leading-none",
-
+                            "whitespace-nowrap",
                             isToday
                               ? "text-[#00A9FF]"
                               : isBeforeStart
@@ -964,34 +1008,44 @@ export default function StreakStatusCard({
         </div>
       </div>
 
-      {/* EARN BACK */}
+      {/* EARN BACK RESCUE HERO CHALLENGE */}
       {earnBackMsg && (
-        <div
-          className="
-          flex
-          items-start
-          gap-2.5
+        <div className="relative overflow-hidden rounded-[20px] border border-amber-500/40 bg-gradient-to-r from-[#FFF5EA] via-[#FFF9F2] to-[#FFF0DE] p-4 sm:p-5 shadow-sm ring-1 ring-amber-500/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/25">
+                <Flame className="h-5 w-5 sm:h-6 sm:w-6 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-pixelify text-sm sm:text-base font-bold text-[#19183B] tracking-tight">
+                    STREAK RESCUE ACTIVE
+                  </h4>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                    <Clock className="h-3 w-3" />
+                    48h Window
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs sm:text-[13px] font-medium text-[#19183B]/80 leading-snug">
+                  {earnBackMsg}
+                </p>
+                {streak?.freezeBank > 0 && (
+                  <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-cyan-700">
+                    <Shield className="h-3 w-3" />
+                    {streak.freezeBank} Streak Freeze{streak.freezeBank > 1 ? "s" : ""} banked for future safety
+                  </p>
+                )}
+              </div>
+            </div>
 
-          rounded-[16px]
-
-          border
-          border-[#F2B47A]
-
-          bg-[#FFF2E5]
-
-          px-3.5
-          py-2.5
-
-          text-xs
-          sm:text-sm
-
-          font-semibold
-          text-[#9A4D17]
-        "
-        >
-          <Flame className="w-4 h-4 shrink-0 mt-0.5" />
-
-          <p>{earnBackMsg}</p>
+            <Link
+              href="/home"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] hover:shadow-orange-500/35 active:scale-[0.98]"
+            >
+              <span>Rescue Streak Now</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       )}
 
@@ -1018,6 +1072,14 @@ export default function StreakStatusCard({
           }
         />
       )}
+
+      {/* FREEZE CEREMONY MODAL */}
+      <FreezeCeremonyModal
+        isOpen={freezeModalOpen}
+        onClose={() => setFreezeModalOpen(false)}
+        onFreezeBanked={handleFreezeBanked}
+        targetSlotId="streak-freeze-bank-slot"
+      />
     </div>
   );
 }

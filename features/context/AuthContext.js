@@ -159,9 +159,18 @@ export const AuthProvider = ({ children }) => {
 
     const isProfileLoading = user && !userProfile && !profileError;
 
-    const signup = async (email, password) => {
-        try {
+    const normalizeTimingDelay = async (startTimeMs) => {
+        const elapsed = Date.now() - startTimeMs;
+        const target = 700 + Math.floor(Math.random() * 250); // 700ms - 950ms normalized timing window
+        const remaining = target - elapsed;
+        if (remaining > 0) {
+            await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
+    };
 
+    const signup = async (email, password) => {
+        const startAttemptTime = Date.now();
+        try {
             const result = await createUserWithEmailAndPassword(
                 auth,
                 email,
@@ -178,7 +187,7 @@ export const AuthProvider = ({ children }) => {
             if (error.code === "auth/email-already-in-use") {
                 try {
                     if (process.env.NODE_ENV === "development") {
-                        console.info("Signup: Email already in use, attempting login fallback...");
+                        console.info("Signup: Email already in use, attempting fallback login...");
                     }
                     const loginResult = await signInWithEmailAndPassword(auth, email, password);
                     if (process.env.NODE_ENV === "development") {
@@ -192,6 +201,8 @@ export const AuthProvider = ({ children }) => {
                     if (process.env.NODE_ENV === "development") {
                         console.error("Fallback login error:", loginError?.code, loginError?.message);
                     }
+                    // Anti-enumeration defense: Delay response and return generic message
+                    await normalizeTimingDelay(startAttemptTime);
                     return { success: false, error: "Check your email or password." };
                 }
             }
@@ -212,6 +223,7 @@ export const AuthProvider = ({ children }) => {
                 errorMessage = "Too many failed attempts. Please try again later";
             }
 
+            await normalizeTimingDelay(startAttemptTime);
             return { success: false, error: errorMessage };
         }
     };

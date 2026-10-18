@@ -132,7 +132,16 @@ export default function SignupForm() {
       setLoading(true);
       ensureUserProfile(user)
         .then((profile) => {
-          router.replace(getOnboardingRoute(profile));
+          const searchRedirect =
+            typeof window !== "undefined"
+              ? new URLSearchParams(window.location.search).get("redirect")
+              : null;
+
+          if (searchRedirect && searchRedirect.startsWith("/")) {
+            router.replace(searchRedirect);
+          } else {
+            router.replace(getOnboardingRoute(profile));
+          }
         })
         .catch(() => {
           // Profile provision failed — show error, do not navigate
@@ -167,76 +176,7 @@ export default function SignupForm() {
       const result = await signup(form.email, form.password);
 
       if (result.success) {
-        trackSignupConversion(result.user, "email");
-        try {
-          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
-          const idToken = await result.user.getIdToken();
-
-          // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
-          await syncOnboardingFromLocalStorage(idToken);
-
-          if (result.authMode === "new_signup") {
-            const isGenAiPreview =
-              typeof window !== "undefined" &&
-              new URLSearchParams(window.location.search).get("from") === "genai_preview";
-
-            const hasPreview =
-              typeof window !== "undefined" &&
-              !!localStorage.getItem("ignitio:preview_payload");
-
-            if (isGenAiPreview || hasPreview) {
-              router.replace(
-                isGenAiPreview
-                  ? "/onboarding/role-selection?from=genai_preview"
-                  : "/onboarding/role-selection?from=preview"
-              );
-              return;
-            }
-
-            try {
-              const derived = deriveScheduleFromBrowser();
-
-              const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({
-                  role: "student",
-                  schedule: {
-                    timezone: derived.timezone,
-                    windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
-                  },
-                }),
-              });
-
-              if (!scheduleRes.ok) throw new Error("schedule_failed");
-
-              const activateRes = await fetch("/api/v2/onboarding/activate", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${idToken}` },
-              });
-
-              if (!activateRes.ok) throw new Error('activate_failed');
-
-              window.location.href =
-                localStorage.getItem('ignitio:streak_phase') === 'anticipated'
-                  ? '/onboarding/streak'
-                  : '/home';
-            } catch {
-              setActivationError(true);
-
-              setLoading(false);
-            }
-          } else {
-            router.replace(getOnboardingRoute(profile));
-          }
-        } catch (err) {
-          isHandlingAuthActionRef.current = false;
-          setError(err.message || "Failed to provision user profile");
-          setLoading(false);
-        }
+        await executeOnboardingBootstrap(result, "email");
       } else {
         isHandlingAuthActionRef.current = false;
         setError(result.error || "Check your email or password.");
@@ -244,7 +184,130 @@ export default function SignupForm() {
       }
     } catch {
       isHandlingAuthActionRef.current = false;
-      setError("Something went wrong. Please try again.");
+      setError("Check your email or password.");
+      setLoading(false);
+    }
+  };
+
+  const executeOnboardingBootstrap = async (result, method) => {
+    trackSignupConversion(result.user, method);
+
+    try {
+      const idToken = await result.user.getIdToken();
+
+      // Check for preview/diagnostic redirect
+      const isGenAiPreview =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("from") === "genai_preview";
+
+      const hasPreview =
+        typeof window !== "undefined" &&
+        !!localStorage.getItem("ignitio:preview_payload");
+
+      if (result.authMode === "new_signup" && (isGenAiPreview || hasPreview)) {
+        await syncOnboardingFromLocalStorage(idToken).catch(() => {});
+        router.replace(
+          isGenAiPreview
+            ? "/onboarding/role-selection?from=genai_preview"
+            : "/onboarding/role-selection?from=preview"
+        );
+        return;
+      }
+
+      // Read pre-auth onboarding data from localStorage
+      const onboardingResult = typeof window !== "undefined"
+        ? (() => {
+            try { return JSON.parse(localStorage.getItem("ignitio:onboarding_result")); } catch { return null; }
+          })()
+        : null;
+
+      const genaiEntry = typeof window !== "undefined"
+        ? (() => {
+            try { return JSON.parse(localStorage.getItem("ignitio:genai_entry")); } catch { return null; }
+          })()
+        : null;
+
+      const rawGoal = onboardingResult?.goal ?? genaiEntry?.goal ?? null;
+      const GOAL_MAP = {
+        internship: "internship_1_3_months",
+        job: "internship_1_3_months",
+        project: "build_product",
+        build: "build_product",
+        dsa: "curiosity_general",
+        gen_ai: "curiosity_general",
+        learn: "curiosity_general",
+        unsure: "curiosity_general",
+      };
+      const mappedGoal = rawGoal ? (GOAL_MAP[rawGoal] || "curiosity_general") : "curiosity_general";
+
+      const derived = deriveScheduleFromBrowser();
+
+      const bootstrapPayload = {
+        email: result.user.email,
+        goal: mappedGoal,
+        freePath: onboardingResult?.path
+          ? {
+              year: onboardingResult.year || "1st",
+              pathTaken: onboardingResult.path,
+              roadmap: onboardingResult.roadmap || [],
+              diagnosticResults: onboardingResult.diagnosticResults || [],
+              notificationAllowed: onboardingResult.notificationAllowed ?? false,
+            }
+          : null,
+        schedule: {
+          timezone: derived.timezone,
+          windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
+        },
+        role: "student",
+        initializeLegalConsent: true,
+      };
+
+      // Call single consolidated bootstrap endpoint
+      const response = await fetch("/api/v2/onboarding/bootstrap", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(bootstrapPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to initialize account");
+      }
+
+      const data = await response.json();
+
+      // Clean up localStorage onboarding keys
+      try {
+        localStorage.removeItem("ignitio:onboarding_result");
+        localStorage.removeItem("ignitio:free_onboarding_v1");
+        localStorage.removeItem("ignitio:genai_entry");
+        localStorage.removeItem("genai_preview_assessment");
+      } catch {}
+
+      const searchRedirect =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("redirect")
+          : null;
+
+      if (searchRedirect && searchRedirect.startsWith("/")) {
+        window.location.href = searchRedirect;
+        return;
+      }
+
+      if (data.existing && data.redirectTo) {
+        window.location.href = data.redirectTo;
+        return;
+      }
+
+      window.location.href =
+        localStorage.getItem("ignitio:streak_phase") === "anticipated"
+          ? "/onboarding/streak"
+          : (data.redirectTo || "/home");
+    } catch {
+      isHandlingAuthActionRef.current = false;
+      setError("Check your email or password.");
       setLoading(false);
     }
   };
@@ -258,74 +321,7 @@ export default function SignupForm() {
       const result = await loginWithGoogle();
 
       if (result.success) {
-        trackSignupConversion(result.user, "google");
-        try {
-          const profile = await ensureUserProfile(result.user, result.authMode === "new_signup");
-          const idToken = await result.user.getIdToken();
-
-          // Flush any pre-auth onboarding data from localStorage (goal, GenAI diagnostic)
-          await syncOnboardingFromLocalStorage(idToken);
-
-          if (result.authMode === "new_signup") {
-            const isGenAiPreview =
-              typeof window !== "undefined" &&
-              new URLSearchParams(window.location.search).get("from") === "genai_preview";
-
-            const hasPreview =
-              typeof window !== "undefined" &&
-              !!localStorage.getItem("ignitio:preview_payload");
-
-            if (isGenAiPreview || hasPreview) {
-              router.replace(
-                isGenAiPreview
-                  ? "/onboarding/role-selection?from=genai_preview"
-                  : "/onboarding/role-selection?from=preview"
-              );
-              return;
-            }
-
-            try {
-              const derived = deriveScheduleFromBrowser();
-
-              const scheduleRes = await fetch("/api/v2/onboarding/role-schedule", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({
-                  role: "student",
-                  schedule: {
-                    timezone: derived.timezone,
-                    windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
-                  },
-                }),
-              });
-
-              if (!scheduleRes.ok) throw new Error("schedule_failed");
-
-              const activateRes = await fetch("/api/v2/onboarding/activate", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${idToken}` },
-              });
-
-              if (!activateRes.ok) throw new Error('activate_failed');
-
-              window.location.href =
-                localStorage.getItem('ignitio:streak_phase') === 'anticipated'
-                  ? '/onboarding/streak'
-                  : '/home';
-            } catch {
-              setLoading(false);
-            }
-          } else {
-            router.replace(getOnboardingRoute(profile));
-          }
-        } catch (err) {
-          isHandlingAuthActionRef.current = false;
-          setError(err.message || "Failed to provision user profile");
-          setLoading(false);
-        }
+        await executeOnboardingBootstrap(result, "google");
       } else if (result.error === null) {
         // Cancelled popup
         isHandlingAuthActionRef.current = false;
@@ -333,12 +329,12 @@ export default function SignupForm() {
         return;
       } else {
         isHandlingAuthActionRef.current = false;
-        setError(result.error || "Failed to sign up with Google");
+        setError(result.error || "Check your email or password.");
         setLoading(false);
       }
     } catch {
       isHandlingAuthActionRef.current = false;
-      setError("Something went wrong. Please try again.");
+      setError("Check your email or password.");
       setLoading(false);
     }
   };
