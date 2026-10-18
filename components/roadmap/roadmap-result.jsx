@@ -128,12 +128,14 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
     (dynamicStages[dynamicStages.length - 1]?.kind === "finish"
       ? FINISH_H
       : 196) +
-    160;
+    32;
   const scrollerRef = useRef(null);
   const drag = useRef({ active: false, startX: 0, startLeft: 0 });
   const timers = useRef([]);
   const userControl = useRef(false);
   const burstId = useRef(0);
+  const scrollTargetRef = useRef(0);
+  const scrollRafRef = useRef(null);
 
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -305,7 +307,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         if (userControl.current) return;
         document
           .getElementById("rm-cta")
-          ?.scrollIntoView({ behavior: "smooth", block: "end" });
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
       at(finishAt + 1400, () => setDone(true));
     },
@@ -333,6 +335,36 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
       events.forEach((name) => window.removeEventListener(name, takeOver));
   }, []);
 
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const onWheel = (e) => {
+      // If user is scrolling horizontally with trackpad, let native handle it
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+
+      const scrollingDown = e.deltaY > 0;
+      const scrollingUp = e.deltaY < 0;
+
+      // Allow natural page vertical scroll at boundaries
+      if ((el.scrollLeft <= 5 && scrollingUp) || (el.scrollLeft >= max - 5 && scrollingDown)) {
+        return;
+      }
+
+      e.preventDefault();
+      userControl.current = true;
+      el.scrollLeft += e.deltaY;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
   const commit = (event) => {
     if (committed) return;
     setCommitted(true);
@@ -351,19 +383,22 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
     if (event.target.closest("button") || event.target.closest("a")) return;
     const el = scrollerRef.current;
     if (!el) return;
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
     drag.current = {
       active: true,
       startX: event.clientX,
       startLeft: el.scrollLeft,
     };
+    scrollTargetRef.current = el.scrollLeft;
     el.setPointerCapture(event.pointerId);
     setDragging(true);
   };
 
   const handlePointerMove = (event) => {
     if (!drag.current.active || !scrollerRef.current) return;
-    scrollerRef.current.scrollLeft =
-      drag.current.startLeft - (event.clientX - drag.current.startX);
+    const nextLeft = drag.current.startLeft - (event.clientX - drag.current.startX);
+    scrollerRef.current.scrollLeft = nextLeft;
+    scrollTargetRef.current = nextLeft;
   };
 
   const endDrag = () => {
@@ -510,11 +545,10 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
           onPointerMove={handlePointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          className={`rm-scroll overflow-x-auto overscroll-x-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ig-cyan/60 ${
-            dragging
+          className={`rm-scroll overflow-x-auto overscroll-x-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ig-cyan/60 ${dragging
               ? "cursor-grabbing select-none"
               : "cursor-grab snap-x snap-proximity"
-          }`}
+            }`}
         >
           <ol
             className="relative list-none"
@@ -549,59 +583,6 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
                   <Lock className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-ig-text/25" />
                 </div>
                 <StageCard stage={stage} on={revealed > i} />
-
-                {/* Inline CTA below the last card */}
-                {i === dynamicStages.length - 1 && (
-                  <div
-                    id="rm-cta"
-                    data-on={celebrated || revealed >= dynamicStages.length}
-                    className="absolute inset-x-0 z-30 flex flex-col gap-2.5 mt-4"
-                    style={{ top: LABEL_H + FINISH_H }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <div className="rm-reveal rm-pop" style={delay(250)}>
-                      <button
-                        type="button"
-                        onClick={commit}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        aria-live="polite"
-                        className={`group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-extrabold text-ig-bg transition duration-300 focus-visible:ring-2 focus-visible:ring-ig-text focus-visible:outline-none ${
-                          committed
-                            ? "bg-ig-teal shadow-[0_10px_30px_-8px_rgb(94_234_212/0.55)]"
-                            : "rm-cta-idle bg-ig-cyan shadow-[0_10px_30px_-8px_rgb(0_169_255/0.6)] hover:-translate-y-0.5 hover:bg-ig-cyan-soft active:scale-95"
-                        }`}
-                      >
-                        {committed ? (
-                          <span className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-300">
-                            <Check
-                              aria-hidden="true"
-                              className="size-4"
-                              strokeWidth={3}
-                            />
-                            You're in!
-                          </span>
-                        ) : (
-                          <>
-                            Start Week 1 today
-                            <ArrowRight
-                              aria-hidden="true"
-                              className="size-4 transition-transform group-hover:translate-x-1"
-                            />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <p
-                      className="rm-reveal rm-fade text-xs text-ig-muted text-center"
-                      style={delay(450)}
-                      aria-live="polite"
-                    >
-                      {committed
-                        ? "First step: write your first Python script (5 min)"
-                        : "Your first step takes about 5 minutes"}
-                    </p>
-                  </div>
-                )}
               </li>
             ))}
             {dynamicStages.map((stage, i) => (
@@ -617,16 +598,62 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
 
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-ig-bg to-transparent transition-opacity duration-300 ${
-            atStart ? "opacity-0" : "opacity-100"
-          }`}
+          className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-ig-bg to-transparent transition-opacity duration-300 ${atStart ? "opacity-0" : "opacity-100"
+            }`}
         />
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-ig-bg to-transparent transition-opacity duration-300 ${
-            atEnd ? "opacity-0" : "opacity-100"
-          }`}
+          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-ig-bg to-transparent transition-opacity duration-300 ${atEnd ? "opacity-0" : "opacity-100"
+            }`}
         />
+      </div>
+
+      {/* ── CENTERED PRIMARY CTA (Matches Onboarding Question Layout) ── */}
+      <div
+        id="rm-cta"
+        data-on={celebrated || revealed >= dynamicStages.length}
+        className="relative z-30 mx-auto mt-6 w-full max-w-[500px] px-5 sm:px-6 flex flex-col items-center gap-2 pb-10"
+      >
+        <div className="w-full rm-reveal rm-pop" style={delay(250)}>
+          <button
+            type="button"
+            onClick={commit}
+            aria-live="polite"
+            className={`group flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-extrabold text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ig-cyan focus-visible:outline-none ${committed
+                ? "bg-ig-teal shadow-[0_4px_0_#0D9488]"
+                : "rm-cta-idle bg-[#00A9FF] hover:bg-[#0096e6] shadow-[0_4px_0_#007bcc] hover:shadow-[0_4px_0_#007bcc] hover:-translate-y-[1px] active:translate-y-[2px] active:shadow-[0_0px_0_#007bcc] active:scale-[0.99]"
+              }`}
+          >
+            {committed ? (
+              <span className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-300">
+                <Check
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={3}
+                />
+                You're in!
+              </span>
+            ) : (
+              <>
+                <span>Start Week 1 today</span>
+                <ArrowRight
+                  aria-hidden="true"
+                  className="size-5 transition-transform group-hover:translate-x-1"
+                />
+              </>
+            )}
+          </button>
+        </div>
+
+        <p
+          className="rm-reveal rm-fade text-xs sm:text-sm text-ig-muted text-center"
+          style={delay(450)}
+          aria-live="polite"
+        >
+          {committed
+            ? "First step: write your first Python script (5 min)"
+            : "Your first step takes about 5 minutes"}
+        </p>
       </div>
 
       <p role="status" className="sr-only">

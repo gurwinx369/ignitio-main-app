@@ -10,6 +10,7 @@ import {
   isEarnBackWindowActive,
 } from "@/lib/users/streak.service";
 import { sendRetentionEmail } from "@/lib/retention/resend.client";
+import { createUnsubscribeToken } from "@/lib/retention/unsubscribeToken";
 
 export const maxDuration = 300;
 
@@ -239,15 +240,52 @@ export async function GET(request) {
           };
           providerMessageId = await admin.messaging().send(message);
         } else {
+          const appBaseUrl = process.env.APP_BASE_URL || "https://app.ignitio.cloud";
+          let unsubscribeLink = `${appBaseUrl}/api/v2/retention/unsubscribe`;
+          try {
+            const unsubscribeToken = createUnsubscribeToken(user);
+            unsubscribeLink = `${appBaseUrl}/api/v2/retention/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
+          } catch (e) {
+            // Safe fallback if token secret isn't available
+          }
+
+          const streakBadgeLabel = summary.currentCount > 0 
+            ? `${summary.currentCount}-DAY STREAK AT RISK` 
+            : 'IGNITIO STREAK REMINDER';
+
           const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-              <h2 style="color: #0f172a;">${heading}</h2>
-              <p style="font-size: 16px; line-height: 1.5;">${body}</p>
-              <a href="${ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 16px;">${ctaText}</a>
-              <hr style="margin-top: 32px; border: none; border-top: 1px solid #e2e8f0;" />
-              <p style="font-size: 12px; color: #64748b;">
-                You are receiving this because you use Ignitio learning reminders.<br/>
-                <!-- TODO: Add notification preference center unsubscribe link here once available -->
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; background: #0c101d; color: #f1f5f9; border-radius: 16px; padding: 32px 24px; border: 1px solid #1e293b;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${appBaseUrl}/kibo/kibo_body.svg" alt="Kibo AI" width="56" height="56" style="display: inline-block;" />
+              </div>
+              
+              <div style="text-align: center; margin-bottom: 20px;">
+                <span style="display: inline-block; padding: 6px 14px; background: rgba(245,158,11,0.15); color: #f59e0b; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;">
+                  🔥 ${streakBadgeLabel}
+                </span>
+              </div>
+
+              <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 12px;">
+                ${heading}
+              </h2>
+
+              <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 28px;">
+                ${body}
+              </p>
+
+              <div style="text-align: center; margin-bottom: 32px;">
+                <a href="${ctaUrl}" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 15px; box-shadow: 0 8px 20px rgba(234,88,12,0.3);">
+                  ${ctaText} →
+                </a>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0 20px;" />
+
+              <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.5; margin: 0;">
+                Sent to ${user.email} because you have active learning reminders on Ignitio.<br />
+                <a href="${unsubscribeLink}" style="color: #94a3b8; text-decoration: underline;">
+                  Unsubscribe from streak & learning reminder emails
+                </a>
               </p>
             </div>
           `;

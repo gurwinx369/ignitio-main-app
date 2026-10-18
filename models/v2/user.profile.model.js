@@ -498,6 +498,12 @@ const UserProfileSchema = new Schema(
       trim: true,
     },
 
+    activeRoadmapSlug: {
+      type: String,
+      default: "python-beginner",
+      trim: true,
+    },
+
     roadmapPersonalizationRef: {
       type: Schema.Types.ObjectId,
       ref: "RoadmapPersonalization",

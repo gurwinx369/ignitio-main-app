@@ -20,7 +20,7 @@ export async function GET(request) {
     // Must fetch as a Mongoose document (not lean) so evaluateAndApplyLazyStreakState
     // can mutate streak in-place and persist only the streak subdocument.
     const user = await UserProfile.findOne({ firebaseUID: decodedToken.uid })
-      .select("email role roadmap_name createdAt streak badges profile");
+      .select("email role roadmap_name activeRoadmapSlug createdAt streak badges profile");
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -152,7 +152,8 @@ export async function GET(request) {
       profile: {
         email: user.email,
         role: user.role,
-        currentRoadmap,
+        currentRoadmap: user.activeRoadmapSlug || user.roadmap_name || currentRoadmap || "python-beginner",
+        activeRoadmapSlug: user.activeRoadmapSlug || user.roadmap_name || currentRoadmap || "python-beginner",
         joinedAt: user.createdAt,
         streak: streakSummary,
         stats: {
@@ -189,9 +190,15 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
-    const { displayName, bio, avatarUrl, avatarPreset, bannerColor, avatarFrame } = body;
+    const { displayName, bio, avatarUrl, avatarPreset, bannerColor, avatarFrame, activeRoadmapSlug } = body;
 
     // Validation
+    if (activeRoadmapSlug !== undefined) {
+      if (typeof activeRoadmapSlug !== 'string' || activeRoadmapSlug.trim().length === 0 || activeRoadmapSlug.length > 64) {
+        return NextResponse.json({ message: "activeRoadmapSlug must be a valid non-empty string under 64 characters" }, { status: 400 });
+      }
+    }
+
     if (displayName !== undefined) {
       if (typeof displayName !== 'string') return NextResponse.json({ message: "displayName must be a string" }, { status: 400 });
       if (displayName.trim().length > 40) return NextResponse.json({ message: "displayName cannot exceed 40 characters" }, { status: 400 });
@@ -240,6 +247,10 @@ export async function PATCH(request) {
 
     // Build update object
     const update = {};
+    if (activeRoadmapSlug !== undefined) {
+      update["activeRoadmapSlug"] = activeRoadmapSlug.trim();
+      update["roadmap_name"] = activeRoadmapSlug.trim();
+    }
     if (displayName !== undefined) update["profile.displayName"] = displayName.trim();
     if (bio !== undefined) update["profile.bio"] = bio;
     if (avatarUrl !== undefined) update["profile.avatarUrl"] = avatarUrl;
@@ -255,7 +266,7 @@ export async function PATCH(request) {
       { firebaseUID: decodedToken.uid },
       { $set: update },
       { new: true }
-    ).select("profile");
+    ).select("profile activeRoadmapSlug roadmap_name");
 
     if (!updatedUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -264,6 +275,8 @@ export async function PATCH(request) {
     return NextResponse.json({
       ok: true,
       profile: {
+        activeRoadmapSlug: updatedUser.activeRoadmapSlug || updatedUser.roadmap_name || "python-beginner",
+        currentRoadmap: updatedUser.activeRoadmapSlug || updatedUser.roadmap_name || "python-beginner",
         displayName: updatedUser.profile?.displayName || "",
         bio: updatedUser.profile?.bio || "",
         avatarUrl: updatedUser.profile?.avatarUrl || "",
