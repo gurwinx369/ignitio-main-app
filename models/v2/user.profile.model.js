@@ -308,6 +308,22 @@ const StreakSchema = new Schema(
       type: [StreakHistoryPendingSchema],
       default: [],
     },
+
+    targetGoal: {
+      type: Number,
+      enum: [7, 14, 21, 30],
+      default: null,
+    },
+
+    targetGoalSetAt: {
+      type: Date,
+      default: null,
+    },
+
+    day2PromptSeen: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     _id: false,

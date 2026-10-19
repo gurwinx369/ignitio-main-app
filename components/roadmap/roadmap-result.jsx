@@ -414,7 +414,7 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         "--font-sans": "var(--font-jakarta)",
         "--font-mono": "var(--font-jetbrains)",
       }}
-      className={`relative isolate min-h-screen overflow-hidden bg-ig-bg pb-10 text-ig-text font-sans dark ${jakarta.variable} ${jetbrains.variable}`}
+      className={`relative isolate min-h-screen overflow-hidden bg-ig-bg pb-36 text-ig-text font-sans dark ${jakarta.variable} ${jetbrains.variable}`}
     >
       <CanvasBackground />
       <div
@@ -546,8 +546,8 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
           className={`rm-scroll overflow-x-auto overscroll-x-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ig-cyan/60 ${dragging
-              ? "cursor-grabbing select-none"
-              : "cursor-grab snap-x snap-proximity"
+            ? "cursor-grabbing select-none"
+            : "cursor-grab snap-x snap-proximity"
             }`}
         >
           <ol
@@ -608,23 +608,43 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
         />
       </div>
 
-      {/* ── CENTERED PRIMARY CTA (Matches Onboarding Question Layout) ── */}
+      {/* ── STICKY PRIMARY CTA DOCK (Apple HIG Floating Bar + Glassmorphic Antigravity) ── */}
       <div
         id="rm-cta"
-        data-on={celebrated || revealed >= dynamicStages.length}
-        className="relative z-30 mx-auto mt-6 w-full max-w-[500px] px-5 sm:px-6 flex flex-col items-center gap-2 pb-10"
+        className={`fixed bottom-0 inset-x-0 z-40 w-full bg-[#13122e]/85 backdrop-blur-xl border-t border-white/10 shadow-[0_-12px_32px_rgba(0,0,0,0.4)] px-5 sm:px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-all duration-500 ${pixelSwapDone
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-4 pointer-events-none"
+          }`}
       >
-        <div className="w-full rm-reveal rm-pop" style={delay(250)}>
+        {/* Subtle top gradient feather to soften scrolling cards behind the dock */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-8 inset-x-0 h-8 bg-gradient-to-t from-[#13122e]/85 to-transparent"
+        />
+
+        <div className="mx-auto w-full max-w-[480px] flex flex-col items-center gap-2 relative z-10">
           <button
             type="button"
+            disabled={!done || committed}
+            aria-disabled={!done || committed}
             onClick={commit}
             aria-live="polite"
-            className={`group flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-extrabold text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ig-cyan focus-visible:outline-none ${committed
-                ? "bg-ig-teal shadow-[0_4px_0_#0D9488]"
-                : "rm-cta-idle bg-[#00A9FF] hover:bg-[#0096e6] shadow-[0_4px_0_#007bcc] hover:shadow-[0_4px_0_#007bcc] hover:-translate-y-[1px] active:translate-y-[2px] active:shadow-[0_0px_0_#007bcc] active:scale-[0.99]"
+            className={`group flex w-full items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-extrabold text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ig-cyan focus-visible:outline-none ${!done
+              ? "cursor-not-allowed bg-white/10 text-white/45 border border-white/10 shadow-none select-none"
+              : committed
+                ? "cursor-default bg-ig-teal shadow-[0_4px_0_#0D9488]"
+                : "cursor-pointer bg-[#00A9FF] hover:bg-[#0096e6] shadow-[0_4px_0_#007bcc] hover:shadow-[0_4px_0_#007bcc] hover:-translate-y-[1px] active:translate-y-[2px] active:shadow-none active:scale-[0.99]"
               }`}
           >
-            {committed ? (
+            {!done ? (
+              <span className="flex items-center gap-2.5 text-sm sm:text-base font-semibold tracking-wide">
+                <span className="relative flex size-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ig-cyan opacity-75" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-ig-cyan" />
+                </span>
+                <span>Preparing your roadmap...</span>
+              </span>
+            ) : committed ? (
               <span className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-300">
                 <Check
                   aria-hidden="true"
@@ -643,17 +663,18 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
               </>
             )}
           </button>
-        </div>
 
-        <p
-          className="rm-reveal rm-fade text-xs sm:text-sm text-ig-muted text-center"
-          style={delay(450)}
-          aria-live="polite"
-        >
-          {committed
-            ? "First step: write your first Python script (5 min)"
-            : "Your first step takes about 5 minutes"}
-        </p>
+          <p
+            className="text-xs sm:text-sm text-ig-muted text-center transition-opacity duration-300"
+            aria-live="polite"
+          >
+            {!done
+              ? "Matching milestones to your target pace..."
+              : committed
+                ? "First step: write your first Python script (5 min)"
+                : "Your first step takes about 5 minutes"}
+          </p>
+        </div>
       </div>
 
       <p role="status" className="sr-only">
