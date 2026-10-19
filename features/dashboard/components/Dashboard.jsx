@@ -35,6 +35,7 @@ import StreakStatusCard from "./StreakStatusCard";
 import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
+import Day2StreakModal from "@/components/streak/day2-streak-modal";
 
 // Foundational roadmaps — peer entry tracks that do not lock each other
 const FOUNDATIONAL_ROADMAPS = new Set([
@@ -111,6 +112,7 @@ export default function Dashboard() {
   );
   const [userRole, setUserRole] = useState("other");
   const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
+  const [isDay2ModalDismissed, setIsDay2ModalDismissed] = useState(false);
 
   const fetcher = async (url) => {
     if (!user) return null;
@@ -828,7 +830,19 @@ export default function Dashboard() {
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-
+      {/* ── DAY 2 STREAK GOAL & CONTINUITY MODAL ── */}
+      {isClient && !isDay2ModalDismissed && (profileData?.streak?.currentCount || 0) >= 1 && !profileData?.streak?.day2PromptSeen && !profileData?.streak?.targetGoal && (
+        <Day2StreakModal
+          user={user}
+          streak={profileData?.streak}
+          onClose={() => setIsDay2ModalDismissed(true)}
+          onSuccess={(updatedStreak) => {
+            if (mutateProfile) {
+              mutateProfile((prev) => (prev ? { ...prev, streak: updatedStreak } : prev), false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
