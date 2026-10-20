@@ -160,6 +160,18 @@ export default function FreeOnboarding() {
   const handleGoal = useCallback(
     (selectedGoal) => {
       setGoal(selectedGoal);
+
+      // Fast-track DSA directly to roadmap result (Path B: beginner with Python + Git + DSA)
+      if (selectedGoal === "dsa") {
+        setPath("B");
+        const additional = getAdditionalStages("dsa", year).filter((s) => s !== "dsa");
+        const fullRoadmap = [...SKILL_ORDER, "dsa", ...additional];
+        setRoadmap(fullRoadmap);
+        setDiagnosticResults(null);
+        setScreen(SCREENS.ROADMAP_RESULT);
+        return;
+      }
+
       // Path A shortcut check
       if (isShortcutPath(selectedGoal, year)) {
         setScreen(SCREENS.SHORTCUT);
@@ -395,7 +407,11 @@ export default function FreeOnboarding() {
         path={path}
         goal={goal}
         onContinue={handleRoadmapResultContinue}
-        onBack={() => setScreen(path === "C" ? SCREENS.REVEAL : SCREENS.KNOWLEDGE_CHECK)}
+        onBack={() => {
+          if (path === "C") return setScreen(SCREENS.REVEAL);
+          if (goal === "dsa") return setScreen(SCREENS.GOAL);
+          return setScreen(SCREENS.KNOWLEDGE_CHECK);
+        }}
       />
     );
   }

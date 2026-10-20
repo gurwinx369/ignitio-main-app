@@ -57,6 +57,31 @@ const nextConfig = {
         ];
     },
 
+    async redirects() {
+        return [
+            {
+                source: '/signup',
+                destination: '/auth/signup',
+                permanent: true,
+            },
+            {
+                source: '/login',
+                destination: '/auth/login',
+                permanent: true,
+            },
+            {
+                source: '/register',
+                destination: '/auth/signup',
+                permanent: true,
+            },
+            {
+                source: '/signin',
+                destination: '/auth/login',
+                permanent: true,
+            },
+        ];
+    },
+
     reactCompiler: true,
     serverExternalPackages: ["mongoose"],
 

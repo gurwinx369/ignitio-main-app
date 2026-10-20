@@ -7,10 +7,12 @@ const SIGNUP_TIMESTAMP_STORAGE_KEY = 'ignitio:signup_timestamp';
 /**
  * Retrieves the shared onboarding session ID or generates a new UUIDv4 if none exists.
  * Stored in localStorage so anonymous events and post-signup events stay correlated.
+ * Returns null in SSR contexts (typeof window === 'undefined') so callers can
+ * conditionally omit the property rather than sending an empty-string value to PostHog.
  */
-export function getOrCreateOnboardingSessionId(): string {
+export function getOrCreateOnboardingSessionId(): string | null {
   if (typeof window === 'undefined') {
-    return '';
+    return null;
   }
 
   try {
