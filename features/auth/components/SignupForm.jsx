@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
@@ -12,6 +12,8 @@ import { trackOnboardingFriction } from "@/lib/analytics/friction";
 import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
 import { syncOnboardingFromLocalStorage } from '@/lib/onboarding/sync-localstorage';
 import { deriveScheduleFromBrowser } from '@/lib/onboarding/schedule-periods';
+import KiboBody from "@/features/kyle/pet/KiboBody";
+import { useKiboEyeTracking } from "@/features/kyle/pet/useKiboEyeTracking";
 
 async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
@@ -42,6 +44,32 @@ async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
 }
 
 
+const DARK_CSS = `
+@keyframes sf-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+.sf-kibo-float { animation: sf-float 3s ease-in-out infinite; }
+
+@keyframes sf-bubble {
+  0%   { opacity: 0; transform: scale(0.88) translateX(8px); }
+  100% { opacity: 1; transform: scale(1) translateX(0); }
+}
+.sf-bubble { animation: sf-bubble 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: 220ms; }
+.sf-bubble-tail::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 18px;
+  border: 9px solid transparent;
+  border-right-color: rgba(255,255,255,0.1);
+  border-left: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-kibo-float { animation: none; }
+  .sf-bubble { animation: none; opacity: 1; transform: none; }
+}
+`;
+
 export default function SignupForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [focusedInput, setFocusedInput] = useState(null);
@@ -52,6 +80,11 @@ export default function SignupForm() {
   const isHandlingAuthActionRef = useRef(false);
   const isResumingRef = useRef(false);
   const posthog = usePostHog();
+  const searchParams = useSearchParams();
+  const isFromOnboarding = searchParams?.get("from") === "freepath";
+  const kiboWrapperRef = useRef(null);
+  const kiboEyesRef = useRef(null);
+  useKiboEyeTracking({ eyesRef: kiboEyesRef, wrapperRef: kiboWrapperRef, active: isFromOnboarding, trackFullPage: true });
 
   // ── PostHog Step 8 Tracking ───────────────────────────────────────────────
   const signupEnteredAtRef = useRef(Date.now());
@@ -349,13 +382,13 @@ export default function SignupForm() {
   if (activationError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4"
-           style={{ backgroundColor: "#F0CAA8" }}>
+           style={{ backgroundColor: isFromOnboarding ? "#13122e" : "#F0CAA8" }}>
         <div className="w-full max-w-md text-center rounded-3xl p-8 shadow-lg"
-             style={{ backgroundColor: "#FFF9EB" }}>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: "#1a1a2e" }}>
+             style={{ backgroundColor: isFromOnboarding ? "rgba(255,255,255,0.06)" : "#FFF9EB", border: isFromOnboarding ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
+          <h2 className="text-2xl font-bold mb-4" style={{ color: isFromOnboarding ? "rgba(255,255,255,0.9)" : "#1a1a2e" }}>
             Setup hit a snag
           </h2>
-          <p className="text-base mb-8" style={{ color: "#6b7280" }}>
+          <p className="text-base mb-8" style={{ color: isFromOnboarding ? "rgba(255,255,255,0.45)" : "#6b7280" }}>
             We couldn&apos;t finish setting up your account. Please try again.
           </p>
           <button
@@ -373,6 +406,231 @@ export default function SignupForm() {
     );
   }
 
+  // ── Dark onboarding variant (from=freepath) ─────────────────────────────────
+  if (isFromOnboarding) {
+    return (
+      <>
+        <style>{DARK_CSS}</style>
+        <div
+          className="min-h-screen flex items-center justify-center p-5"
+          style={{ backgroundColor: "#13122e" }}
+        >
+          <div className="w-full max-w-sm flex flex-col gap-6">
+            {/* Kibo header */}
+            <div className="flex items-start gap-4">
+              <div
+                ref={kiboWrapperRef}
+                className="sf-kibo-float flex-shrink-0"
+                style={{
+                  width: 72,
+                  height: 72,
+                  filter: "drop-shadow(0 0 14px rgba(92,200,255,0.3))",
+                }}
+                aria-label="Kibo"
+              >
+                <KiboBody
+                  visualState="idle"
+                  petSize={72}
+                  wrapperRef={kiboWrapperRef}
+                  eyesRef={kiboEyesRef}
+                />
+              </div>
+              <div className="sf-bubble sf-bubble-tail relative flex-1 min-w-0 pt-1">
+                <div
+                  className="relative rounded-2xl rounded-tl-sm px-4 py-3"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
+                  <p
+                    className="text-[14px] font-semibold leading-snug"
+                    style={{ color: "rgba(255,255,255,0.9)" }}
+                  >
+                    Your roadmap is ready — let&apos;s lock it in.
+                  </p>
+                  <p
+                    className="text-[12px] mt-1 leading-relaxed"
+                    style={{ color: "rgba(255,255,255,0.45)" }}
+                  >
+                    Create your free account to start learning.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form card */}
+            <div
+              className="rounded-3xl p-6"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              {error && (
+                <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                <div className="mb-5">
+                  <label
+                    htmlFor="sf-email"
+                    className="block mb-2 text-sm font-semibold"
+                    style={{ color: "rgba(255,255,255,0.65)" }}
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="sf-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onFocus={() => setFocusedInput("email")}
+                    onBlur={() => setFocusedInput(null)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="you@ignitio.cloud"
+                    className="w-full px-4 py-3.5 rounded-2xl text-base outline-none transition-all duration-200"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      border: focusedInput === "email"
+                        ? "2px solid #00A9FF"
+                        : "2px solid rgba(255,255,255,0.12)",
+                      color: "rgba(255,255,255,0.9)",
+                    }}
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label
+                    htmlFor="sf-password"
+                    className="block mb-2 text-sm font-semibold"
+                    style={{ color: "rgba(255,255,255,0.65)" }}
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="sf-password"
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onFocus={() => setFocusedInput("password")}
+                    onBlur={() => setFocusedInput(null)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="min. 6 characters"
+                    className="w-full px-4 py-3.5 rounded-2xl text-base outline-none transition-all duration-200"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      border: focusedInput === "password"
+                        ? "2px solid #00A9FF"
+                        : "2px solid rgba(255,255,255,0.12)",
+                      color: "rgba(255,255,255,0.9)",
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !form.email || !form.password}
+                  className="w-full py-4 rounded-2xl text-white font-extrabold text-[15px] uppercase tracking-wide transition-all duration-100 disabled:opacity-40 active:scale-[0.97] focus-visible:outline-none"
+                  style={{
+                    background: "linear-gradient(135deg, #00bfff, #0288d1)",
+                    boxShadow: "0 4px 0 #005fa3",
+                  }}
+                  onMouseDown={(e) => {
+                    if (!loading && form.email && form.password) {
+                      e.currentTarget.style.transform = "translateY(4px)";
+                      e.currentTarget.style.boxShadow = "0 0px 0 #005fa3";
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = "";
+                    e.currentTarget.style.boxShadow = "0 4px 0 #005fa3";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "";
+                    e.currentTarget.style.boxShadow = "0 4px 0 #005fa3";
+                  }}
+                >
+                  {loading ? "Creating..." : "Create My Account"}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="flex items-center my-5">
+                <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+                <span className="px-3 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>or</span>
+                <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+              </div>
+
+              {/* Google button */}
+              <button
+                onClick={handleGoogleSignup}
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-3 transition-all duration-100 disabled:opacity-40 active:scale-[0.97]"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  color: "rgba(255,255,255,0.8)",
+                }}
+                onMouseDown={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                  }
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                {loading ? "Signing up..." : "Continue with Google"}
+              </button>
+
+              {/* Login link */}
+              <div className="mt-5 text-center">
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  Already have an account?{" "}
+                  <Link
+                    href="/auth/login"
+                    onClick={(e) => {
+                      if (isNavigating) { e.preventDefault(); return; }
+                      setIsNavigating(true);
+                      posthog?.capture("auth_navigation_clicked", { target: "login" });
+                    }}
+                    className="font-semibold hover:underline"
+                    style={{ color: "#00A9FF", opacity: isNavigating ? 0.6 : 1 }}
+                  >
+                    {isNavigating ? "Loading..." : "Log in"}
+                  </Link>
+                </p>
+              </div>
+
+              {/* Legal */}
+              <p className="mt-4 text-center text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.2)" }}>
+                By continuing, you agree to Ignitio&apos;s{" "}
+                <a href="https://ignitio.cloud/terms" target="_blank" rel="noopener noreferrer" className="underline decoration-[#00A9FF] underline-offset-4 hover:opacity-80">Terms</a>
+                {" "}and{" "}
+                <a href="https://ignitio.cloud/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline decoration-[#00A9FF] underline-offset-4 hover:opacity-80">Privacy Policy</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── Light / default variant ──────────────────────────────────────────────────
   return (
     <>
 

@@ -38,6 +38,7 @@ import KnowledgeCheckScreen from "./screens/KnowledgeCheckScreen";
 import FreeDiagnostic from "./FreeDiagnostic";
 import RevealScreen from "./screens/RevealScreen";
 import MonthRoadmapResult from "./screens/MonthRoadmapResult";
+import KiboSignupBridge from "./screens/KiboSignupBridge";
 
 // ── Additional stage rules ───────────────────────────────────────────────────
 // Returns stage IDs to append after the base free-path skills.
@@ -49,11 +50,12 @@ import MonthRoadmapResult from "./screens/MonthRoadmapResult";
 //   everyone else                 → no additional stages
 function getAdditionalStages(goal, year) {
   const isEarlyYear = year === "1" || year === "2";
-  const isLateYear  = year === "3" || year === "4";
+  const isLateYear = year === "3" || year === "4";
 
   if (goal === "dsa") return ["dsa"];
   if (isEarlyYear && goal === "project") return ["prompt"];
-  if (isLateYear && (goal === "internship" || goal === "job")) return ["prompt", "system_design"];
+  if (isLateYear && (goal === "internship" || goal === "job"))
+    return ["prompt", "system_design"];
   return [];
 }
 
@@ -66,6 +68,7 @@ const SCREENS = {
   DIAGNOSTIC: "diagnostic",
   REVEAL: "reveal",
   ROADMAP_RESULT: "roadmap_result",
+  SIGNUP_BRIDGE: "signup_bridge",
 };
 
 // ── Path A trigger conditions ────────────────────────────────────────────────
@@ -106,15 +109,16 @@ function clearPersisted() {
 
 // ── Main controller ──────────────────────────────────────────────────────────
 export default function FreeOnboarding() {
-  const router = useRouter();
   const { user } = useAuth();
+  // routing hook for the routing
+  const router = useRouter();
 
   const [screen, setScreen] = useState(SCREENS.YEAR);
   const [goal, setGoal] = useState(null);
   const [year, setYear] = useState(null);
   const [diagnosticResults, setDiagnosticResults] = useState(null); // Array<{ skillId, verdict, include }>
   const [roadmap, setRoadmap] = useState(null); // string[] of skillIds
-  const [path, setPath] = useState(null); // "A" | "B" | "C"
+  const [path, setPath] = useState(null); // "A" | "B" | "C
 
   // Restore progress on mount — users should never redo the diagnostic after abandoning
   useEffect(() => {
@@ -143,7 +147,7 @@ export default function FreeOnboarding() {
       }
       if (saved.path) setPath(saved.path);
     }, 0);
-  }, [user, router]);
+  }, [user]);
 
   // Persist whenever key state changes
   useEffect(() => {
@@ -164,7 +168,9 @@ export default function FreeOnboarding() {
       // Fast-track DSA directly to roadmap result (Path B: beginner with Python + Git + DSA)
       if (selectedGoal === "dsa") {
         setPath("B");
-        const additional = getAdditionalStages("dsa", year).filter((s) => s !== "dsa");
+        const additional = getAdditionalStages("dsa", year).filter(
+          (s) => s !== "dsa",
+        );
         const fullRoadmap = [...SKILL_ORDER, "dsa", ...additional];
         setRoadmap(fullRoadmap);
         setDiagnosticResults(null);
@@ -205,7 +211,9 @@ export default function FreeOnboarding() {
   const handleKnowledgeCheckBeginner = useCallback(() => {
     // Path B — assign skills, no diagnostic
     setPath("B");
-    const additional = getAdditionalStages(goal, year).filter((s) => s !== "dsa");
+    const additional = getAdditionalStages(goal, year).filter(
+      (s) => s !== "dsa",
+    );
     const fullRoadmap =
       goal === "dsa"
         ? [...SKILL_ORDER, "dsa", ...additional]
@@ -220,40 +228,43 @@ export default function FreeOnboarding() {
     setScreen(SCREENS.DIAGNOSTIC);
   }, []);
 
-  const handleDiagnosticComplete = useCallback((answers) => {
-    // Classify answers → build roadmap
-    const results = classifyFreePathSkills(answers);
-    const finalRoadmap = buildFreeRoadmap(results);
+  const handleDiagnosticComplete = useCallback(
+    (answers) => {
+      // Classify answers → build roadmap
+      const results = classifyFreePathSkills(answers);
+      const finalRoadmap = buildFreeRoadmap(results);
 
-    // Edge case: if classifier excluded everything somehow, put all skills back in
-    const baseRoadmap =
-      finalRoadmap.length > 0 ? finalRoadmap : [...SKILL_ORDER];
+      // Edge case: if classifier excluded everything somehow, put all skills back in
+      const baseRoadmap =
+        finalRoadmap.length > 0 ? finalRoadmap : [...SKILL_ORDER];
 
-    setPath("C");
-    setDiagnosticResults(results);
-    const additional = getAdditionalStages(goal, year).filter((s) => s !== "dsa");
-    const combined =
-      goal === "dsa"
-        ? (baseRoadmap.includes("dsa")
+      setPath("C");
+      setDiagnosticResults(results);
+      const additional = getAdditionalStages(goal, year).filter(
+        (s) => s !== "dsa",
+      );
+      const combined =
+        goal === "dsa"
+          ? baseRoadmap.includes("dsa")
             ? [...baseRoadmap, ...additional]
-            : [...baseRoadmap, "dsa", ...additional])
-        : [...baseRoadmap.filter((s) => s !== "dsa"), ...additional];
-    setRoadmap(combined);
-    setScreen(SCREENS.REVEAL);
-  }, [goal, year]);
+            : [...baseRoadmap, "dsa", ...additional]
+          : [...baseRoadmap.filter((s) => s !== "dsa"), ...additional];
+      setRoadmap(combined);
+      setScreen(SCREENS.REVEAL);
+    },
+    [goal, year],
+  );
 
   const handleRevealNext = useCallback(() => {
     setScreen(SCREENS.ROADMAP_RESULT);
   }, []);
 
-
-
   // ponytail: same map as streak/page.js — skills routing
   const LESSON_ROUTES = {
-    git: '/home/roadmaps/git-github/interactive-overviews/first-overview',
-    python: '/home/roadmaps/python-beginner',
-    dsa: '/home/roadmaps/dsa',
-  }
+    git: "/home/roadmaps/git-github/interactive-overviews/first-overview",
+    python: "/home/roadmaps/python-beginner",
+    dsa: "/home/roadmaps/dsa",
+  };
 
   // ponytail: skill → roadmap route ID mapping
   const SKILL_TO_ROADMAP_ID = {
@@ -264,7 +275,7 @@ export default function FreeOnboarding() {
     dsa: "dsa",
   };
 
-  const handleRoadmapResultContinue = useCallback(async () => {
+  const handleRoadmapResultContinue = useCallback(() => {
     // Persist onboarding result before auth so it survives the auth flow
     try {
       localStorage.setItem(
@@ -281,75 +292,82 @@ export default function FreeOnboarding() {
       // Durable filter key — never cleared by syncOnboardingFromLocalStorage.
       // Dashboard reads this to show only the user's assigned roadmaps.
       if (roadmap?.length) {
-        const roadmapIds = roadmap.map(s => SKILL_TO_ROADMAP_ID[s]).filter(Boolean);
-        localStorage.setItem("ignitio:assigned_roadmaps", JSON.stringify(roadmapIds));
+        const roadmapIds = roadmap
+          .map((s) => SKILL_TO_ROADMAP_ID[s])
+          .filter(Boolean);
+        localStorage.setItem(
+          "ignitio:assigned_roadmaps",
+          JSON.stringify(roadmapIds),
+        );
       }
       // Set streak phase so /onboarding/streak shows StreakAnticipation
       localStorage.setItem("ignitio:streak_phase", "anticipated");
       // Write lesson href separately — survives syncOnboardingFromLocalStorage clearing onboarding_result
-      const firstSkill = roadmap?.[0] || 'python'
-      localStorage.setItem("ignitio:streak_lesson_href", LESSON_ROUTES[firstSkill] ?? '/home/roadmaps/python-beginner')
+      const firstSkill = roadmap?.[0] || "python";
+      localStorage.setItem(
+        "ignitio:streak_lesson_href",
+        LESSON_ROUTES[firstSkill] ?? "/home/roadmaps/python-beginner",
+      );
     } catch {
       // ignore
     }
 
     clearPersisted();
-    // Route to existing auth flow, or directly activate if already authenticated
+
+    // If already authenticated, activate and proceed directly — no bridge needed.
     if (user) {
-      try {
-        const idToken = await user.getIdToken();
-        const { deriveScheduleFromBrowser } =
-          await import("@/lib/onboarding/schedule-periods");
-        const { syncOnboardingFromLocalStorage } =
-          await import("@/lib/onboarding/sync-localstorage");
+      (async () => {
+        try {
+          const idToken = await user.getIdToken();
+          const { deriveScheduleFromBrowser } =
+            await import("@/lib/onboarding/schedule-periods");
+          const { syncOnboardingFromLocalStorage } =
+            await import("@/lib/onboarding/sync-localstorage");
 
-        const derived = deriveScheduleFromBrowser();
-        await syncOnboardingFromLocalStorage(idToken);
+          const derived = deriveScheduleFromBrowser();
+          await syncOnboardingFromLocalStorage(idToken);
 
-        await fetch("/api/v2/onboarding/role-schedule", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            role: "student",
-            schedule: {
-              timezone: derived.timezone,
-              windows: [
-                {
-                  period: derived.period,
-                  startTime: derived.startTime,
-                  endTime: derived.endTime,
-                },
-              ],
+          await fetch("/api/v2/onboarding/role-schedule", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
             },
-          }),
-        });
+            body: JSON.stringify({
+              role: "student",
+              schedule: {
+                timezone: derived.timezone,
+                windows: [
+                  {
+                    period: derived.period,
+                    startTime: derived.startTime,
+                    endTime: derived.endTime,
+                  },
+                ],
+              },
+            }),
+          });
 
-        await fetch("/api/v2/onboarding/activate", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
+          await fetch("/api/v2/onboarding/activate", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
 
-        // → Streak anticipation screen before entering the roadmap
-        window.location.href = "/onboarding/streak";
-      } catch (err) {
-        // Fallback if anything fails
-        window.location.href = "/onboarding/streak";
-      }
+          window.location.href = "/onboarding/streak";
+        } catch {
+          window.location.href = "/onboarding/streak";
+        }
+      })();
     } else {
-      window.location.href = "/auth/signup";
+      // Show Kibo bridge before the signup form for unauthenticated users
+      setScreen(SCREENS.SIGNUP_BRIDGE);
     }
-  }, [
-    goal,
-    year,
-    path,
-    roadmap,
-    diagnosticResults,
-    router,
-    user,
-  ]);
+  }, [goal, year, path, roadmap, diagnosticResults, user]);
+
+  const handleSignupBridgeContinue = useCallback(() => {
+    // ?from=freepath tells SignupForm to render the dark onboarding theme
+    window.location.href = "/auth/signup?from=freepath";
+  }, []);
 
   // ── Screen rendering ─────────────────────────────────────────────────────────
 
@@ -414,6 +432,10 @@ export default function FreeOnboarding() {
         }}
       />
     );
+  }
+
+  if (screen === SCREENS.SIGNUP_BRIDGE) {
+    return <KiboSignupBridge onContinue={handleSignupBridgeContinue} />;
   }
 
   // Fallback — should not be reached in normal flow
