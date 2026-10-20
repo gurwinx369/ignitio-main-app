@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { useRouter } from "next/navigation";
 import KiboBody from "@/features/kyle/pet/KiboBody";
 import { useKiboEyeTracking } from "@/features/kyle/pet/useKiboEyeTracking";
 import { SpeechBubble } from "./speech-bubble";
 import { PendingCup } from "./pending-cup";
 import { WeekRow } from "./week-row";
 import { BrewCta } from "./brew-cta";
+import { PixelSwap } from "@/components/ui/PixelSwap";
 
 const MESSAGE = [
   { text: "Your first brew of the coffee streak is " },
@@ -28,8 +30,11 @@ const Phase = Object.freeze({
 });
 
 export function StreakAnticipation({ days = [], lessonHref }) {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState(Phase.Dark);
+  const [pixelActive, setPixelActive] = useState(false);
+  const [pixelSwapDone, setPixelSwapDone] = useState(false);
   const [typing, setTyping] = useState(true);
   const [typedChars, setTypedChars] = useState(0);
 
@@ -67,8 +72,20 @@ export function StreakAnticipation({ days = [], lessonHref }) {
     return () => clearTimeout(t);
   }, [typing, typedChars]);
 
+  function handleCtaStart() {
+    if (pixelActive || pixelSwapDone) return;
+    if (reduceMotion) {
+      if (lessonHref) router.push(lessonHref);
+      return;
+    }
+    setPixelActive(true);
+  }
+
   return (
-    <main className="relative flex h-dvh flex-col items-center justify-center gap-[clamp(12px,3dvh,28px)] overflow-hidden bg-canvas px-4 py-[clamp(12px,3dvh,32px)] text-ink md:px-8">
+    <div className="fixed inset-0 z-50 overflow-hidden" aria-hidden={pixelSwapDone}>
+      <PixelSwap
+        firstContent={
+          <main className="relative flex h-dvh flex-col items-center justify-center gap-[clamp(12px,3dvh,28px)] overflow-hidden bg-canvas px-4 py-[clamp(12px,3dvh,32px)] text-ink md:px-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(rgba(125,150,180,0.12)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
         <motion.div
@@ -162,10 +179,39 @@ export function StreakAnticipation({ days = [], lessonHref }) {
           visible={phase >= Phase.Cta}
           onHoverStart={() => {}}
           onHoverEnd={() => {}}
-          onStart={() => {}}
-          href={lessonHref}
+          onStart={handleCtaStart}
+          href={pixelActive || pixelSwapDone ? undefined : lessonHref}
         />
       </div>
     </main>
+        }
+        secondContent={
+          <div
+            className="relative isolate flex h-full w-full min-h-dvh items-center justify-center overflow-hidden"
+            style={{ backgroundColor: "#13122e" }}
+          />
+        }
+        active={pixelActive}
+        trigger="none"
+        pixelColor="#fcf5ee"
+        pattern="center"
+        pixelSize={64}
+        gap={0}
+        pixelRadius={6}
+        duration={1800}
+        pixelDuration={700}
+        randomness={0.08}
+        easing="cubic-bezier(0.16, 1, 0.3, 1)"
+        aspectRatio="auto"
+        className="h-full w-full"
+        style={{ width: "100vw", height: "100vh" }}
+        onComplete={(to) => {
+          if (to) {
+            setPixelSwapDone(true);
+            if (lessonHref) router.push(lessonHref);
+          }
+        }}
+      />
+    </div>
   );
 }
