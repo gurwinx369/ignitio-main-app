@@ -115,18 +115,27 @@ const LevelContent = ({
 
         if (!token) return; // Wait for user auth
 
-        const res = await fetch("/api/v2/kyle/funfact", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            concept: level.concept,
-            transcript: level.transcript,
-            user_profession: profession
-          })
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        let res;
+        try {
+          res = await fetch("/api/v2/kyle/funfact", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              concept: level.concept,
+              transcript: level.transcript,
+              user_profession: profession
+            })
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (isCancelled) return;
 

@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import GitCourseCard from "@/components/ui/courseCards/git-course-card";
@@ -36,6 +36,7 @@ import RoadmapWorldsCarousel from "./RoadmapWorldsCarousel";
 
 import DashboardBottomNav from "./DashboardBottomNav";
 import Day2StreakModal from "@/components/streak/day2-streak-modal";
+import RoadmapCatalogModal from "./RoadmapCatalogModal";
 
 // Foundational roadmaps — peer entry tracks that do not lock each other
 const FOUNDATIONAL_ROADMAPS = new Set([
@@ -110,9 +111,71 @@ export default function Dashboard() {
   const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
     genericPromptEngineeringRoadmapData,
   );
-  const [userRole, setUserRole] = useState("other");
-  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(null);
+  const [userRole, setUserRole] = useState(
+    () =>
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("profession") || "student")) ||
+      "student",
+  );
+  const [selectedDsaRoadmap, setSelectedDsaRoadmap] = useState(
+    () =>
+      getDsaRoadmapByRole(
+        typeof window !== "undefined"
+          ? localStorage.getItem("profession") || "student"
+          : "student",
+      ),
+  );
   const [isDay2ModalDismissed, setIsDay2ModalDismissed] = useState(false);
+  const [isGoalModalExplicitlyOpen, setIsGoalModalExplicitlyOpen] = useState(false);
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [enrolledRoadmapsState, setEnrolledRoadmapsState] = useState(null);
+
+  const handleEnrollRoadmap = async (slug, title) => {
+    let currentList = enrolledRoadmapsState;
+    if (!currentList) {
+      try {
+        const raw = localStorage.getItem("ignitio:assigned_roadmaps");
+        if (raw) currentList = JSON.parse(raw);
+      } catch {}
+    }
+    if (!Array.isArray(currentList) || currentList.length === 0) {
+      if (Array.isArray(profileData?.assignedRoadmaps) && profileData.assignedRoadmaps.length > 0) {
+        currentList = profileData.assignedRoadmaps;
+      } else {
+        currentList = ["dsa"];
+      }
+    }
+
+    const nextList = Array.from(new Set([...currentList, slug]));
+    try {
+      localStorage.setItem("ignitio:assigned_roadmaps", JSON.stringify(nextList));
+    } catch {}
+    setEnrolledRoadmapsState(nextList);
+
+    try {
+      if (user) {
+        const token = await user.getIdToken();
+        await fetch("/api/v2/roadmaps/enroll", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            roadmapSlug: slug,
+            roadmapTitle: title,
+          }),
+        });
+        if (mutateProfile) {
+          mutateProfile();
+        }
+      }
+    } catch (err) {
+      console.error("[handleEnrollRoadmap] Persistence error:", err);
+    }
+
+    setIsCatalogModalOpen(false);
+  };
 
   const fetcher = async (url) => {
     if (!user) return null;
@@ -305,10 +368,11 @@ export default function Dashboard() {
       legacySections: [],
     });
 
-    // Read assigned roadmaps from localStorage (persisted from onboarding)
-    let assignedIds = null;
-    try {
-      const raw = localStorage.getItem("ignitio:assigned_roadmaps");
+    // Read assigned roadmaps from local state or localStorage (persisted from onboarding/catalog)
+    let assignedIds = enrolledRoadmapsState;
+    if (!assignedIds) {
+      try {
+        const raw = localStorage.getItem("ignitio:assigned_roadmaps");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) assignedIds = parsed;
@@ -317,7 +381,9 @@ export default function Dashboard() {
         const rawResult = localStorage.getItem("ignitio:onboarding_result");
         if (rawResult) {
           const parsed = JSON.parse(rawResult);
-          if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+          if (parsed?.goal === "dsa") {
+            assignedIds = ["dsa"];
+          } else if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
             const skillMap = {
               git: "git-github",
               python: "python-beginner",
@@ -330,7 +396,23 @@ export default function Dashboard() {
           }
         }
       }
+      // Server fallback if localStorage was cleared
+      if (!assignedIds && profileData) {
+        if (profileData.activeRoadmapSlug === "dsa" || profileData.currentRoadmap === "dsa" || (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.includes("dsa") && !profileData.assignedRoadmaps.includes("python"))) {
+          assignedIds = ["dsa"];
+        } else if (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.length > 0) {
+          const skillMap = {
+            git: "git-github",
+            python: "python-beginner",
+            prompt: "prompt-engineering",
+            system_design: "system-design-fundamentals",
+            dsa: "dsa",
+          };
+          assignedIds = profileData.assignedRoadmaps.map(s => skillMap[s] || s).filter(Boolean);
+        }
+      }
     } catch { }
+  }
 
     // If assignedIds exists, only include roadmaps assigned to the user in that order.
     // Otherwise fallback to UNLOCK_ORDER (for legacy users).
@@ -351,6 +433,7 @@ export default function Dashboard() {
     if (
       selectedDsaRoadmap &&
       isDsaAllowedRole(userRole) &&
+      (!assignedIds || assignedIds.length === 0) &&
       !filteredRoadmapsData.some((r) => r.id === selectedDsaRoadmap.id)
     ) {
       const dsaEntry = roadmapsData.find((r) => r.id === selectedDsaRoadmap.id);
@@ -448,10 +531,10 @@ export default function Dashboard() {
 
     const serverActiveSlug = profileData?.activeRoadmapSlug || profileData?.currentRoadmap;
     if (serverActiveSlug) {
-      const foundServerActive = unlockedRoadmaps.find(r => r.id === serverActiveSlug);
+      const foundServerActive = unlockedRoadmaps.find(r => r.id === serverActiveSlug || (serverActiveSlug === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
       if (foundServerActive) activeRoadmapToSet = foundServerActive;
     } else if (lastActiveRoadmapId) {
-      const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId);
+      const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId || (lastActiveRoadmapId === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
       if (foundLastActive) activeRoadmapToSet = foundLastActive;
     }
 
@@ -506,114 +589,177 @@ export default function Dashboard() {
 
   const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
-  const carouselRoadmaps = [];
+  // Memoize carousel roadmaps and locks strictly so RoadmapWorldsCarousel receives a stable array reference
+  const carouselRoadmapsWithLocks = useMemo(() => {
+    const rawList = [];
 
-  // System Design
-  carouselRoadmaps.push({
-    id: systemDesignRoadmapData.id,
-    component: (
-      <SystemDesignCourseCard
-        onClick={handleRedirectSystemDesign}
-        levelsFinished={
-          roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
-        }
-        totalLevels={
-          roadmapProgress[systemDesignRoadmapData.id]?.total ||
-          systemDesignRoadmapData.days.flatMap((day) => day.levels).length
-        }
-      />
-    ),
-  });
-
-  // Python
-  carouselRoadmaps.push({
-    id: pythonBeginnerRoadmapData.id,
-    component: (
-      <PythonCourseCard
-        onClick={handleRedirectPython}
-        levelsFinished={
-          roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
-        }
-        totalLevels={
-          roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
-          pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
-        }
-      />
-    ),
-  });
-
-  // C Language
-  carouselRoadmaps.push({
-    id: clangBeginnerRoadmapData.id,
-    component: (
-      <CCourseCard
-        onClick={handleRedirectCLang}
-        levelsFinished={
-          roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
-        }
-        totalLevels={
-          roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
-          clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length
-        }
-      />
-    ),
-  });
-
-  // Prompt Engineering
-  carouselRoadmaps.push({
-    id: selectedPromptRoadmap.id,
-    component: (
-      <PromptEngineeringCourseCard
-        onClick={handleRedirectPromptEngineering}
-        levelsFinished={roadmapProgress[selectedPromptRoadmap.id]?.completed || 0}
-        totalLevels={roadmapProgress[selectedPromptRoadmap.id]?.total || selectedPromptRoadmap.days.flatMap((day) => day.levels).length}
-        roadmapData={selectedPromptRoadmap}
-      />
-    )
-  });
-
-  if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
-    carouselRoadmaps.push({
-      id: selectedDsaRoadmap.id,
+    // System Design
+    rawList.push({
+      id: systemDesignRoadmapData.id,
       component: (
-        <DsaCourseCard
-          onClick={handleRedirectDsa}
-          levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
-          totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
-          roadmapData={selectedDsaRoadmap}
+        <SystemDesignCourseCard
+          onClick={handleRedirectSystemDesign}
+          levelsFinished={
+            roadmapProgress[systemDesignRoadmapData.id]?.completed || 0
+          }
+          totalLevels={
+            roadmapProgress[systemDesignRoadmapData.id]?.total ||
+            systemDesignRoadmapData.days.flatMap((day) => day.levels).length
+          }
         />
-      )
+      ),
     });
-  }
 
-  // CPP
-  carouselRoadmaps.push({
-    id: "cpp",
-    component: (
-      <CppCourseCard
-        onClick={handleRedirectCPP}
-        levelsFinished={roadmapProgress["cpp"]?.completed || 0}
-        totalLevels={roadmapProgress["cpp"]?.total || cppRoadmapData.days.flatMap((day) => day.levels).length}
-      />
-    )
-  });
+    // Python
+    rawList.push({
+      id: pythonBeginnerRoadmapData.id,
+      component: (
+        <PythonCourseCard
+          onClick={handleRedirectPython}
+          levelsFinished={
+            roadmapProgress[pythonBeginnerRoadmapData.id]?.completed || 0
+          }
+          totalLevels={
+            roadmapProgress[pythonBeginnerRoadmapData.id]?.total ||
+            pythonBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+          }
+        />
+      ),
+    });
 
-  // Git
-  carouselRoadmaps.push({
-    id: "git-github",
-    component: (
-      <GitCourseCard
-        onClick={handleRedirectGitGithub}
-        levelsFinished={roadmapProgress["git-github"]?.completed || 0}
-        totalLevels={roadmapProgress["git-github"]?.total || gitGithubRoadmapData.days.flatMap((day) => day.levels).length}
-      />
-    )
-  });
+    // C Language
+    rawList.push({
+      id: clangBeginnerRoadmapData.id,
+      component: (
+        <CCourseCard
+          onClick={handleRedirectCLang}
+          levelsFinished={
+            roadmapProgress[clangBeginnerRoadmapData.id]?.completed || 0
+          }
+          totalLevels={
+            roadmapProgress[clangBeginnerRoadmapData.id]?.total ||
+            clangBeginnerRoadmapData.days.flatMap((day) => day.levels).length
+          }
+        />
+      ),
+    });
 
-  // Order and filter carousel items to strictly match the roadmaps in allRoadmaps
-  const filteredCarouselRoadmaps = allRoadmaps
-    .map((ar) => carouselRoadmaps.find((cr) => cr.id === ar.id))
-    .filter(Boolean);
+    // Prompt Engineering
+    rawList.push({
+      id: selectedPromptRoadmap.id,
+      component: (
+        <PromptEngineeringCourseCard
+          onClick={handleRedirectPromptEngineering}
+          levelsFinished={roadmapProgress[selectedPromptRoadmap.id]?.completed || 0}
+          totalLevels={roadmapProgress[selectedPromptRoadmap.id]?.total || selectedPromptRoadmap.days.flatMap((day) => day.levels).length}
+          roadmapData={selectedPromptRoadmap}
+        />
+      ),
+    });
+
+    if (isDsaAllowedRole(userRole) && selectedDsaRoadmap) {
+      rawList.push({
+        id: selectedDsaRoadmap.id,
+        component: (
+          <DsaCourseCard
+            onClick={handleRedirectDsa}
+            levelsFinished={roadmapProgress[selectedDsaRoadmap.id]?.completed || 0}
+            totalLevels={roadmapProgress[selectedDsaRoadmap.id]?.total || selectedDsaRoadmap.days.flatMap((day) => day.levels).length}
+            roadmapData={selectedDsaRoadmap}
+          />
+        ),
+      });
+    }
+
+    // CPP
+    rawList.push({
+      id: "cpp",
+      component: (
+        <CppCourseCard
+          onClick={handleRedirectCPP}
+          levelsFinished={roadmapProgress["cpp"]?.completed || 0}
+          totalLevels={roadmapProgress["cpp"]?.total || cppRoadmapData.days.flatMap((day) => day.levels).length}
+        />
+      ),
+    });
+
+    // Git
+    rawList.push({
+      id: "git-github",
+      component: (
+        <GitCourseCard
+          onClick={handleRedirectGitGithub}
+          levelsFinished={roadmapProgress["git-github"]?.completed || 0}
+          totalLevels={roadmapProgress["git-github"]?.total || gitGithubRoadmapData.days.flatMap((day) => day.levels).length}
+        />
+      ),
+    });
+
+    // Order and filter carousel items to strictly match the roadmaps in allRoadmaps
+    const filtered = allRoadmaps
+      .map((ar) => rawList.find((cr) => cr.id === ar.id))
+      .filter(Boolean);
+
+    return filtered.map((item) => {
+      if (!lockedRoadmapIds.has(item.id)) return item;
+      const lockIdx = allRoadmaps.findIndex((r) => r.id === item.id);
+      const prevTitle =
+        lockIdx > 0 ? allRoadmaps[lockIdx - 1]?.title : "the previous roadmap";
+      return {
+        ...item,
+        component: (
+          <div
+            key={item.id}
+            className="relative w-full h-full select-none"
+            style={{ borderRadius: 24 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                filter: "grayscale(1) brightness(0.72)",
+                pointerEvents: "none",
+                height: "100%",
+                width: "100%",
+              }}
+            >
+              {React.cloneElement(item.component, { onClick: undefined })}
+            </div>
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
+              style={{
+                background: "rgba(25,24,59,0.45)",
+                borderRadius: 24,
+                backdropFilter: "blur(2px)",
+              }}
+            >
+              <div
+                className="flex items-center justify-center rounded-full bg-white/15"
+                style={{ width: 52, height: 52 }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <p className="text-white font-bold text-[15px] leading-snug">
+                Locked
+              </p>
+              <p className="text-white/80 text-[13px] leading-relaxed">
+                Complete <span className="font-semibold text-white">{prevTitle}</span> to unlock this roadmap.
+              </p>
+            </div>
+          </div>
+        ),
+      };
+    });
+  }, [
+    allRoadmaps,
+    roadmapProgress,
+    lockedRoadmapIds,
+    selectedPromptRoadmap,
+    userRole,
+    selectedDsaRoadmap,
+  ]);
 
   /**
    * New-user guard:
@@ -695,6 +841,7 @@ export default function Dashboard() {
                 streak={profileData?.streak}
                 isLoadingProfile={isLoadingProfile}
                 user={user}
+                onOpenGoalModal={() => setIsGoalModalExplicitlyOpen(true)}
               />
 
 
@@ -739,64 +886,9 @@ export default function Dashboard() {
       {activeTab === "worlds" && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-36">
           <RoadmapWorldsCarousel
-            roadmaps={filteredCarouselRoadmaps.map(item => {
-              if (!lockedRoadmapIds.has(item.id)) return item;
-              // Find which roadmap unlocks this one
-              const lockIdx = allRoadmaps.findIndex(r => r.id === item.id);
-              const prevTitle = lockIdx > 0 ? allRoadmaps[lockIdx - 1]?.title : "the previous roadmap";
-              return {
-                ...item,
-                component: (
-                  <div
-                    key={item.id}
-                    className="relative w-full h-full select-none"
-                    style={{ borderRadius: 24 }}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    {/* Greyscale + dim the underlying card */}
-                    <div
-                      style={{
-                        filter: "grayscale(1) brightness(0.72)",
-                        pointerEvents: "none",
-                        height: "100%",
-                        width: "100%",
-                      }}
-                    >
-                      {React.cloneElement(item.component, { onClick: undefined })}
-                    </div>
-
-                    {/* Lock overlay */}
-                    <div
-                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
-                      style={{
-                        background: "rgba(25,24,59,0.45)",
-                        borderRadius: 24,
-                        backdropFilter: "blur(2px)",
-                      }}
-                    >
-                      {/* Lock icon */}
-                      <div
-                        className="flex items-center justify-center rounded-full bg-white/15"
-                        style={{ width: 52, height: 52 }}
-                      >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                      </div>
-
-                      <p className="text-white font-bold text-[15px] leading-snug">
-                        Locked
-                      </p>
-                      <p className="text-white/80 text-[13px] leading-relaxed">
-                        Complete <span className="font-semibold text-white">{prevTitle}</span> to unlock this roadmap.
-                      </p>
-                    </div>
-                  </div>
-                ),
-              };
-            })}
+            roadmaps={carouselRoadmapsWithLocks}
             initialActiveId={activeRoadmap?.id}
+            onOpenCatalog={() => setIsCatalogModalOpen(true)}
           />
         </div>
       )}
@@ -830,17 +922,57 @@ export default function Dashboard() {
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <DashboardBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* ── DAY 2 STREAK GOAL & CONTINUITY MODAL ── */}
-      {isClient && !isDay2ModalDismissed && (profileData?.streak?.currentCount || 0) >= 1 && !profileData?.streak?.day2PromptSeen && !profileData?.streak?.targetGoal && (
-        <Day2StreakModal
-          user={user}
-          streak={profileData?.streak}
-          onClose={() => setIsDay2ModalDismissed(true)}
-          onSuccess={(updatedStreak) => {
-            if (mutateProfile) {
-              mutateProfile((prev) => (prev ? { ...prev, streak: updatedStreak } : prev), false);
-            }
-          }}
+      {/* ── STREAK GOAL & CONTINUITY MODAL ── */}
+      {isClient &&
+        (isGoalModalExplicitlyOpen ||
+          (!isDay2ModalDismissed &&
+            (profileData?.streak?.currentCount || 0) >= 1 &&
+            !profileData?.streak?.day2PromptSeen &&
+            !profileData?.streak?.targetGoal &&
+            (profileData?.streak?.longestCount || 0) <= 2 &&
+            (profileData?.stats?.roadmapsCompleted || 0) === 0)) && (
+          <Day2StreakModal
+            user={user}
+            streak={profileData?.streak}
+            onClose={() => {
+              setIsDay2ModalDismissed(true);
+              setIsGoalModalExplicitlyOpen(false);
+            }}
+            onSuccess={(updatedStreakData) => {
+              setIsGoalModalExplicitlyOpen(false);
+              if (mutateProfile) {
+                mutateProfile(
+                  (prev) => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      streak: {
+                        ...prev.streak,
+                        ...updatedStreakData,
+                        // CRITICAL: Preserve the dynamically built weekly cups array!
+                        week: prev.streak?.week,
+                      },
+                    };
+                  },
+                  true, // Revalidate in background so server data stays authoritative
+                );
+              }
+            }}
+          />
+        )}
+
+      {/* ── ROADMAP CATALOG MODAL (UNLOCK NEW WORLDS) ── */}
+      {isClient && (
+        <RoadmapCatalogModal
+          isOpen={isCatalogModalOpen}
+          onClose={() => setIsCatalogModalOpen(false)}
+          enrolledRoadmapIds={
+            enrolledRoadmapsState ||
+            (allRoadmaps?.length > 0 ? allRoadmaps.map((r) => r.id) : null) ||
+            profileData?.assignedRoadmaps ||
+            ["dsa"]
+          }
+          onEnrollRoadmap={handleEnrollRoadmap}
         />
       )}
     </div>

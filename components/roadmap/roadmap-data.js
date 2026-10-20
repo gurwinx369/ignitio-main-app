@@ -88,6 +88,71 @@ export const STAGES = [
   },
 ];
 
+export const DSA_STAGES = [
+  {
+    id: "dsa_w1",
+    kind: "stage",
+    number: "01",
+    weekLabel: "Week 1",
+    days: "Days 1–7",
+    title: "Foundations & Search Patterns",
+    concepts: ["Flowcharts & Logic", "Arrays & 2D Search", "Binary Search", "Cycle & Insertion Sort"],
+    outcome: "Master search patterns & 15+ array problems",
+    accent: "#38bdf8",
+    icon: CodeXml,
+    startHere: true,
+  },
+  {
+    id: "dsa_w2",
+    kind: "stage",
+    number: "02",
+    weekLabel: "Week 2",
+    days: "Days 8–14",
+    title: "Recursion & Backtracking",
+    concepts: ["Recursion Patterns", "Subsets & Dice Rolls", "Permutations", "Backtracking Logic"],
+    outcome: "Solve 20+ recursive & subset problems",
+    accent: "#818cf8",
+    icon: BrainCircuit,
+  },
+  {
+    id: "dsa_w3",
+    kind: "stage",
+    number: "03",
+    weekLabel: "Week 3",
+    days: "Days 15–21",
+    title: "Trees, Heaps & Graphs",
+    concepts: ["Linked Lists & Stacks", "Binary Search Trees", "Heaps & Segment Trees", "BFS & DFS Traversals"],
+    outcome: "Implement & traverse trees, heaps, and lists",
+    accent: "#34d399",
+    icon: Database,
+  },
+  {
+    id: "dsa_w4",
+    kind: "stage",
+    number: "04",
+    weekLabel: "Week 4",
+    days: "Days 22–24",
+    title: "Advanced Graphs & FAANG Prep",
+    concepts: ["Shortest Paths (Dijkstra)", "Minimum Spanning Trees", "Topological Sort", "FAANG Interview Problems"],
+    outcome: "Tackle interview-level graph questions",
+    accent: "#fb923c",
+    icon: Layers,
+  },
+  {
+    id: "dsa_finish",
+    kind: "finish",
+    weekLabel: "Day 24",
+    days: "The finish line",
+    title: "Interview & Placement Ready",
+    concepts: [],
+    outcome:
+      "Solve top FAANG & product company coding interview questions with optimal algorithmic complexity.",
+    badge: "leetcode.com/faang-ready",
+    accent: "#5cc8ff",
+    icon: Trophy,
+  },
+];
+
 export const CARD_W = 296;
 export const COL_GAP = 96;
 export const PAD_X = 20;

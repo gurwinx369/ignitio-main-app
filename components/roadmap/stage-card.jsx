@@ -104,7 +104,7 @@ export function StageCard({ stage, on }) {
                 >
                   <CircleCheck aria-hidden="true" className="size-3.5" />
                   <span className="rm-type inline-block" style={delay(1000)}>
-                    github.com/you/your-project
+                    {stage.badge || "github.com/you/your-project"}
                   </span>
                 </div>
               </div>

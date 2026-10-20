@@ -36,6 +36,7 @@ const BootstrapValidator = z.object({
   freePath: FreePathSchema,
   schedule: ScheduleSchema.optional().nullable(),
   role: z.enum(Object.values(USER_ROLES)).optional().default("student"),
+  activeRoadmapSlug: z.string().optional(),
   initializeLegalConsent: z.boolean().optional().default(true),
 });
 
@@ -72,7 +73,8 @@ export async function POST(request) {
     );
   }
 
-  const { email, goal, freePath, schedule, role, initializeLegalConsent } = validation.data;
+  const { email, goal, freePath, schedule, role, activeRoadmapSlug, initializeLegalConsent } = validation.data;
+  const isDsa = activeRoadmapSlug === "dsa" || (Array.isArray(freePath?.roadmap) && freePath.roadmap.includes("dsa") && !freePath.roadmap.includes("python"));
 
   // 3. Security check: Token email must match payload email
   if (!tokenEmail || tokenEmail !== email) {
@@ -144,6 +146,7 @@ export async function POST(request) {
               schedulePreference: schedule,
               role: role || existingProfile.role || "student",
               ...(goal ? { goal } : {}),
+              ...(isDsa ? { activeRoadmapSlug: "dsa", roadmap_name: "dsa" } : {}),
             },
           }
         );
@@ -182,11 +185,15 @@ export async function POST(request) {
     const ALLOWED_GOALS = new Set(Object.values(USER_GOALS));
     const safeGoal = goal && ALLOWED_GOALS.has(goal) ? goal : USER_GOALS.CURIOSITY_GENERAL;
 
+    const initialActiveRoadmapSlug = isDsa ? "dsa" : (activeRoadmapSlug || "python-beginner");
+
     const newProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid,
       email: tokenEmail,
       role: role || "student",
       goal: safeGoal,
+      activeRoadmapSlug: initialActiveRoadmapSlug,
+      roadmap_name: initialActiveRoadmapSlug,
       onboardingComplete: false,
       onboardingVersion: ONBOARDING_VERSIONS.V5,
       onboardingState: {
@@ -213,7 +220,7 @@ export async function POST(request) {
             $set: {
               year: String(freePath.year),
               pathTaken: freePath.pathTaken,
-              roadmap: Array.isArray(freePath.roadmap) ? freePath.roadmap : [],
+              roadmap: isDsa ? ["dsa"] : (Array.isArray(freePath.roadmap) ? freePath.roadmap : []),
               diagnosticResults: sanitizedDiagnostic,
               notificationAllowed: Boolean(freePath.notificationAllowed),
               completedAt: new Date(),

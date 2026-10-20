@@ -59,6 +59,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
   const [question, setQuestion] = useState('');
   const [error, setError] = useState(null);
   const [isHighDemand, setIsHighDemand] = useState(false);
+  const [isDeepThinking, setIsDeepThinking] = useState(false);
 
   const messagesEndRef = useRef(null);
   const lastQuestion = useRef('');
@@ -99,6 +100,7 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
       setError(null);
       setIsHighDemand(false);
       setIsThinking(false);
+      setIsDeepThinking(false);
       setKylePetVisualState(null);
     }
     wasOpenRef.current = isOpen;
@@ -129,12 +131,17 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
 
     setMessages(prev => [...prev, { role: 'user', text: currentQuestion }]);
     setIsThinking(true);
+    setIsDeepThinking(false);
     setKylePetVisualState('thinking');
+
+    const deepTimer = setTimeout(() => {
+      setIsDeepThinking(true);
+    }, 8000);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 25000);
+    }, 150000);
 
     try {
       const idToken = await user.getIdToken();
@@ -204,7 +211,9 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
       }
       setError(err.message || 'Failed to connect to Kibo.');
     } finally {
+      clearTimeout(deepTimer);
       setIsThinking(false);
+      setIsDeepThinking(false);
       setKylePetVisualState(null);
     }
   };
@@ -309,7 +318,9 @@ export default function AskKyleModal({ isOpen, onClose, options, isThinking, set
                 </div>
                 <div className="px-5 py-4 bg-white text-[#7775a5] font-semibold border-2 border-[#e5d5c5] shadow-[0_3px_0_#FFDCBC] rounded-2xl rounded-tl-sm flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-[#7775a5]" />
-                  <span className="text-[15px] italic ml-1">Kibo is thinking...</span>
+                  <span className="text-[15px] italic ml-1">
+                    {isDeepThinking ? "Kibo is reasoning deeply through this question..." : "Kibo is thinking..."}
+                  </span>
                 </div>
               </div>
             </div>

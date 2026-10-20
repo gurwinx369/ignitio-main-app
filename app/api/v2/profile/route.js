@@ -4,6 +4,7 @@ import { UserProfile } from "@/models/v2/user.profile.model";
 import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
 import { UserCertificate } from "@/models/v2/user.certificate.model";
 import { LessonCompletion } from "@/models/v2/lesson.completion.model";
+import { FreePathResult } from "@/models/v2/freepathresult.model";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { getStreakSummary, getLocalDateString, evaluateAndApplyLazyStreakState, addLocalDays, buildWeeklyStreakCalendar } from "@/lib/users/streak.service";
 import { resolveCertificateTemplate } from "@/features/certificates/certificateTemplateResolver";
@@ -39,6 +40,7 @@ export async function GET(request) {
     );
 
     const progresses = await RoadmapProgress.find({ firebaseUID: decodedToken.uid }).lean();
+    const freePathDoc = await FreePathResult.findOne({ firebaseUID: decodedToken.uid }).select("roadmap").lean();
 
     // Aggregate stats defensively
     let completedLevels = 0;
@@ -147,13 +149,20 @@ export async function GET(request) {
       };
     });
 
+    const isDsaLearner = user.activeRoadmapSlug === "dsa" ||
+      (Array.isArray(freePathDoc?.roadmap) && freePathDoc.roadmap.includes("dsa") && !freePathDoc.roadmap.includes("python"));
+    const resolvedActiveRoadmap = isDsaLearner
+      ? "dsa"
+      : (user.activeRoadmapSlug || user.roadmap_name || currentRoadmap || "python-beginner");
+
     return NextResponse.json({
       ok: true,
       profile: {
         email: user.email,
         role: user.role,
-        currentRoadmap: user.activeRoadmapSlug || user.roadmap_name || currentRoadmap || "python-beginner",
-        activeRoadmapSlug: user.activeRoadmapSlug || user.roadmap_name || currentRoadmap || "python-beginner",
+        currentRoadmap: resolvedActiveRoadmap,
+        activeRoadmapSlug: resolvedActiveRoadmap,
+        assignedRoadmaps: freePathDoc?.roadmap || (isDsaLearner ? ["dsa"] : []),
         joinedAt: user.createdAt,
         streak: streakSummary,
         stats: {
