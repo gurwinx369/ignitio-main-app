@@ -47,7 +47,7 @@ export default function Day2StreakModal({
   onClose,
   onSuccess,
 }) {
-  const [selectedGoal, setSelectedGoal] = useState(14);
+  const [selectedGoal, setSelectedGoal] = useState(streak?.targetGoal || 14);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stage, setStage] = useState("quiz"); // "quiz" | "timeline"
 
@@ -60,25 +60,29 @@ export default function Day2StreakModal({
     trackFullPage: true,
   });
 
-  // Calculate 7-day timeline starting from yesterday (Day 1) through the next 6 days
+  const isTodayCompleted = Boolean(
+    streak?.todayCompleted ||
+    streak?.status === "completed_today" ||
+    streak?.status === "completed" ||
+    streak?.week?.some((d) => d.isToday && (d.status === "completed_today" || d.status === "completed"))
+  );
+
+  // Calculate 7-day timeline adapting to whether today's lesson is already finished
   const timelineDays = useMemo(() => {
     const today = new Date();
     const todayIndex = today.getDay();
-    // Index 0: Yesterday (Day 1 completed)
-    // Index 1: Today (Day 2 active)
-    // Indices 2-6: Next 5 days
     return Array.from({ length: 7 }, (_, i) => {
-      const dayOffset = i - 1; // -1 = yesterday, 0 = today, 1..5 = future
-      const dayIndex = (todayIndex + dayOffset + 7) % 7;
+      const dayOffset = isTodayCompleted ? i : i - 1;
+      const dayIndex = (todayIndex + dayOffset + 70) % 7;
       return {
         label: DAY_NAMES[dayIndex],
-        isDay1: i === 0,
-        isToday: i === 1,
-        isFuture: i > 1,
+        isDone: i === 0,
+        isNext: i === 1,
+        isToday: isTodayCompleted ? i === 0 : i === 1,
         dayNumber: i + 1,
       };
     });
-  }, []);
+  }, [isTodayCompleted]);
 
   const handleCommitGoal = async () => {
     setIsSubmitting(true);
@@ -116,7 +120,7 @@ export default function Day2StreakModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[200] isolate flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       <div
         className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#0e1027] text-white shadow-[0_24px_70px_rgba(0,0,0,0.7)] animate-in zoom-in-95 duration-300"
         style={{
@@ -284,7 +288,9 @@ export default function Day2StreakModal({
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
               <div className="flex items-center justify-between text-xs font-bold text-white/50 mb-3 px-1">
                 <span>PROGRESSION TIMELINE</span>
-                <span className="text-[#00A9FF]">Day 2 Active</span>
+                <span className="text-[#00A9FF]">
+                  {isTodayCompleted ? "Day 1 Complete • Next: Day 2" : "Day 2 Active"}
+                </span>
               </div>
 
               <div className="flex items-center justify-between gap-1 sm:gap-2">
@@ -294,7 +300,7 @@ export default function Day2StreakModal({
                       className={`text-[11px] font-bold mb-1.5 ${
                         item.isToday
                           ? "text-[#00A9FF]"
-                          : item.isDay1
+                          : item.isDone
                             ? "text-emerald-400"
                             : "text-white/40"
                       }`}
@@ -304,11 +310,11 @@ export default function Day2StreakModal({
 
                     {/* Day Cup Display */}
                     <div className="relative flex size-10 items-center justify-center">
-                      {item.isDay1 ? (
+                      {item.isDone ? (
                         <div className="relative">
                           <Image
                             src="/streak/streak_done.png"
-                            alt="Day 1 Complete"
+                            alt="Day Complete"
                             width={32}
                             height={32}
                             className="size-8 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
@@ -317,13 +323,13 @@ export default function Day2StreakModal({
                             ✓
                           </span>
                         </div>
-                      ) : item.isToday ? (
+                      ) : item.isNext ? (
                         <div className="relative flex items-center justify-center">
                           {/* Pulsing glow aura */}
                           <span className="absolute inset-0 rounded-full bg-[#00A9FF]/40 animate-ping opacity-75" />
                           <Image
                             src="/streak/streak_pending_or_skipped.png"
-                            alt="Today Active"
+                            alt={isTodayCompleted ? "Next Brew" : "Today Active"}
                             width={32}
                             height={32}
                             className="relative size-8 object-contain drop-shadow-[0_0_10px_rgba(0,169,255,0.7)] animate-bounce"
@@ -344,14 +350,18 @@ export default function Day2StreakModal({
                     {/* Tag underneath */}
                     <span
                       className={`text-[9px] font-extrabold uppercase mt-1 tracking-wider ${
-                        item.isToday
-                          ? "text-[#00A9FF]"
-                          : item.isDay1
-                            ? "text-emerald-400"
+                        item.isDone
+                          ? "text-emerald-400"
+                          : item.isNext
+                            ? "text-[#00A9FF]"
                             : "text-transparent"
                       }`}
                     >
-                      {item.isDay1 ? "DONE" : item.isToday ? "TODAY" : "·"}
+                      {item.isDone
+                        ? (item.isToday ? "TODAY" : "DONE")
+                        : item.isNext
+                          ? (isTodayCompleted ? "NEXT" : "TODAY")
+                          : "·"}
                     </span>
                   </div>
                 ))}
@@ -365,7 +375,9 @@ export default function Day2StreakModal({
                 <strong className="block text-amber-300 font-bold mb-0.5">
                   Protect Your Streak Flame!
                 </strong>
-                If you don&apos;t complete your 5-minute lesson before midnight, your 2-day flame resets back to 0. Keep the momentum going!
+                {isTodayCompleted
+                  ? "Awesome job finishing today! Keep your flame alive by coming back tomorrow for Day 2 before midnight."
+                  : "If you don't complete your 5-minute lesson before midnight, your 2-day flame resets back to 0. Keep the momentum going!"}
               </div>
             </div>
 
@@ -375,7 +387,7 @@ export default function Day2StreakModal({
               onClick={handleStartLesson}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00A9FF] px-6 py-4 text-base font-extrabold text-white shadow-[0_4px_0_#007bcc] hover:bg-[#0096e6] hover:-translate-y-px active:translate-y-[2px] active:shadow-none transition-all duration-150 cursor-pointer"
             >
-              <span>Start Day 2 Lesson Now</span>
+              <span>{isTodayCompleted ? "Continue Learning" : "Start Day 2 Lesson Now"}</span>
               <ArrowRight className="size-5" />
             </button>
           </div>

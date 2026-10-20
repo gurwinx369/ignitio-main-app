@@ -26,8 +26,8 @@ function getLessonHref() {
     if (direct) return direct
     // Fallback: already-authenticated users who never went through signup
     const result = JSON.parse(localStorage.getItem('ignitio:onboarding_result') ?? 'null')
-    const firstSkill = result?.roadmap?.[0] || 'python'
-    return LESSON_ROUTES[firstSkill] ?? '/home/roadmaps/python-beginner'
+    const firstSkill = result?.goal === 'dsa' ? 'dsa' : (result?.roadmap?.[0] || 'python')
+    return LESSON_ROUTES[firstSkill] ?? (result?.goal === 'dsa' ? '/home/roadmaps/dsa' : '/home/roadmaps/python-beginner')
   } catch {
     return '/home/roadmaps/python-beginner'
   }

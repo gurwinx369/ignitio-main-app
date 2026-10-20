@@ -69,7 +69,7 @@ export async function POST(request) {
         pageContext: parsed.data.pageContext,
         history: parsed.data.history
       },
-      timeoutMs: 35000 // Let frontend 25s timeout hit first naturally
+      timeoutMs: 150000 // Bounded SLA accommodating deep reasoning / CoT
     });
 
     return NextResponse.json({ data: { answer: responseData.answer } }, { status: 200 });

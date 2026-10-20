@@ -8,7 +8,7 @@ import "server-only";
 // Configuration
 // ---------------------------------------------------------------------------
 
-const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_TIMEOUT_MS = 150_000;
 
 function getBaseUrl() {
   const raw = (process.env.FASTAPI_BASE_URL ?? "").trim();

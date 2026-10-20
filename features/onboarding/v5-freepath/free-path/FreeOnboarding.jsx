@@ -136,11 +136,10 @@ export default function FreeOnboarding() {
         setDiagnosticResults(saved.diagnosticResults);
       if (saved.roadmap) {
         const isDsaGoal = saved.goal === "dsa";
-        const hasDsa = saved.roadmap.includes("dsa");
         let roadmapAdjusted = saved.roadmap;
-        if (isDsaGoal && !hasDsa) {
-          roadmapAdjusted = [...saved.roadmap, "dsa"];
-        } else if (!isDsaGoal && hasDsa) {
+        if (isDsaGoal) {
+          roadmapAdjusted = ["dsa"];
+        } else {
           roadmapAdjusted = saved.roadmap.filter((s) => s !== "dsa");
         }
         setRoadmap(roadmapAdjusted);
@@ -165,14 +164,10 @@ export default function FreeOnboarding() {
     (selectedGoal) => {
       setGoal(selectedGoal);
 
-      // Fast-track DSA directly to roadmap result (Path B: beginner with Python + Git + DSA)
+      // Fast-track DSA directly to roadmap result
       if (selectedGoal === "dsa") {
         setPath("B");
-        const additional = getAdditionalStages("dsa", year).filter(
-          (s) => s !== "dsa",
-        );
-        const fullRoadmap = [...SKILL_ORDER, "dsa", ...additional];
-        setRoadmap(fullRoadmap);
+        setRoadmap(["dsa"]);
         setDiagnosticResults(null);
         setScreen(SCREENS.ROADMAP_RESULT);
         return;
@@ -216,7 +211,7 @@ export default function FreeOnboarding() {
     );
     const fullRoadmap =
       goal === "dsa"
-        ? [...SKILL_ORDER, "dsa", ...additional]
+        ? ["dsa"]
         : [...SKILL_ORDER, ...additional];
     setRoadmap(fullRoadmap);
     setDiagnosticResults(null);
@@ -245,9 +240,7 @@ export default function FreeOnboarding() {
       );
       const combined =
         goal === "dsa"
-          ? baseRoadmap.includes("dsa")
-            ? [...baseRoadmap, ...additional]
-            : [...baseRoadmap, "dsa", ...additional]
+          ? ["dsa"]
           : [...baseRoadmap.filter((s) => s !== "dsa"), ...additional];
       setRoadmap(combined);
       setScreen(SCREENS.REVEAL);
@@ -291,7 +284,12 @@ export default function FreeOnboarding() {
       );
       // Durable filter key — never cleared by syncOnboardingFromLocalStorage.
       // Dashboard reads this to show only the user's assigned roadmaps.
-      if (roadmap?.length) {
+      if (goal === "dsa") {
+        localStorage.setItem(
+          "ignitio:assigned_roadmaps",
+          JSON.stringify(["dsa"]),
+        );
+      } else if (roadmap?.length) {
         const roadmapIds = roadmap
           .map((s) => SKILL_TO_ROADMAP_ID[s])
           .filter(Boolean);
@@ -303,10 +301,10 @@ export default function FreeOnboarding() {
       // Set streak phase so /onboarding/streak shows StreakAnticipation
       localStorage.setItem("ignitio:streak_phase", "anticipated");
       // Write lesson href separately — survives syncOnboardingFromLocalStorage clearing onboarding_result
-      const firstSkill = roadmap?.[0] || "python";
+      const firstSkill = goal === "dsa" ? "dsa" : (roadmap?.[0] || "python");
       localStorage.setItem(
         "ignitio:streak_lesson_href",
-        LESSON_ROUTES[firstSkill] ?? "/home/roadmaps/python-beginner",
+        LESSON_ROUTES[firstSkill] ?? (goal === "dsa" ? "/home/roadmaps/dsa" : "/home/roadmaps/python-beginner"),
       );
     } catch {
       // ignore

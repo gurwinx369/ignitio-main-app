@@ -22,6 +22,7 @@ import {
   INTRO_MS,
   LABEL_H,
   STAGES,
+  DSA_STAGES,
   STAGE_MS,
   STEP_X,
   TRACK_HEIGHT,
@@ -65,17 +66,22 @@ function KiboHeaderAvatar({ size = 72, className = "", eyeTracking = true }) {
 // ponytail: duration rules for stages to compute dynamic weeks
 const STAGE_WEEKS = { git: 1, python: 2, dsa: 2, ship: 1, prompt: 1, system_design: 1 };
 
-export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
+export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
+  const isDsa = goal === "dsa" || (roadmapIds && roadmapIds.length === 1 && roadmapIds[0] === "dsa");
+
   // ponytail: compute active stages and dynamic labels inline instead of complex state
   const activeStages = useMemo(
-    () =>
-      STAGES.filter(
+    () => {
+      if (isDsa) return DSA_STAGES;
+      return STAGES.filter(
         (s) => s.kind === "finish" || !roadmapIds || roadmapIds.includes(s.id),
-      ),
-    [roadmapIds],
+      );
+    },
+    [roadmapIds, isDsa],
   );
 
   const dynamicStages = useMemo(() => {
+    if (isDsa) return DSA_STAGES;
     let currentWeek = 1;
     let currentDay = 1;
     // ponytail: always badge the first real stage regardless of which stages survive filtering
@@ -104,11 +110,12 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
       currentDay += weeks * 7;
       return res;
     });
-  }, [activeStages]);
+  }, [activeStages, isDsa]);
 
   const totalWeeks = useMemo(
-    () =>
-      activeStages.reduce(
+    () => {
+      if (isDsa) return 4;
+      return activeStages.reduce(
         (acc, stage) =>
           acc +
           (stage.kind === "stage"
@@ -117,8 +124,9 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
               ? 1
               : 0),
         0,
-      ),
-    [activeStages],
+      );
+    },
+    [activeStages, isDsa],
   );
 
   // ponytail: dynamic geometry based on filtered stages
@@ -515,19 +523,38 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
                 Your customized roadmap
               </h1>
               <p className="text-pretty text-base sm:text-lg leading-relaxed text-ig-text font-medium">
-                I've analyzed everything and crafted a personalized path
-                especially for you. Stick to this plan, and in just{" "}
-                <strong className="text-ig-cyan-soft font-bold">
-                  {totalWeeks} weeks
-                </strong>
-                , you'll launch your very own project directly to{" "}
-                <strong className="text-ig-cyan-soft font-bold">GitHub</strong>!
+                {isDsa ? (
+                  <>
+                    I&apos;ve analyzed everything and crafted a personalized path
+                    especially for you. Stick to this plan, and in just{" "}
+                    <strong className="text-ig-cyan-soft font-bold">
+                      4 weeks
+                    </strong>
+                    , you&apos;ll be{" "}
+                    <strong className="text-ig-cyan-soft font-bold">
+                      interview &amp; placement ready
+                    </strong>{" "}
+                    in Data Structures &amp; Algorithms!
+                  </>
+                ) : (
+                  <>
+                    I&apos;ve analyzed everything and crafted a personalized path
+                    especially for you. Stick to this plan, and in just{" "}
+                    <strong className="text-ig-cyan-soft font-bold">
+                      {totalWeeks} weeks
+                    </strong>
+                    , you&apos;ll launch your very own project directly to{" "}
+                    <strong className="text-ig-cyan-soft font-bold">GitHub</strong>!
+                  </>
+                )}
               </p>
               <p
                 className="rm-reveal rm-fade mt-3 text-sm text-ig-muted"
                 style={delay(880)}
               >
-                No fluff, just small wins every week. Are you ready?
+                {isDsa
+                  ? "Top 23 curated patterns. No fluff, just small wins every day. Are you ready?"
+                  : "No fluff, just small wins every week. Are you ready?"}
               </p>
             </div>
           </div>
@@ -669,17 +696,25 @@ export function RoadmapResult({ roadmapIds, onContinue, onBack }) {
             aria-live="polite"
           >
             {!done
-              ? "Matching milestones to your target pace..."
+              ? isDsa
+                ? "Calibrating 4-week algorithmic curriculum..."
+                : "Matching milestones to your target pace..."
               : committed
-                ? "First step: write your first Python script (5 min)"
-                : "Your first step takes about 5 minutes"}
+                ? isDsa
+                  ? "First step: Day 1 — Orientation & Big O intuition (10 min)"
+                  : "First step: write your first Python script (5 min)"
+                : isDsa
+                  ? "Your first step takes about 10 minutes"
+                  : "Your first step takes about 5 minutes"}
           </p>
         </div>
       </div>
 
       <p role="status" className="sr-only">
         {done
-          ? "Your roadmap is ready: learn to code, push to Git, then ship a live project to GitHub."
+          ? isDsa
+            ? "Your DSA roadmap is ready: master search patterns, recursion, trees, and graphs for FAANG interviews."
+            : "Your roadmap is ready: learn to code, push to Git, then ship a live project to GitHub."
           : ""}
       </p>
 

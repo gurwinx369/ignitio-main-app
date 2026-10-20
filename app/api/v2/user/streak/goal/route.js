@@ -9,6 +9,7 @@ const StreakGoalSchema = z.object({
     z.literal(7),
     z.literal(14),
     z.literal(21),
+    z.literal(24),
     z.literal(30),
   ]),
 });
@@ -45,7 +46,7 @@ export async function PATCH(request) {
       {
         message: "Validation failed",
         field: firstError?.path ? firstError.path.join(".") : "targetGoal",
-        detail: firstError?.message || "Expected 7, 14, 21, or 30",
+        detail: firstError?.message || "Expected 7, 14, 21, 24, or 30",
       },
       { status: 422 },
     );
@@ -77,7 +78,11 @@ export async function PATCH(request) {
       {
         success: true,
         message: "Streak goal set successfully",
-        streak: updatedUser.streak,
+        streak: {
+          targetGoal: updatedUser.streak?.targetGoal,
+          targetGoalSetAt: updatedUser.streak?.targetGoalSetAt,
+          day2PromptSeen: updatedUser.streak?.day2PromptSeen,
+        },
       },
       { status: 200 },
     );

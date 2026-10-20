@@ -350,14 +350,17 @@ export default function SignupForm() {
 
       const derived = deriveScheduleFromBrowser();
 
+      const isDsaGoal = rawGoal === "dsa" || onboardingResult?.goal === "dsa";
+
       const bootstrapPayload = {
         email: result.user.email,
         goal: mappedGoal,
+        ...(isDsaGoal ? { activeRoadmapSlug: "dsa" } : {}),
         freePath: onboardingResult?.path
           ? {
               year: onboardingResult.year || "1st",
               pathTaken: onboardingResult.path,
-              roadmap: onboardingResult.roadmap || [],
+              roadmap: isDsaGoal ? ["dsa"] : (onboardingResult.roadmap || []),
               diagnosticResults: onboardingResult.diagnosticResults || [],
               notificationAllowed: onboardingResult.notificationAllowed ?? false,
             }

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import AddRoadmapCard from "./AddRoadmapCard";
 
 const WORLD_SCROLL_EVENT =
   "ignitio:roadmap-world-scroll";
@@ -14,6 +15,7 @@ const WORLD_SCROLL_EVENT =
 export default function RoadmapWorldsCarousel({
   roadmaps,
   initialActiveId,
+  onOpenCatalog,
 }) {
   const scrollRef =
     useRef(null);
@@ -160,8 +162,11 @@ export default function RoadmapWorldsCarousel({
      INITIAL POSITION
   ===================================================== */
 
+  const hasPositionedRef = useRef(false);
+
   useEffect(() => {
     if (
+      hasPositionedRef.current ||
       !initialActiveId ||
       !roadmaps?.length ||
       !scrollRef.current
@@ -169,68 +174,32 @@ export default function RoadmapWorldsCarousel({
       return;
     }
 
-    const index =
-      roadmaps.findIndex(
-        (roadmap) =>
-          roadmap.id ===
-          initialActiveId,
+    const frame = requestAnimationFrame(() => {
+      const container = scrollRef.current;
+      if (!container) return;
+
+      const target = container.querySelector(
+        `[data-roadmap-id="${initialActiveId}"]`,
       );
 
-    if (index < 0) {
-      return;
-    }
+      if (!target) return;
 
-    const frame =
-      requestAnimationFrame(
-        () => {
-          const container =
-            scrollRef.current;
+      hasPositionedRef.current = true;
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const targetLeft =
+        container.scrollLeft + targetRect.left - containerRect.left;
 
-          if (!container) {
-            return;
-          }
-
-          const cards =
-            Array.from(
-              container.querySelectorAll(
-                "[data-roadmap-rail-item]",
-              ),
-            );
-
-          const target =
-            cards[index];
-
-          if (!target) {
-            return;
-          }
-
-          const containerRect =
-            container.getBoundingClientRect();
-
-          const targetRect =
-            target.getBoundingClientRect();
-
-          const targetLeft =
-            container.scrollLeft +
-            targetRect.left -
-            containerRect.left;
-
-          container.scrollTo({
-            left: targetLeft,
-            behavior: "auto",
-          });
-        },
-      );
+      container.scrollTo({
+        left: targetLeft,
+        behavior: "auto",
+      });
+    });
 
     return () => {
-      cancelAnimationFrame(
-        frame,
-      );
+      cancelAnimationFrame(frame);
     };
-  }, [
-    initialActiveId,
-    roadmaps,
-  ]);
+  }, [initialActiveId, roadmaps?.length]);
 
   /* =====================================================
      PERFORMANCE:
@@ -272,43 +241,19 @@ export default function RoadmapWorldsCarousel({
          * A ref avoids re-rendering the
          * whole roadmap rail.
          */
-        if (
-          !isScrollingRef.current
-        ) {
-          isScrollingRef.current =
-            true;
-
-          container.dataset.scrolling =
-            "true";
-
-          broadcastScrollState(
-            true,
-          );
+        if (!isScrollingRef.current) {
+          isScrollingRef.current = true;
+          broadcastScrollState(true);
         }
 
-        if (
-          scrollEndTimerRef.current
-        ) {
-          clearTimeout(
-            scrollEndTimerRef.current,
-          );
+        if (scrollEndTimerRef.current) {
+          clearTimeout(scrollEndTimerRef.current);
         }
 
-        scrollEndTimerRef.current =
-          window.setTimeout(
-            () => {
-              isScrollingRef.current =
-                false;
-
-              delete container.dataset
-                .scrolling;
-
-              broadcastScrollState(
-                false,
-              );
-            },
-            140,
-          );
+        scrollEndTimerRef.current = window.setTimeout(() => {
+          isScrollingRef.current = false;
+          broadcastScrollState(false);
+        }, 140);
       };
 
     container.addEventListener(
@@ -535,6 +480,25 @@ export default function RoadmapWorldsCarousel({
             "contain",
         }}
       >
+        {onOpenCatalog && (
+          <div
+            data-roadmap-rail-item
+            data-roadmap-id="add-new-world"
+            className="
+              shrink-0
+              min-w-0
+              flex
+              w-[88%]
+              sm:w-[320px]
+              lg:w-[340px]
+            "
+          >
+            <div className="h-[580px] w-full [&>*]:h-full">
+              <AddRoadmapCard onClick={onOpenCatalog} />
+            </div>
+          </div>
+        )}
+
         {roadmaps.map(
           (
             item,
@@ -546,6 +510,7 @@ export default function RoadmapWorldsCarousel({
                 index
               }
               data-roadmap-rail-item
+              data-roadmap-id={item.id}
               className="
                 shrink-0
                 min-w-0
@@ -579,34 +544,6 @@ export default function RoadmapWorldsCarousel({
           ),
         )}
       </div>
-
-      {/* =================================================
-          PERFORMANCE CSS
-
-          Expensive effects disappear while
-          the compositor is moving the rail.
-      ================================================= */}
-
-      <style>{`
-        .roadmap-world-rail[data-scrolling="true"]
-          [data-roadmap-rail-item] > div > * {
-          filter: none !important;
-          transition: none !important;
-          transform: translateZ(0) !important;
-        }
-
-        .roadmap-world-rail[data-scrolling="true"]
-          [data-roadmap-rail-item] {
-          pointer-events: none;
-        }
-
-        .roadmap-world-rail[data-scrolling="true"]
-          [data-roadmap-animated-visual],
-        .roadmap-world-rail[data-scrolling="true"]
-          [data-roadmap-animated-visual] * {
-          animation-play-state: paused !important;
-        }
-      `}</style>
     </section>
   );
 }

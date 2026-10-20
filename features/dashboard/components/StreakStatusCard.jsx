@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Clock,
   Sparkles,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -109,7 +110,12 @@ export default function StreakStatusCard({
   streak,
   isLoadingProfile,
   user,
+  onOpenGoalModal,
 }) {
+  const targetGoal = streak?.targetGoal || null;
+  const progressPercent = targetGoal
+    ? Math.min(100, Math.round(((streak?.currentCount || 0) / targetGoal) * 100))
+    : 0;
   const isCompleted =
     streak?.status === "completed_today" ||
     streak?.status === "completed" ||
@@ -308,17 +314,19 @@ export default function StreakStatusCard({
         </p>
 
         <div className="flex items-center gap-2">
-          {/* TEST ANIMATION BUTTON */}
-          <button
-            type="button"
-            onClick={() => setFreezeModalOpen(true)}
-            title="Development Tool: Test Freeze Ceremony & Flight Animation"
-            className="group flex items-center gap-1.5 rounded-full border border-cyan-400/50 bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 px-2.5 sm:px-3 py-1 text-[11px] font-bold text-cyan-800 shadow-sm transition-all hover:scale-105 hover:border-cyan-500 hover:shadow-[0_0_12px_rgba(0,169,255,0.25)] active:scale-95"
-          >
-            <Sparkles className="h-3 w-3 text-cyan-600 animate-spin" />
-            <span className="hidden sm:inline">Test Freeze Animation</span>
-            <span className="sm:hidden">Test Freeze</span>
-          </button>
+          {/* TEST ANIMATION BUTTON (Development Only) */}
+          {process.env.NODE_ENV === "development" && (
+            <button
+              type="button"
+              onClick={() => setFreezeModalOpen(true)}
+              title="Development Tool: Test Freeze Ceremony & Flight Animation"
+              className="group flex items-center gap-1.5 rounded-full border border-cyan-400/50 bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 px-2.5 sm:px-3 py-1 text-[11px] font-bold text-cyan-800 shadow-sm transition-all hover:scale-105 hover:border-cyan-500 hover:shadow-[0_0_12px_rgba(0,169,255,0.25)] active:scale-95"
+            >
+              <Sparkles className="h-3 w-3 text-cyan-600 animate-spin" />
+              <span className="hidden sm:inline">Test Freeze Animation</span>
+              <span className="sm:hidden">Test Freeze</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -550,6 +558,35 @@ export default function StreakStatusCard({
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* COMMITMENT DAYS GOAL BADGE */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={onOpenGoalModal}
+                title={targetGoal ? `${targetGoal}-Day Commitment Goal (click to view or change)` : "Set your streak commitment goal"}
+                className="group/goal relative flex items-center gap-2 rounded-2xl border border-[#00A9FF]/25 bg-gradient-to-r from-[#00A9FF]/[0.06] via-white/80 to-[#00A9FF]/[0.04] px-2.5 sm:px-3.5 py-1.5 shadow-[0_2px_8px_rgba(0,169,255,0.06)] backdrop-blur-sm transition-all duration-200 hover:scale-[1.03] hover:border-[#00A9FF]/45 hover:bg-[#00A9FF]/[0.10] hover:shadow-[0_4px_14px_rgba(0,169,255,0.15)] active:scale-[0.98] text-left"
+              >
+                <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-xl bg-[#00A9FF]/15 text-[#00A9FF] shadow-inner transition-transform group-hover/goal:scale-110">
+                  <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] sm:text-xs font-bold tracking-tight text-[#19183B] whitespace-nowrap">
+                      {targetGoal ? `${targetGoal}-Day Goal` : "Set Goal"}
+                    </span>
+                    {targetGoal && (
+                      <span className="rounded-full bg-[#00A9FF]/20 px-1.5 py-0.2 text-[9px] font-black text-[#0077B6]">
+                        {progressPercent}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[9.5px] sm:text-[10.5px] font-semibold text-[#19183B]/60 whitespace-nowrap">
+                    {targetGoal ? `Day ${streak?.currentCount || 0} of ${targetGoal}` : "Choose commitment"}
+                  </span>
+                </div>
+              </button>
             </div>
 
             {/* FREEZE SHIELD DOCKING TARGET */}
