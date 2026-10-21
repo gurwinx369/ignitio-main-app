@@ -867,13 +867,13 @@ export default function Dashboard() {
 
                 <div className="w-full">
                   {(() => {
-                    const comp = filteredCarouselRoadmaps.find(
-                      (r) => r.id === activeRoadmap.id
+                    const comp = carouselRoadmapsWithLocks.find(
+                      (r) => r.id === activeRoadmap.id || (activeRoadmap.id === "dsa" && r.id?.startsWith("dsa"))
                     )?.component;
 
-                    return comp
+                    return comp && React.isValidElement(comp)
                       ? React.cloneElement(comp, { variant: "home" })
-                      : null;
+                      : comp || null;
                   })()}
                 </div>
               </div>
