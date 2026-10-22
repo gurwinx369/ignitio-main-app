@@ -370,54 +370,78 @@ export default function Dashboard() {
 
     // Read assigned roadmaps from local state or localStorage (persisted from onboarding/catalog)
     let assignedIds = enrolledRoadmapsState;
-    if (!assignedIds) {
+    if (!assignedIds || (Array.isArray(assignedIds) && assignedIds.length === 0)) {
       try {
         const raw = localStorage.getItem("ignitio:assigned_roadmaps");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) assignedIds = parsed;
-      }
-      if (!assignedIds) {
-        const rawResult = localStorage.getItem("ignitio:onboarding_result");
-        if (rawResult) {
-          const parsed = JSON.parse(rawResult);
-          if (parsed?.goal === "dsa") {
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) assignedIds = parsed;
+        }
+        if (!assignedIds) {
+          const rawResult = localStorage.getItem("ignitio:onboarding_result");
+          if (rawResult) {
+            const parsed = JSON.parse(rawResult);
+            if (parsed?.goal === "dsa") {
+              assignedIds = ["dsa"];
+            } else if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+              const skillMap = {
+                git: "git-github",
+                python: "python-beginner",
+                prompt: "prompt-engineering",
+                system_design: "system-design-fundamentals",
+                dsa: "dsa",
+                "c-language": "c-language-course",
+                "c-language-course": "c-language-course",
+              };
+              const mapped = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
+              if (mapped.length > 0) assignedIds = mapped;
+            }
+          }
+        }
+        // Server fallback if localStorage was cleared
+        if (!assignedIds && profileData) {
+          if (profileData.activeRoadmapSlug === "dsa" || profileData.currentRoadmap === "dsa" || (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.includes("dsa") && !profileData.assignedRoadmaps.includes("python"))) {
             assignedIds = ["dsa"];
-          } else if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+          } else if (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.length > 0) {
             const skillMap = {
               git: "git-github",
               python: "python-beginner",
               prompt: "prompt-engineering",
               system_design: "system-design-fundamentals",
               dsa: "dsa",
+              "c-language": "c-language-course",
+              "c-language-course": "c-language-course",
             };
-            const mapped = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
-            if (mapped.length > 0) assignedIds = mapped;
+            assignedIds = profileData.assignedRoadmaps.map(s => skillMap[s] || s).filter(Boolean);
           }
         }
-      }
-      // Server fallback if localStorage was cleared
-      if (!assignedIds && profileData) {
-        if (profileData.activeRoadmapSlug === "dsa" || profileData.currentRoadmap === "dsa" || (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.includes("dsa") && !profileData.assignedRoadmaps.includes("python"))) {
-          assignedIds = ["dsa"];
-        } else if (Array.isArray(profileData.assignedRoadmaps) && profileData.assignedRoadmaps.length > 0) {
-          const skillMap = {
-            git: "git-github",
-            python: "python-beginner",
-            prompt: "prompt-engineering",
-            system_design: "system-design-fundamentals",
-            dsa: "dsa",
-          };
-          assignedIds = profileData.assignedRoadmaps.map(s => skillMap[s] || s).filter(Boolean);
-        }
-      }
-    } catch { }
-  }
+      } catch { }
+    }
+
+    const canonicalSkillMap = {
+      git: "git-github",
+      "git-github": "git-github",
+      python: "python-beginner",
+      "python-beginner": "python-beginner",
+      prompt: "prompt-engineering",
+      "prompt-engineering": "prompt-engineering",
+      system_design: "system-design-fundamentals",
+      "system-design": "system-design-fundamentals",
+      "system-design-fundamentals": "system-design-fundamentals",
+      dsa: "dsa",
+      "c-language": "c-language-course",
+      "c-language-course": "c-language-course",
+      cpp: "cpp",
+    };
+
+    const normalizedAssignedIds = assignedIds
+      ? assignedIds.map((s) => canonicalSkillMap[s] || s)
+      : null;
 
     // If assignedIds exists, only include roadmaps assigned to the user in that order.
     // Otherwise fallback to UNLOCK_ORDER (for legacy users).
-    const baseFiltered = assignedIds
-      ? assignedIds
+    const baseFiltered = normalizedAssignedIds
+      ? normalizedAssignedIds
           .map((id) =>
             roadmapsData.find(
               (r) =>
@@ -429,7 +453,16 @@ export default function Dashboard() {
           .filter(Boolean)
       : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id) || r.id.startsWith("dsa"));
 
-    const filteredRoadmapsData = [...baseFiltered];
+    const seenIds = new Set();
+    const uniqueBaseFiltered = [];
+    for (const r of baseFiltered) {
+      if (!seenIds.has(r.id)) {
+        seenIds.add(r.id);
+        uniqueBaseFiltered.push(r);
+      }
+    }
+
+    const filteredRoadmapsData = [...uniqueBaseFiltered];
     if (
       selectedDsaRoadmap &&
       isDsaAllowedRole(userRole) &&
@@ -546,7 +579,15 @@ export default function Dashboard() {
     setActiveRoadmap(activeRoadmapToSet);
     setAllRoadmaps(filteredRoadmapsData);
     setLockedRoadmapIds(lockedIds);
-  }, [selectedPromptRoadmap, userRole, selectedDsaRoadmap, profileData?.activeRoadmapSlug, profileData?.currentRoadmap]);
+  }, [
+    selectedPromptRoadmap,
+    userRole,
+    selectedDsaRoadmap,
+    profileData?.activeRoadmapSlug,
+    profileData?.currentRoadmap,
+    profileData?.assignedRoadmaps,
+    enrolledRoadmapsState,
+  ]);
 
   const syncActiveRoadmapToServer = async (slug) => {
     if (!user || !slug) return;

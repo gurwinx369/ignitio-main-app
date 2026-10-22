@@ -87,8 +87,9 @@ export async function GET(request) {
       }
     }
 
-    // Build streak summary from the (potentially just-mutated) streak subdocument.
-    const rawStreak = user.streak || {};
+    // Reload freshly persisted streak so summary & calendar read exact database state
+    const refreshedUser = await UserProfile.findById(user._id).select("streak").lean();
+    const rawStreak = refreshedUser?.streak || user.streak || {};
     const timezone = rawStreak.timezone || "Asia/Kolkata";
     const todayLocal = getLocalDateString(nowUTC, timezone);
     const streakSummary = getStreakSummary(rawStreak, todayLocal, nowUTC);
@@ -105,7 +106,7 @@ export async function GET(request) {
     }).select("completedDateLocal").lean();
 
     streakSummary.week = buildWeeklyStreakCalendar({
-      userProfile: user,
+      userProfile: refreshedUser || user,
       nowUTC,
       completions
     });

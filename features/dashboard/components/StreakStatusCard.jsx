@@ -16,6 +16,7 @@ import {
 } from "react";
 
 import Image from "next/image";
+import { mutate } from "swr";
 import StreakCalendarModal from "./StreakCalendarModal";
 import { FreezeCeremonyModal } from "@/components/streak-freeze/freeze-ceremony-modal";
 
@@ -158,16 +159,62 @@ export default function StreakStatusCard({
   const [freezeModalOpen, setFreezeModalOpen] = useState(false);
   const [dockedPulse, setDockedPulse] = useState(false);
   const [bonusBanked, setBonusBanked] = useState(0);
+  const [isUsingFreeze, setIsUsingFreeze] = useState(false);
 
   const displayFreezeBank = Math.min(2, (streak?.freezeBank || 0) + bonusBanked);
 
-  const handleFreezeBanked = useCallback(() => {
+  const handleFreezeBanked = useCallback(async () => {
     setDockedPulse(true);
     setBonusBanked((prev) => prev + 1);
+
+    if (user && typeof user.getIdToken === "function") {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch("/api/v2/streak/freeze/forge", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          setBonusBanked(0);
+          mutate("/api/v2/profile");
+        }
+      } catch (err) {
+        console.error("Failed to persist forged freeze shield:", err);
+      }
+    }
+
     setTimeout(() => {
       setDockedPulse(false);
     }, 1400);
-  }, []);
+  }, [user]);
+
+  const handleUseFreeze = useCallback(async () => {
+    if (!user || typeof user.getIdToken !== "function" || isUsingFreeze) return;
+
+    try {
+      setIsUsingFreeze(true);
+      const token = await user.getIdToken();
+      const res = await fetch("/api/v2/streak/freeze/use", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setBonusBanked(0);
+        await mutate("/api/v2/profile");
+      }
+    } catch (err) {
+      console.error("Failed to use streak freeze:", err);
+    } finally {
+      setIsUsingFreeze(false);
+    }
+  }, [user, isUsingFreeze]);
 
   /*
    * Resolve the authoritative current streak month from the week array.
@@ -1066,22 +1113,38 @@ export default function StreakStatusCard({
                 <p className="mt-0.5 text-xs sm:text-[13px] font-medium text-[#19183B]/80 leading-snug">
                   {earnBackMsg}
                 </p>
-                {streak?.freezeBank > 0 && (
-                  <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-cyan-700">
-                    <Shield className="h-3 w-3" />
-                    {streak.freezeBank} Streak Freeze{streak.freezeBank > 1 ? "s" : ""} banked for future safety
+                {displayFreezeBank > 0 ? (
+                  <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-cyan-800">
+                    <Shield className="h-3.5 w-3.5 fill-[#00A9FF] text-[#0077B6]" />
+                    <span>
+                      {displayFreezeBank} Streak Freeze{displayFreezeBank > 1 ? "s" : ""} available! Use one to instantly restore your streak.
+                    </span>
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
 
-            <Link
-              href="/home"
-              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] hover:shadow-orange-500/35 active:scale-[0.98]"
-            >
-              <span>Rescue Streak Now</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              {displayFreezeBank > 0 && (
+                <button
+                  type="button"
+                  disabled={isUsingFreeze}
+                  onClick={handleUseFreeze}
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-400/50 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-cyan-500/25 transition-all hover:scale-[1.02] hover:shadow-cyan-500/40 active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Shield className="h-3.5 w-3.5 fill-white text-white" />
+                  <span>{isUsingFreeze ? "Restoring..." : "Use Freeze (Instant Restore)"}</span>
+                </button>
+              )}
+
+              <Link
+                href="/home"
+                className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] hover:shadow-orange-500/35 active:scale-[0.98]"
+              >
+                <span>Rescue via Lessons</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       )}
