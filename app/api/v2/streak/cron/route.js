@@ -29,6 +29,12 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const dryRun = searchParams.get("dryRun") === "true";
+    const rawForce = searchParams.get("force") === "true";
+    const targetEmail = searchParams.get("email");
+    const isDev = process.env.NODE_ENV !== "production";
+
+    // Security guardrail: In production, force is strictly restricted to targeted single-email tests
+    const force = rawForce && (isDev || Boolean(targetEmail));
 
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
@@ -86,6 +92,10 @@ export async function GET(request) {
     };
 
     for (const user of users) {
+      if (targetEmail && user.email !== targetEmail) {
+        continue;
+      }
+
       const timezone =
         user.streak?.timezone ||
         user.schedulePreference?.timezone ||
@@ -141,7 +151,7 @@ export async function GET(request) {
         summary.status !== "reset" &&
         summary.status !== "inactive"
       ) {
-        if (localHour === 19) {
+        if (force || localHour === 19) {
           reminderType = "daily_pending";
           title = "Keep your Ignitio streak alive";
           heading = "Keep your streak alive";
@@ -154,6 +164,14 @@ export async function GET(request) {
         }
       }
 
+      // Allow force / targeted test to trigger regardless of status or localHour
+      if (force && (!reminderType || (targetEmail && user.email === targetEmail))) {
+        reminderType = "daily_pending";
+        title = "Keep your Ignitio streak alive";
+        heading = "Keep your streak alive";
+        body = "Complete today’s lesson before the day ends and keep your learning momentum going.";
+      }
+
       if (!reminderType) {
         summaryData.skipped++;
         continue;
@@ -164,7 +182,7 @@ export async function GET(request) {
       let channel = "email";
       let fcmToken = null;
 
-      if (notificationPref?.fcmToken) {
+      if (notificationPref?.fcmToken && notificationPref.notificationsEnabled !== false) {
         channel = "push";
         fcmToken = notificationPref.fcmToken;
       }
@@ -187,6 +205,14 @@ export async function GET(request) {
         summaryData.reminderTypes[reminderType]++;
         summaryData.channels[channel].wouldSend++;
         continue;
+      }
+
+      if (force) {
+        await StreakReminderLog.deleteMany({
+          userId: user._id,
+          localDateString,
+          reminderType,
+        });
       }
 
       let logDoc;
@@ -232,8 +258,8 @@ export async function GET(request) {
             webpush: {
               fcmOptions: { link: "/home" },
               notification: {
-                icon: "/logo.png",
-                badge: "/badge.png",
+                icon: "/kibo/kibo.svg",
+                badge: "/kibo/kibo.svg",
                 requireInteraction: false,
               },
             },
@@ -249,14 +275,14 @@ export async function GET(request) {
             // Safe fallback if token secret isn't available
           }
 
-          const streakBadgeLabel = summary.currentCount > 0 
-            ? `${summary.currentCount}-DAY STREAK AT RISK` 
+          const streakBadgeLabel = summary.currentCount > 0
+            ? `${summary.currentCount}-DAY STREAK AT RISK`
             : 'IGNITIO STREAK REMINDER';
 
           const html = `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; background: #0c101d; color: #f1f5f9; border-radius: 16px; padding: 32px 24px; border: 1px solid #1e293b;">
               <div style="text-align: center; margin-bottom: 20px;">
-                <img src="${appBaseUrl}/kibo/kibo_body.svg" alt="Kibo AI" width="56" height="56" style="display: inline-block;" />
+                <img src="${appBaseUrl}/kibo/kibo.svg" alt="Kibo AI" width="56" height="56" style="display: inline-block;" />
               </div>
               
               <div style="text-align: center; margin-bottom: 20px;">
@@ -313,6 +339,19 @@ export async function GET(request) {
         summaryData.channels[channel].sent++;
       } catch (err) {
         let reason = err.message || "Unknown error";
+        const isDeadToken =
+          err.code === "messaging/registration-token-not-registered" ||
+          err.code === "messaging/invalid-registration-token" ||
+          reason.includes("Requested entity was not found");
+
+        if (isDeadToken && channel === "push") {
+          // Self-healing: Disable push for this user so next run falls back to email
+          await UserNotification.updateOne(
+            { userID: user._id.toString() },
+            { $set: { notificationsEnabled: false } }
+          );
+        }
+
         if (reason.length > 300) reason = reason.substring(0, 297) + "...";
 
         await StreakReminderLog.updateOne(
