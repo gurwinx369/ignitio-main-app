@@ -5,6 +5,9 @@ import { StreakAnticipation } from '@/components/streak/streak-anticipation'
 import { StreakSparked } from '@/components/streak-sparked/streak-sparked'
 import { NotificationAsk } from '@/components/streak-sparked/notification-ask'
 
+import { requestNotificationPermission } from '@/lib/firebase/firebase-messaging';
+import { auth } from '@/lib/firebase/firebase';
+
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ponytail: same map as celebrate-cta.jsx — skills routing for streak start
@@ -68,9 +71,26 @@ export default function StreakPage() {
     }
   }, [])
 
-  const handleNotificationResponse = (allowed) => {
+  const handleNotificationResponse = async (allowed) => {
     if (allowed && typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission().catch(() => {})
+      try {
+        const fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+          if (idToken) {
+            fetch('/api/v1/notifications/save-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({ token: fcmToken, email: auth.currentUser.email }),
+            }).catch(() => {});
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully so onboarding navigation never freezes
+      }
     }
     markNotificationAsked()
     setView('celebration')

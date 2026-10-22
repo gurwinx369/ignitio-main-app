@@ -60,8 +60,8 @@ export const NotificationProvider = ({ children }) => {
         const title = payload.notification?.title || "New Notification";
         const options = {
           body: payload.notification?.body || "",
-          icon: payload.notification?.icon || "/ignitio-logo.png",
-          badge: "/ignitio-logo.png",
+          icon: payload.notification?.icon || "/kibo/kibo.svg",
+          badge: payload.notification?.badge || "/kibo/kibo.svg",
           tag: payload.data?.tag || "notification",
           data: payload.data,
         };
@@ -74,9 +74,33 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [permission]);
 
+  // Auto-sync token whenever permission is granted and user authentication state changes
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser && typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") {
+          try {
+            const fcmToken = await requestNotificationPermission();
+            if (fcmToken) {
+              setToken(fcmToken);
+              setPermission("granted");
+              await saveTokenToBackend(fcmToken, currentUser.email);
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[NotificationContext] Auto-sync skipped:", e?.message || e);
+            }
+          }
+        }
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
   const requestPermission = async (email) => {
-    // Check if email is provided for token saving
-    if (!email) {
+    const targetEmail = email || auth.currentUser?.email;
+    if (!targetEmail) {
       if (process.env.NODE_ENV === "development") {
         console.error("Email is required to save notification token");
       }
@@ -87,7 +111,7 @@ export const NotificationProvider = ({ children }) => {
     if (fcmToken) {
       setToken(fcmToken);
       setPermission("granted");
-      saveTokenToBackend(fcmToken, email); // Fire and forget
+      saveTokenToBackend(fcmToken, targetEmail); // Fire and forget
     }
     return fcmToken;
   };
@@ -95,11 +119,18 @@ export const NotificationProvider = ({ children }) => {
   const saveTokenToBackend = async (fcmToken, email) => {
     try {
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+      if (!idToken) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[NotificationContext] No ID token available to save FCM token yet");
+        }
+        return;
+      }
+
       const response = await fetch("/api/v1/notifications/save-token", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          ...(idToken && { Authorization: `Bearer ${idToken}` })
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ token: fcmToken, email: email }),
       });
@@ -116,7 +147,7 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  const value = { token, notification, permission, requestPermission };
+  const value = { token, notification, permission, requestPermission, saveTokenToBackend };
 
   return (
     <NotificationContext.Provider value={value}>

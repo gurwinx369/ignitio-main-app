@@ -23,8 +23,8 @@ messaging.onBackgroundMessage((payload) => {
     const notificationTitle = payload.notification?.title || 'New Notification';
     const notificationOptions = {
         body: payload.notification?.body || 'You have a new message',
-        icon: payload.notification?.icon || '/ignitio-logo.png',
-        badge: '/ignitio-logo.png',
+        icon: payload.notification?.icon || '/kibo/kibo.svg',
+        badge: '/kibo/kibo.svg',
         tag: payload.data?.tag || 'default-tag',
         data: payload.data,
         requireInteraction: false,

@@ -87,7 +87,7 @@ export async function POST(request) {
     await connectDB();
 
     const selectedMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
-    const imageUrl = `${appUrl}/ignitio-logo.png`;
+    const imageUrl = `${appUrl}/kibo/kibo.svg`;
 
     if (!isValidUrl(imageUrl)) {
       return NextResponse.json({ error: "Server misconfiguration: invalid image URL", status: 500 });
