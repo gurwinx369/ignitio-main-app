@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CheckCircle, ThumbsDown, ThumbsUp, Flag, ArrowRight } from 'lucide-react';
 import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import YouTubeSegmentPlayer from './YouTubeSegmentPlayer';
@@ -26,6 +26,7 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
     // Storage keys
     const watchTimeKey = `segment_watch_${roadmapType}_${level.id}`;
     const watchIntervalsKey = `segment_intervals_${roadmapType}_${level.id}`;
+    const lastPositionKey = `segment_last_pos_${roadmapType}_${level.id}`;
 
     // Helper: merge overlapping/adjacent intervals
     const mergeIntervals = useCallback((intervals) => {
@@ -121,6 +122,34 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
     // Derived: threshold reached based on watched seconds
     const thresholdReached = watchedSeconds >= watchThreshold;
 
+    // Calculate initial seek position to resume video from where user left off (stable on level load)
+    const initialSeekSec = useMemo(() => {
+        if (!isSegmentBased) return level.startSec;
+        try {
+            const savedPos = localStorage.getItem(lastPositionKey);
+            if (savedPos !== null) {
+                const parsed = parseFloat(savedPos);
+                if (!isNaN(parsed) && parsed >= level.startSec && parsed < level.endSec) {
+                    return parsed;
+                }
+            }
+            // Fallback: Check stored intervals in localStorage without depending on live state
+            const stored = localStorage.getItem(watchIntervalsKey);
+            if (stored) {
+                const parsedIntervals = JSON.parse(stored);
+                if (Array.isArray(parsedIntervals) && parsedIntervals.length > 0) {
+                    const maxEnd = Math.max(...parsedIntervals.map(i => i.end));
+                    if (maxEnd > level.startSec && maxEnd < level.endSec) {
+                        return maxEnd;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to parse initial video seek position:', e);
+        }
+        return level.startSec;
+    }, [isSegmentBased, lastPositionKey, watchIntervalsKey, level.startSec, level.endSec]);
+
     // Save watch intervals to localStorage whenever they change
     useEffect(() => {
         if (isSegmentBased && watchedIntervals.length > 0) {
@@ -150,6 +179,14 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
         if (!isSegmentBased) return;
 
         const { currentTime, delta } = typeof data === 'object' ? data : { currentTime: null, delta: data };
+
+        // Save current playback position for resuming later
+        if (currentTime !== null && currentTime !== undefined) {
+            const clampedCurrentTime = Math.max(level.startSec, Math.min(level.endSec, currentTime));
+            scheduleIdleTask(() => {
+                localStorage.setItem(lastPositionKey, clampedCurrentTime.toString());
+            });
+        }
 
         // If we don't have currentTime, fall back to delta-only mode (less accurate)
         if (currentTime === null || currentTime === undefined) {
@@ -184,7 +221,11 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                 setWatchedIntervals(prev => mergeIntervals([...prev, newInterval]));
             }
         }
-    }, [isSegmentBased, level.startSec, level.endSec, mergeIntervals]);
+    }, [isSegmentBased, level.startSec, level.endSec, lastPositionKey, mergeIntervals]);
+
+    const handlePlayerReady = useCallback(() => {
+        setIsLoaded(true);
+    }, []);
 
     // Render segment-based view
     if (isSegmentBased) {
@@ -197,8 +238,9 @@ const VideoTab = ({ level, hasWatched, onMidpointMet, onCompletionMet, onMarkCom
                             videoId={level.videoId}
                             startSec={level.startSec}
                             endSec={level.endSec}
+                            initialSeekSec={initialSeekSec}
                             onWatchTimeUpdate={handleWatchTimeUpdate}
-                            onReady={() => setIsLoaded(true)}
+                            onReady={handlePlayerReady}
                             autoplay={true}
                             isVisible={isVisible}
                             shouldPauseVideo={shouldPauseVideo}

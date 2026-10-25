@@ -360,6 +360,7 @@ const LevelContent = ({
     if (isSegmentBased) {
       localStorage.removeItem(`segment_watch_${roadmapType}_${level.id}`);
       localStorage.removeItem(`segment_intervals_${roadmapType}_${level.id}`);
+      localStorage.removeItem(`segment_last_pos_${roadmapType}_${level.id}`);
     } else {
       // Clean up timer storage for legacy levels
       localStorage.removeItem(`video_timer_${roadmapType}_${level.id}`);

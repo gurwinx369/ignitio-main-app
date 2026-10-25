@@ -547,7 +547,6 @@ export default function RoadmapTemplate({
    */
   const actuallyStartLesson = useCallback(
     async (level) => {
-      setSelectedLevel(level);
       if (user) {
         try {
           await patchRoadmapProgress({
@@ -566,8 +565,37 @@ export default function RoadmapTemplate({
           console.warn("Failed to patch start_lesson", e);
         }
       }
+
+      const roadmapRoutePrefixes = {
+        "prompt-engineering": "/home/roadmaps/prompt-engineering",
+        "git-github": "/home/roadmaps/git-github",
+        "cpp": "/home/roadmaps/cpp",
+        "dsa": "/home/roadmaps/dsa",
+        "dsa-student": "/home/roadmaps/dsa",
+        "dsa-developer": "/home/roadmaps/dsa",
+        "dsa-other": "/home/roadmaps/dsa",
+        "python-beginner": "/home/roadmaps/python-beginner",
+        "clang-beginner": "/home/roadmaps/c-beginner",
+        "c-language-course": "/home/roadmaps/c-beginner",
+        "system-design-fundamentals": "/home/roadmaps/system-design-fundamentals",
+      };
+
+      const basePrefix =
+        roadmapRoutePrefixes[roadmapData.id] ||
+        (typeof roadmapData.id === "string" && roadmapData.id.startsWith("prompt-engineering")
+          ? "/home/roadmaps/prompt-engineering"
+          : null) ||
+        (typeof roadmapData.id === "string" && roadmapData.id.startsWith("dsa")
+          ? "/home/roadmaps/dsa"
+          : null);
+
+      if (basePrefix) {
+        router.push(`${basePrefix}/${level.id}`);
+      } else {
+        setSelectedLevel(level);
+      }
     },
-    [user, roadmapData.id, roadmapData.title, allLevels],
+    [user, roadmapData.id, roadmapData.title, allLevels, userProfession, router],
   );
 
   const openQueuedLesson = useCallback(async () => {

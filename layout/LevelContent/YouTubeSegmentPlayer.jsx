@@ -22,12 +22,27 @@ const YouTubeSegmentPlayer = ({
   onReady,
   autoplay = true,
   isVisible = true,
-  shouldPauseVideo = false
+  shouldPauseVideo = false,
+  initialSeekSec = null
 }) => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef(null);
   const monitoringIntervalRef = useRef(null);
   const containerRef = useRef(null);
+  const initialSeekRef = useRef(initialSeekSec);
+  const hasAppliedInitialSeekRef = useRef(false);
+
+  // Keep latest callback references in refs so effects do not re-run on parent re-renders
+  const onReadyRef = useRef(onReady);
+  const onWatchTimeUpdateRef = useRef(onWatchTimeUpdate);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    onWatchTimeUpdateRef.current = onWatchTimeUpdate;
+  }, [onWatchTimeUpdate]);
 
   // Track last known position for delta calculation
   const lastCurrentTimeRef = useRef(null);
@@ -111,8 +126,9 @@ const YouTubeSegmentPlayer = ({
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime();
 
-        // HARD BOUNDARY: If user scrubs below startSec, force back to startSec
-        if (currentTime < startSec) {
+        // HARD BOUNDARY: If user scrubs significantly below startSec, force back to startSec
+        // 1.0s tolerance prevents natural keyframe jitter from triggering false seeks
+        if (startSec > 0 && currentTime > 0 && currentTime < startSec - 1.0) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
           showBoundaryNotice("start");
@@ -139,14 +155,14 @@ const YouTubeSegmentPlayer = ({
           // 3. Delta is small enough to be normal playback (<= 1.5s = not a skip)
           if (isPlayingRef.current && delta > 0 && delta <= 1.5) {
             // Report both current position and delta for accurate interval tracking
-            onWatchTimeUpdate?.({ currentTime, delta });
+            onWatchTimeUpdateRef.current?.({ currentTime, delta });
           }
         }
 
         lastCurrentTimeRef.current = currentTime;
       }
     }, 250); // Poll frequently for accurate tracking
-  }, [stopMonitoring, startSec, endSec, onWatchTimeUpdate, showBoundaryNotice]);
+  }, [stopMonitoring, startSec, endSec, showBoundaryNotice]);
 
   // Handle player state changes
   const handleStateChange = useCallback((event) => {
@@ -154,8 +170,8 @@ const YouTubeSegmentPlayer = ({
       // When playback starts, verify we're within segment bounds
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime();
-        // If somehow playing below startSec, seek back immediately
-        if (currentTime < startSec) {
+        // If playing significantly below startSec, seek back immediately
+        if (startSec > 0 && currentTime > 0 && currentTime < startSec - 1.0) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
           showBoundaryNotice("start");
@@ -169,11 +185,11 @@ const YouTubeSegmentPlayer = ({
       // When paused, still check for boundary violations (user scrubbing)
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime();
-        if (currentTime < startSec) {
+        if (startSec > 0 && currentTime > 0 && currentTime < startSec - 1.0) {
           playerRef.current.seekTo(startSec, true);
           lastCurrentTimeRef.current = startSec;
           showBoundaryNotice("start");
-        } else if (currentTime > endSec) {
+        } else if (currentTime > endSec + 0.5) {
           playerRef.current.seekTo(endSec, true);
           lastCurrentTimeRef.current = endSec;
           showBoundaryNotice("end");
@@ -191,8 +207,8 @@ const YouTubeSegmentPlayer = ({
   // Handle player ready
   const handlePlayerReady = useCallback(() => {
     setIsPlayerReady(true);
-    onReady?.();
-  }, [onReady]);
+    onReadyRef.current?.();
+  }, []);
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -213,6 +229,15 @@ const YouTubeSegmentPlayer = ({
     };
   }, []);
 
+  const handleStateChangeRef = useRef(handleStateChange);
+  useEffect(() => {
+    handleStateChangeRef.current = handleStateChange;
+  }, [handleStateChange]);
+
+  const onPlayerStateChange = useCallback((event) => {
+    handleStateChangeRef.current?.(event);
+  }, []);
+
   // Initialize player when YouTube API is ready
   useEffect(() => {
     if (!window.YT || !window.YT.Player || !containerRef.current) {
@@ -224,6 +249,10 @@ const YouTubeSegmentPlayer = ({
         playerRef.current.destroy();
       }
 
+      const initialStart = (typeof initialSeekRef.current === 'number' && initialSeekRef.current >= startSec && initialSeekRef.current < endSec)
+        ? Math.floor(initialSeekRef.current)
+        : startSec;
+
       playerRef.current = new window.YT.Player(`youtube-player-${videoId}`, {
         videoId,
         playerVars: {
@@ -231,11 +260,11 @@ const YouTubeSegmentPlayer = ({
           controls: 1,
           modestbranding: 1,
           rel: 0,
-          start: startSec,
+          start: initialStart,
         },
         events: {
           onReady: handlePlayerReady,
-          onStateChange: handleStateChange,
+          onStateChange: onPlayerStateChange,
         },
       });
     };
@@ -252,25 +281,34 @@ const YouTubeSegmentPlayer = ({
         playerRef.current = null;
       }
     };
-  }, [videoId, startSec, autoplay, handlePlayerReady, handleStateChange]);
+  }, [videoId, startSec, autoplay, handlePlayerReady, onPlayerStateChange]);
 
-  // Seek to start when segment changes
+  // Seek to resume position once when player is ready (if resume position is specified and differs from current position)
   useEffect(() => {
     if (isPlayerReady && playerRef.current?.seekTo) {
-      playerRef.current.seekTo(startSec, true);
-      lastCurrentTimeRef.current = startSec;
-      if (autoplay) {
+      if (!hasAppliedInitialSeekRef.current) {
+        hasAppliedInitialSeekRef.current = true;
+        const targetSec = (typeof initialSeekRef.current === 'number' && initialSeekRef.current > startSec && initialSeekRef.current < endSec)
+          ? initialSeekRef.current
+          : null;
+        if (targetSec !== null) {
+          playerRef.current.seekTo(targetSec, true);
+          lastCurrentTimeRef.current = targetSec;
+        }
+      }
+      if (autoplay && playerRef.current?.playVideo) {
         playerRef.current.playVideo();
       }
     }
-  }, [startSec, isPlayerReady, autoplay]);
+  }, [startSec, endSec, isPlayerReady, autoplay]);
 
   // Reset position tracking and notice when videoId/segment changes
   useEffect(() => {
-    // eslint-disable-next-line react-compiler/react-compiler
     resetBoundaryNotice();
     lastCurrentTimeRef.current = null;
-  }, [videoId, startSec, endSec, resetBoundaryNotice]);
+    hasAppliedInitialSeekRef.current = false;
+    initialSeekRef.current = initialSeekSec;
+  }, [videoId, startSec, endSec, resetBoundaryNotice, initialSeekSec]);
 
   // Pause video when tab becomes hidden, resume when visible
   useEffect(() => {
@@ -300,11 +338,11 @@ const YouTubeSegmentPlayer = ({
     const boundaryCheckInterval = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime();
-        // Enforce hard boundaries regardless of play state
-        if (currentTime < startSec) {
+        // Enforce hard boundaries regardless of play state (with keyframe tolerance)
+        if (startSec > 0 && currentTime > 0 && currentTime < startSec - 1.0) {
           playerRef.current.seekTo(startSec, true);
           showBoundaryNotice("start");
-        } else if (currentTime > endSec) {
+        } else if (currentTime > endSec + 0.5) {
           playerRef.current.seekTo(endSec, true);
           playerRef.current.pauseVideo();
           lastCurrentTimeRef.current = endSec;
@@ -325,6 +363,7 @@ const YouTubeSegmentPlayer = ({
     <>
       <div ref={containerRef} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
         <div
+          key={videoId}
           id={`youtube-player-${videoId}`}
           className="absolute top-0 left-0 w-full h-full rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-xl"
         />
