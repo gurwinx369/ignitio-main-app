@@ -390,6 +390,7 @@ export default function CompilerPage({ language = 'cpp' }) {
                 <CodeEditor
                     value={code}
                     onChange={handleCodeChange}
+                    language={language}
                 />
               </div>
 

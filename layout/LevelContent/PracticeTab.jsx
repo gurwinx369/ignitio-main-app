@@ -1,8 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {BookOpen, Maximize2, Minimize2, RotateCcw, Terminal, Code2} from 'lucide-react';
+import {BookOpen, Maximize2, Minimize2, RotateCcw, Terminal, Code2, CheckCircle} from 'lucide-react';
 import {CompilerPage} from '@/features/compiler';
 
-const TabBar = ({handleReset, toggleFullscreen, isFullscreen, isCompiler = false, compilerLabel = 'C++ Compiler'}) => (
+const TabBar = ({handleReset, toggleFullscreen, isFullscreen, isCompiler = false, compilerLabel = 'Compiler'}) => (
     <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">
@@ -209,7 +209,7 @@ const cppColorSchemes = {
     }
 };
 
-export default function PracticeTab({level, roadmapType = 'git-github'}) {
+export default function PracticeTab({level, roadmapType = 'git-github', onMarkComplete}) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -339,6 +339,18 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                     </>
                 )}
 
+                {onMarkComplete && !isFullscreen && (
+                    <div className="flex items-center justify-end mb-4 md:mb-6">
+                        <button
+                            onClick={onMarkComplete}
+                            className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-base sm:text-lg font-bold shadow-lg hover:shadow-xl cursor-pointer"
+                        >
+                            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Complete Lesson
+                        </button>
+                    </div>
+                )}
+
                 <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
                     <TabBar
                         handleReset={handleReset}
@@ -349,7 +361,7 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                     />
 
                     <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
-                        <CompilerPage key={compilerKey} />
+                        <CompilerPage key={compilerKey} language="cpp" />
                     </div>
 
                     {!isFullscreen && (
@@ -448,6 +460,18 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                             </div>
                         </div>
                     </>
+                )}
+
+                {onMarkComplete && !isFullscreen && (
+                    <div className="flex items-center justify-end mb-4 md:mb-6">
+                        <button
+                            onClick={onMarkComplete}
+                            className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-base sm:text-lg font-bold shadow-lg hover:shadow-xl cursor-pointer"
+                        >
+                            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Complete Lesson
+                        </button>
+                    </div>
                 )}
 
                 <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
@@ -559,12 +583,25 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                     </>
                 )}
 
+                {onMarkComplete && !isFullscreen && (
+                    <div className="flex items-center justify-end mb-4 md:mb-6">
+                        <button
+                            onClick={onMarkComplete}
+                            className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-base sm:text-lg font-bold shadow-lg hover:shadow-xl cursor-pointer"
+                        >
+                            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Complete Lesson
+                        </button>
+                    </div>
+                )}
+
                 <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
                     <TabBar
                         handleReset={handleReset}
                         toggleFullscreen={toggleFullscreen}
                         isFullscreen={isFullscreen}
                         isCompiler={true}
+                        compilerLabel="Python Compiler"
                     />
 
                     <div className="h-[85vh] sm:h-[105vh] md:h-[105vh] w-full overflow-y-auto">
@@ -686,6 +723,18 @@ export default function PracticeTab({level, roadmapType = 'git-github'}) {
                         </div>
                     </div>
                 </>
+            )}
+
+            {onMarkComplete && !isFullscreen && (
+                <div className="flex items-center justify-end mb-4 md:mb-6">
+                    <button
+                        onClick={onMarkComplete}
+                        className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-base sm:text-lg font-bold shadow-lg hover:shadow-xl cursor-pointer"
+                    >
+                        <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                        Complete Lesson
+                    </button>
+                </div>
             )}
 
             <div className="bg-white rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl overflow-hidden border border-gray-200 md:border-2 md:border-gray-100">
