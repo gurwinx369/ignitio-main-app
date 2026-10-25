@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/layout/Loader";
-import { getOnboardingRoute } from '@/lib/onboarding/onboarding-route';
+import { getOnboardingRoute } from "@/lib/onboarding/onboarding-route";
 
 async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
@@ -27,9 +27,7 @@ async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
 
   if (!response.ok) {
     throw new Error(
-      data.error ||
-      data.message ||
-      "Failed to provision user profile"
+      data.error || data.message || "Failed to provision user profile",
     );
   }
 
@@ -146,7 +144,6 @@ export default function LoginForm() {
 
   return (
     <>
-
       <div
         className="min-h-screen flex items-center justify-center p-4"
         style={{ backgroundColor: "#F0CAA8" }}
@@ -360,7 +357,7 @@ export default function LoginForm() {
                   </svg>
                   {loading ? "Signing in..." : "continue with google"}
                 </button>
-                {/* Already have an account - Login Link */}
+                {/* Don't have an account - Signup link */}
                 <div className="mt-6 text-center">
                   <p
                     className="text-base"
@@ -371,7 +368,7 @@ export default function LoginForm() {
                   >
                     Don&#39;t have an account?{" "}
                     <Link
-                      href="/auth/signup"
+                      href="/welcome"
                       className="font-semibold hover:underline transition-colors duration-200"
                       style={{
                         color: "#00A9FF",
