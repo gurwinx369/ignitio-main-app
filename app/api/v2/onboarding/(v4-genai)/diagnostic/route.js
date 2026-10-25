@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 
 import { verifyFirebaseToken } from "@/lib/auth";
 import connectToDB from "@/dbConfig/dbConnection";
-import {
-  UserProfile,
-  ONBOARDING_VERSIONS,
-} from "@/models/v2/user.profile.model";
+import { UserProfile, ONBOARDING_VERSIONS } from "@/models/v2/user.profile.model";
 import { OnboardingResponseModel } from "@/models/v2/onboarding.model";
 import { evaluateDiagnosticPayload } from "@/lib/onboarding/diagnostic-evaluation";
 import { captureServerException } from "@/lib/analytics/serverAnalytics";
@@ -87,7 +84,8 @@ export async function POST(req) {
     // Allow the diagnostic from these states:
     // - "diagnostic" / "results": normal in-progress flow
     // - "role_selection" / "completed": fully-onboarded user activating GenAI
-    const ELIGIBLE_STEPS = ["diagnostic", "results", "role_selection", "completed"];
+    // - "activation_pending": new V5 user bootstrapped before sync (genai guest → signup path)
+    const ELIGIBLE_STEPS = ["diagnostic", "results", "role_selection", "completed", "activation_pending"];
     if (!ELIGIBLE_STEPS.includes(canonicalStep)) {
       return NextResponse.json({
         success: true,
@@ -136,13 +134,17 @@ export async function POST(req) {
         "onboardingState.step": {
           // diagnostic/results = original flow
           // role_selection/completed = fully-onboarded user activating GenAI
-          $in: ["diagnostic", "results", "role_selection", "completed"],
+          // activation_pending = new V5 user bootstrapped before genai diagnostic sync
+          $in: ["diagnostic", "results", "role_selection", "completed", "activation_pending"],
         },
       },
       {
         $set: {
           "onboardingState.step": "results",
-          onboardingVersion: ONBOARDING_VERSIONS.V4,
+          // ponytail: do NOT touch onboardingVersion here.
+          // V4-native users already have "v4" from profile creation (line ~65 above).
+          // V5 genai-signup users have "v5" from bootstrap — overwriting it with "v4"
+          // breaks isOnboardingComplete() and causes an infinite loop back to /onboarding.
         },
       },
       {
