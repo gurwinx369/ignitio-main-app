@@ -332,7 +332,7 @@ export default function FreeOnboarding() {
               Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify({
-              role: "student",
+              role: "developer",
               schedule: {
                 timezone: derived.timezone,
                 windows: [

@@ -56,7 +56,7 @@ async function ensureCanonicalOnboardingState(profile) {
       { _id: profile._id },
       {
         $set: {
-          role: profile.role || "student",
+          role: profile.role || "developer",
           schedulePreference: hasValidWindows ? profile.schedulePreference : defaultSchedule,
           "onboardingState.step": "activation_pending",
           onboardingVersion: ONBOARDING_VERSIONS.V5,
@@ -279,7 +279,7 @@ export async function POST(request) {
     const userProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid,
       email: tokenEmail,
-      role: "student",
+      role: "developer",
       onboardingComplete: false,
       onboardingVersion: ONBOARDING_VERSIONS.V5,
       onboardingState: {

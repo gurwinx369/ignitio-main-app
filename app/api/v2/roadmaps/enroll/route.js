@@ -95,7 +95,7 @@ export async function POST(request) {
           userId: user._id,
           roadmapSlug,
           roadmapTitle: roadmapTitle || roadmapSlug,
-          role: user.role || "student",
+          role: user.role || "developer",
           status: "not_started",
           totalLevels,
           completedLevels: [],

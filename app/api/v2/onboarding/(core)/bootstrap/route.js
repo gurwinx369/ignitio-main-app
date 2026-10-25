@@ -35,7 +35,7 @@ const BootstrapValidator = z.object({
   goal: z.string().optional().nullable(),
   freePath: FreePathSchema,
   schedule: ScheduleSchema.optional().nullable(),
-  role: z.enum(Object.values(USER_ROLES)).optional().default("student"),
+  role: z.enum(Object.values(USER_ROLES)).optional().default("developer"),
   activeRoadmapSlug: z.string().optional(),
   initializeLegalConsent: z.boolean().optional().default(true),
 });
@@ -144,7 +144,7 @@ export async function POST(request) {
           {
             $set: {
               schedulePreference: schedule,
-              role: role || existingProfile.role || "student",
+              role: role || existingProfile.role || "developer",
               ...(goal ? { goal } : {}),
               ...(isDsa ? { activeRoadmapSlug: "dsa", roadmap_name: "dsa" } : {}),
             },
@@ -190,7 +190,7 @@ export async function POST(request) {
     const newProfile = await UserProfile.create({
       firebaseUID: decodedToken.uid,
       email: tokenEmail,
-      role: role || "student",
+      role: role || "developer",
       goal: safeGoal,
       activeRoadmapSlug: initialActiveRoadmapSlug,
       roadmap_name: initialActiveRoadmapSlug,
