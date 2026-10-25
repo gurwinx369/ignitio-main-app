@@ -9,33 +9,45 @@ const STEPS = [
   "Your roadmap is created."
 ];
 
+function generateNodes() {
+  return Array.from({ length: 15 }).map((_, i) => ({
+    id: i,
+    size: Math.random() * 6 + 4,
+    initialX: Math.random() * 100,
+    initialY: Math.random() * 100,
+    duration: Math.random() * 3 + 4,
+    delay: Math.random() * 2,
+  }));
+}
+
 export default function ResultsLoader({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
+  // Nodes must be generated inside useEffect, not in the render body.
+  // Math.random() in the render body is called on the server (SSR) AND
+  // on the client (hydration), producing different values both times —
+  // causing a hydration mismatch. useEffect only ever runs client-side,
+  // after hydration, so SSR emits an empty array and React never has
+  // mismatched DOM to reconcile.
+  const [nodes, setNodes] = useState([]);
+
+  useEffect(() => {
+    setNodes(generateNodes());
+  }, []);
 
   useEffect(() => {
     // 1.5s per step -> Total 4.5s
     const stepDuration = 1500;
-    
+
     const timers = [
       setTimeout(() => setCurrentStep(1), stepDuration),
       setTimeout(() => setCurrentStep(2), stepDuration * 2),
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, stepDuration * 3)
+      }, stepDuration * 3),
     ];
 
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
-
-  // Floating nodes background effect
-  const nodes = Array.from({ length: 15 }).map((_, i) => ({
-    id: i,
-    size: Math.random() * 6 + 4, // 4px to 10px
-    initialX: Math.random() * 100, // percentage
-    initialY: Math.random() * 100, // percentage
-    duration: Math.random() * 3 + 4, // 4s to 7s
-    delay: Math.random() * 2
-  }));
 
   return (
     <motion.div 

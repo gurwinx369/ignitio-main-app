@@ -312,12 +312,19 @@ export default function SignupForm() {
         typeof window !== "undefined" &&
         !!localStorage.getItem("ignitio:preview_payload");
 
-      if (result.authMode === "new_signup" && (isGenAiPreview || hasPreview)) {
+      // Also detect users who came from the genai diagnostic results screen:
+      // handleContinue sends them to /auth/signup?redirect=/onboarding/results
+      // and their assessment data lives in genai_preview_assessment, not ignitio:preview_payload.
+      const hasGenAiAssessment =
+        typeof window !== "undefined" &&
+        !!localStorage.getItem("genai_preview_assessment");
+
+      if (result.authMode === "new_signup" && (isGenAiPreview || hasPreview || hasGenAiAssessment)) {
         await syncOnboardingFromLocalStorage(idToken).catch(() => {});
         router.replace(
           isGenAiPreview
             ? "/onboarding/role-selection?from=genai_preview"
-            : "/onboarding/role-selection?from=preview"
+            : "/onboarding/paywall"
         );
         return;
       }
