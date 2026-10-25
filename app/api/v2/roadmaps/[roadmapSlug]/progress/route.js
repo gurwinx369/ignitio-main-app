@@ -355,8 +355,8 @@ const PatchSchema = z.object({
   action: z.enum(["start_lesson", "complete_level", "pass_assignment", "sync"]),
   roadmapTitle: z.string().optional().default(""),
   role: z.enum(["student", "writer", "designer", "developer", "other"]).optional().default("other"),
-  totalLevels: z.number().min(0),
-  allLevelIds: z.array(z.string()),
+  totalLevels: z.number().min(0).optional().default(0),
+  allLevelIds: z.array(z.string()).optional().default([]),
   days: z.array(
     z.object({
       id: z.string(),

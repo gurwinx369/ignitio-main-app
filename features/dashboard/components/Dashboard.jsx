@@ -594,18 +594,99 @@ export default function Dashboard() {
     setTimeout(() => setIsNavigating(false), 3000);
   };
 
-  const handleRedirectGitGithub = () => handleRedirect(redirects.GitGithub, "git-github");
-  const handleRedirectCPP = () => handleRedirect(redirects.CPP, "cpp");
-  const handleRedirectPromptEngineering = () => handleRedirect(redirects.PromptEngineering, selectedPromptRoadmap?.id || "prompt-engineering");
-  const handleRedirectDsa = () => handleRedirect(redirects.DSA, selectedDsaRoadmap?.id || "dsa");
-  const handleRedirectSystemDesign = () =>
-    handleRedirect(redirects.SystemDesign, systemDesignRoadmapData.id);
+  const getActiveLevelIdForRoadmap = useCallback((roadmapSlug, roadmapData) => {
+    if (!roadmapData?.days) return null;
+    const allLevels = roadmapData.days.flatMap((d) => d.levels || []);
+    if (!allLevels.length) return null;
 
-  const handleRedirectPython = () =>
-    handleRedirect(redirects.Python, pythonBeginnerRoadmapData.id);
+    // 1. Read completed levels from localStorage
+    const canonicalKey = `completed_levels_${roadmapSlug}`;
+    let completed = [];
+    try {
+      const raw = localStorage.getItem(canonicalKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) completed = parsed;
+      }
+    } catch (e) {}
 
-  const handleRedirectCLang = () =>
-    handleRedirect(redirects.CLang, clangBeginnerRoadmapData.id);
+    // 2. Find first level not yet completed
+    const nextLevel = allLevels.find((lvl) => !completed.includes(lvl.id));
+    if (nextLevel) return nextLevel.id;
+
+    // 3. Fallback: if all completed or none found, return the first level
+    return allLevels[0]?.id || null;
+  }, []);
+
+  const handleRedirectGitGithub = () => {
+    const slug = "git-github";
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, gitGithubRoadmapData);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/git-github/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.GitGithub, slug);
+    }
+  };
+
+  const handleRedirectCPP = () => {
+    const slug = "cpp";
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, cppRoadmapData);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/cpp/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.CPP, slug);
+    }
+  };
+
+  const handleRedirectPromptEngineering = () => {
+    const slug = selectedPromptRoadmap?.id || "prompt-engineering";
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, selectedPromptRoadmap);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/prompt-engineering/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.PromptEngineering, slug);
+    }
+  };
+
+  const handleRedirectDsa = () => {
+    const slug = selectedDsaRoadmap?.id || "dsa";
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, selectedDsaRoadmap);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/dsa/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.DSA, slug);
+    }
+  };
+
+  const handleRedirectSystemDesign = () => {
+    const slug = systemDesignRoadmapData.id;
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, systemDesignRoadmapData);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/system-design-fundamentals/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.SystemDesign, slug);
+    }
+  };
+
+  const handleRedirectPython = () => {
+    const slug = pythonBeginnerRoadmapData.id;
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, pythonBeginnerRoadmapData);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/python-beginner/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.Python, slug);
+    }
+  };
+
+  const handleRedirectCLang = () => {
+    const slug = clangBeginnerRoadmapData.id;
+    const activeLevelId = getActiveLevelIdForRoadmap(slug, clangBeginnerRoadmapData);
+    if (activeLevelId) {
+      handleRedirect(`/home/roadmaps/c-beginner/${activeLevelId}`, slug);
+    } else {
+      handleRedirect(redirects.CLang, slug);
+    }
+  };
 
   const displayName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "Adventurer";
 
@@ -725,6 +806,13 @@ export default function Dashboard() {
     selectedPromptRoadmap,
     userRole,
     selectedDsaRoadmap,
+    handleRedirectGitGithub,
+    handleRedirectCPP,
+    handleRedirectPromptEngineering,
+    handleRedirectDsa,
+    handleRedirectSystemDesign,
+    handleRedirectPython,
+    handleRedirectCLang,
   ]);
 
   /**
