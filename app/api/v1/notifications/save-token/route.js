@@ -5,6 +5,7 @@ import connectDB from "@/dbConfig/dbConnection";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { z } from "zod";
 import { spamRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
+import { captureServerEvent } from "@/lib/analytics/serverAnalytics";
 
 const SaveTokenSchema = z.object({
   token: z.string().trim().min(20, "Invalid FCM token format").max(500, "Token exceeds maximum length"),
@@ -66,6 +67,11 @@ export async function POST(request) {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+
+    // Authoritative server-side event: notification activated
+    await captureServerEvent(decodedToken.uid, "notification_activated", {
+      source: "fcm_token_persisted",
+    });
 
     return NextResponse.json(
       {

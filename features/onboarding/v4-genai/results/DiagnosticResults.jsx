@@ -36,8 +36,11 @@ export default function DiagnosticResults() {
   const hasCompletedLoaderRef = useRef(false);
   const hasCompletedRevealRef = useRef(false);
   const revealStartedAtRef = useRef(null);
+  const hasFiredLoadingViewRef = useRef(false);
 
   useEffect(() => {
+    if (hasFiredLoadingViewRef.current) return;
+    hasFiredLoadingViewRef.current = true;
     loadingStartedAtRef.current = Date.now();
     const sessionId = getOrCreateOnboardingSessionId();
 

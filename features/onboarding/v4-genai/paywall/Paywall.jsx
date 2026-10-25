@@ -81,9 +81,12 @@ export default function Paywall() {
   const hasCompletedPaywallRef = useRef(false);
   const paymentAttemptCountRef = useRef(0);
   const initialPlanRef = useRef(selectedPlan);
+  const hasFiredPaywallViewRef = useRef(false);
 
   // Track Step 6 (paywall_viewed & onboarding_step_viewed)
   useEffect(() => {
+    if (hasFiredPaywallViewRef.current) return;
+    hasFiredPaywallViewRef.current = true;
     paywallEnteredAtRef.current = Date.now();
     const sessionId = getOrCreateOnboardingSessionId();
 

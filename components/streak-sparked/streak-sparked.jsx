@@ -16,6 +16,7 @@ import { KiboCheer } from './kibo-cheer'
 import { FirstWeek } from './first-week'
 import { CelebrateCta } from './celebrate-cta'
 import { useCelebrationSound } from './use-celebration-sound'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
 const CHARGE_SECONDS = 1.4
 
@@ -51,6 +52,10 @@ export function StreakSparked({ days = [] }) {
       onComplete: () => {
         stageRef.current = 'sparked'
         setStage('sparked')
+        trackEvent(ANALYTICS_EVENTS.STREAK_CELEBRATION_CLICKED, {
+          action: 'brew_revealed',
+          streak_count: 1,
+        })
       },
     })
   }, [fill, reduceMotion, sound])

@@ -7,6 +7,7 @@ import { NotificationAsk } from '@/components/streak-sparked/notification-ask'
 
 import { requestNotificationPermission } from '@/lib/firebase/firebase-messaging';
 import { auth } from '@/lib/firebase/firebase';
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics/events';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -52,26 +53,40 @@ function markNotificationAsked() {
 }
 
 export default function StreakPage() {
-  // ponytail: 'anticipated' default — no flicker since we check on mount
-  const [phase, setPhase] = useState('anticipated')
-  const [lessonHref, setLessonHref] = useState('/home')
-  // 'notification' shown once after first lesson, then 'celebration'
-  const [view, setView] = useState('celebration')
-
-  useEffect(() => {
+  const [phase, setPhase] = useState(() => {
+    if (typeof window === 'undefined') return 'anticipated';
     try {
-      const sparked = localStorage.getItem('ignitio:streak_phase') === 'sparked'
-      if (sparked) {
-        setPhase('sparked')
-        setView(hasAskedNotification() ? 'celebration' : 'notification')
-      }
-      setLessonHref(getLessonHref())
+      return localStorage.getItem('ignitio:streak_phase') === 'sparked' ? 'sparked' : 'anticipated';
     } catch {
-      // localStorage unavailable — stay on anticipated
+      return 'anticipated';
     }
-  }, [])
+  });
+
+  const [view, setView] = useState(() => {
+    if (typeof window === 'undefined') return 'celebration';
+    try {
+      const sparked = localStorage.getItem('ignitio:streak_phase') === 'sparked';
+      if (sparked) {
+        return hasAskedNotification() ? 'celebration' : 'notification';
+      }
+      return 'celebration';
+    } catch {
+      return 'celebration';
+    }
+  });
+
+  const [lessonHref, setLessonHref] = useState(() => {
+    if (typeof window === 'undefined') return '/home';
+    return getLessonHref();
+  });
 
   const handleNotificationResponse = async (allowed) => {
+    if (allowed) {
+      trackEvent(ANALYTICS_EVENTS.NOTIFICATION_ACTIVATED, { source: 'onboarding_streak' });
+    } else {
+      trackEvent(ANALYTICS_EVENTS.NOTIFICATION_DECLINED, { source: 'onboarding_streak' });
+    }
+
     if (allowed && typeof window !== 'undefined' && 'Notification' in window) {
       try {
         const fcmToken = await requestNotificationPermission();

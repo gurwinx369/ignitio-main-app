@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { usePathname } from 'next/navigation'
 import posthog from 'posthog-js'
-import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react'
+import { PostHogProvider as PHProvider } from 'posthog-js/react'
+import { GlobalDropoffTracker } from '@/lib/analytics/useGlobalDropoffTracker'
 
 // Init at module level — synchronous, no race condition with identify or pageview
 // The requestIdleCallback pattern was causing identify/pageview to fire before init
@@ -17,40 +16,28 @@ if (
   (!isLocalhost || process.env.NEXT_PUBLIC_POSTHOG_DEBUG === 'true')
 ) {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    api_host: isLocalhost
+      ? (process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com')
+      : '/ingest',
     ui_host: 'https://us.posthog.com',
-    defaults: '2026-01-30',
-    capture_pageview: false, // Manual SPA tracking below
-    capture_pageleave: true,
-    capture_exceptions: true, // auto-captures unhandled JS errors + unhandled promise rejections
-    autocapture: true, // auto-captures clicks, form submits, rageclicks & dead clicks
+    defaults: '2026-08-30',
+    autocapture: false,
+    capture_pageview: 'history_change',
+    capture_pageleave: 'if_capture_pageview',
+    capture_dead_clicks: false,
+    capture_exceptions: true,
     session_recording: {
       maskAllInputs: true,
-      maskTextSelector: '[data-ph-mask]',
+      maskTextSelector: '*',
     },
-  })
-}
-
-function PostHogPageViewTracker() {
-  const posthogClient = usePostHog()
-  const pathname = usePathname()
-
-  useEffect(() => {
-    if (pathname && posthogClient) {
-      posthogClient.capture('$pageview', {
-        $current_url: window.location.origin + pathname + window.location.search,
-      })
-    }
-  }, [pathname, posthogClient])
-
-  return null
+  });
 }
 
 export function PostHogProvider({ children }) {
   return (
     <PHProvider client={posthog}>
-      <PostHogPageViewTracker />
+      <GlobalDropoffTracker />
       {children}
     </PHProvider>
-  )
+  );
 }
