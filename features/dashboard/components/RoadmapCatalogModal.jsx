@@ -376,7 +376,7 @@ export default function RoadmapCatalogModal({
               </h2>
             </div>
             <p className="mt-0.5 text-xs font-semibold text-[#19183B]/60">
-              Select any skill to unlock interactive levels and add it to your Worlds.
+              Select any skill to explore interactive levels and add it to your Worlds.
             </p>
           </div>
 
@@ -563,12 +563,12 @@ export default function RoadmapCatalogModal({
                         {isCurrentEnrolling ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span>Unlocking World...</span>
+                            <span>Adding World...</span>
                           </>
                         ) : (
                           <>
                             <Plus className="h-3.5 w-3.5" strokeWidth={2.8} />
-                            <span>Unlock & Add World</span>
+                            <span>Add World</span>
                           </>
                         )}
                       </button>
@@ -594,7 +594,7 @@ export default function RoadmapCatalogModal({
             text-[#19183B]/55
           "
         >
-          Unlocked worlds appear in your Worlds carousel and enable personalized AI practice.
+          Active worlds appear in your Worlds carousel and enable personalized AI practice.
         </div>
       </div>
     </div>

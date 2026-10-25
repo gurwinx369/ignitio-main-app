@@ -13,7 +13,7 @@ export default function AddRoadmapCard({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label="Unlock New Roadmap World"
+      aria-label="Add New Roadmap World"
       className="
         group
         relative
@@ -119,7 +119,7 @@ export default function AddRoadmapCard({ onClick }) {
             group-hover:text-[#0077B6]
           "
         >
-          Unlock New World
+          Add New World
         </h3>
 
         <p className="mt-2 max-w-[210px] text-xs font-semibold leading-relaxed text-[#19183B]/65">

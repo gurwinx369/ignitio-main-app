@@ -38,25 +38,14 @@ import DashboardBottomNav from "./DashboardBottomNav";
 import Day2StreakModal from "@/components/streak/day2-streak-modal";
 import RoadmapCatalogModal from "./RoadmapCatalogModal";
 
-// Foundational roadmaps — peer entry tracks that do not lock each other
-const FOUNDATIONAL_ROADMAPS = new Set([
+// Default roadmap order when user has no custom assigned roadmaps
+const DEFAULT_ROADMAP_ORDER = [
   "python-beginner",
   "git-github",
-  "dsa",
-  "dsa-student",
-  "dsa-developer",
-  "dsa-other",
-]);
-
-// Sequential unlock order for catalog/legacy fallback.
-// Each roadmap unlocks only when the previous one is 100% done.
-const UNLOCK_ORDER = [
-  "python-beginner",
-  "git-github",
-  "cpp",
   "c-language-course",
+  "cpp",
   "system-design-fundamentals",
-  // prompt-engineering and DSA are always unlocked (role-specific, supplemental)
+  "prompt-engineering",
 ];
 
 export default function Dashboard() {
@@ -107,7 +96,6 @@ export default function Dashboard() {
   const [activeRoadmap, setActiveRoadmap] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [roadmapProgress, setRoadmapProgress] = useState({});
-  const [lockedRoadmapIds, setLockedRoadmapIds] = useState(new Set());
   const [selectedPromptRoadmap, setSelectedPromptRoadmap] = useState(
     genericPromptEngineeringRoadmapData,
   );
@@ -141,9 +129,31 @@ export default function Dashboard() {
     if (!Array.isArray(currentList) || currentList.length === 0) {
       if (Array.isArray(profileData?.assignedRoadmaps) && profileData.assignedRoadmaps.length > 0) {
         currentList = profileData.assignedRoadmaps;
+      } else if (allRoadmaps && allRoadmaps.length > 0) {
+        currentList = allRoadmaps.map((r) => r.id);
       } else {
-        currentList = ["dsa"];
+        try {
+          const rawResult = localStorage.getItem("ignitio:onboarding_result");
+          if (rawResult) {
+            const parsed = JSON.parse(rawResult);
+            if (Array.isArray(parsed?.roadmap) && parsed.roadmap.length > 0) {
+              const skillMap = {
+                git: "git-github",
+                python: "python-beginner",
+                prompt: "prompt-engineering",
+                system_design: "system-design-fundamentals",
+                dsa: "dsa",
+                "c-language": "c-language-course",
+                "c-language-course": "c-language-course",
+              };
+              currentList = parsed.roadmap.map(s => skillMap[s] || s).filter(Boolean);
+            }
+          }
+        } catch {}
       }
+    }
+    if (!Array.isArray(currentList) || currentList.length === 0) {
+      currentList = DEFAULT_ROADMAP_ORDER;
     }
 
     const nextList = Array.from(new Set([...currentList, slug]));
@@ -451,7 +461,7 @@ export default function Dashboard() {
             ),
           )
           .filter(Boolean)
-      : roadmapsData.filter((r) => UNLOCK_ORDER.includes(r.id) || r.id.startsWith("dsa"));
+      : roadmapsData.filter((r) => DEFAULT_ROADMAP_ORDER.includes(r.id) || r.id.startsWith("dsa"));
 
     const seenIds = new Set();
     const uniqueBaseFiltered = [];
@@ -523,39 +533,9 @@ export default function Dashboard() {
       }
     } catch (e) { }
 
-    // Sequential lock order matches the user's assigned roadmaps
-    const sequentialOrder = filteredRoadmapsData.map((r) => r.id);
-    const lockedIds = new Set();
-    if (process.env.NODE_ENV !== "development") {
-      for (let i = 1; i < sequentialOrder.length; i++) {
-        const currentId = sequentialOrder[i];
-
-        // Foundational tracks (e.g. Python & Git/GitHub) are unlocked peer worlds
-        if (FOUNDATIONAL_ROADMAPS.has(currentId)) {
-          continue;
-        }
-
-        const prevId = sequentialOrder[i - 1];
-        const prevProgress = progressMap[prevId];
-        const prevDone = prevProgress && prevProgress.completed >= prevProgress.total && prevProgress.total > 0;
-        if (!prevDone) {
-          // This roadmap and all subsequent non-foundational ones are locked
-          for (let j = i; j < sequentialOrder.length; j++) {
-            if (!FOUNDATIONAL_ROADMAPS.has(sequentialOrder[j])) {
-              lockedIds.add(sequentialOrder[j]);
-            }
-          }
-          break;
-        }
-      }
-    }
-
-    // Only allow unlocked roadmaps as the active (home tab) roadmap
-    const unlockedRoadmaps = filteredRoadmapsData.filter(r => !lockedIds.has(r.id));
-
     let activeRoadmapToSet = null;
     let maxProgress = -1;
-    for (const r of unlockedRoadmaps) {
+    for (const r of filteredRoadmapsData) {
       if (r.completedLevels > maxProgress) {
         maxProgress = r.completedLevels;
         activeRoadmapToSet = r;
@@ -564,21 +544,20 @@ export default function Dashboard() {
 
     const serverActiveSlug = profileData?.activeRoadmapSlug || profileData?.currentRoadmap;
     if (serverActiveSlug) {
-      const foundServerActive = unlockedRoadmaps.find(r => r.id === serverActiveSlug || (serverActiveSlug === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
+      const foundServerActive = filteredRoadmapsData.find(r => r.id === serverActiveSlug || (serverActiveSlug === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
       if (foundServerActive) activeRoadmapToSet = foundServerActive;
     } else if (lastActiveRoadmapId) {
-      const foundLastActive = unlockedRoadmaps.find(r => r.id === lastActiveRoadmapId || (lastActiveRoadmapId === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
+      const foundLastActive = filteredRoadmapsData.find(r => r.id === lastActiveRoadmapId || (lastActiveRoadmapId === "dsa" && (r.route === redirects.DSA || r.id.startsWith("dsa"))));
       if (foundLastActive) activeRoadmapToSet = foundLastActive;
     }
 
-    if (!activeRoadmapToSet && unlockedRoadmaps.length > 0) {
-      activeRoadmapToSet = unlockedRoadmaps[0];
+    if (!activeRoadmapToSet && filteredRoadmapsData.length > 0) {
+      activeRoadmapToSet = filteredRoadmapsData[0];
     }
 
     setRoadmapProgress(progressMap);
     setActiveRoadmap(activeRoadmapToSet);
     setAllRoadmaps(filteredRoadmapsData);
-    setLockedRoadmapIds(lockedIds);
   }, [
     selectedPromptRoadmap,
     userRole,
@@ -736,67 +715,13 @@ export default function Dashboard() {
       ),
     });
 
-    // Order and filter carousel items to strictly match the roadmaps in allRoadmaps
-    const filtered = allRoadmaps
+    // Order and filter carousel items to strictly match the roadmaps in allRoadmaps (all fully unlocked)
+    return allRoadmaps
       .map((ar) => rawList.find((cr) => cr.id === ar.id))
       .filter(Boolean);
-
-    return filtered.map((item) => {
-      if (!lockedRoadmapIds.has(item.id)) return item;
-      const lockIdx = allRoadmaps.findIndex((r) => r.id === item.id);
-      const prevTitle =
-        lockIdx > 0 ? allRoadmaps[lockIdx - 1]?.title : "the previous roadmap";
-      return {
-        ...item,
-        component: (
-          <div
-            key={item.id}
-            className="relative w-full h-full select-none"
-            style={{ borderRadius: 24 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                filter: "grayscale(1) brightness(0.72)",
-                pointerEvents: "none",
-                height: "100%",
-                width: "100%",
-              }}
-            >
-              {React.cloneElement(item.component, { onClick: undefined })}
-            </div>
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
-              style={{
-                background: "rgba(25,24,59,0.45)",
-                borderRadius: 24,
-                backdropFilter: "blur(2px)",
-              }}
-            >
-              <div
-                className="flex items-center justify-center rounded-full bg-white/15"
-                style={{ width: 52, height: 52 }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-              </div>
-              <p className="text-white font-bold text-[15px] leading-snug">
-                Locked
-              </p>
-              <p className="text-white/80 text-[13px] leading-relaxed">
-                Complete <span className="font-semibold text-white">{prevTitle}</span> to unlock this roadmap.
-              </p>
-            </div>
-          </div>
-        ),
-      };
-    });
   }, [
     allRoadmaps,
     roadmapProgress,
-    lockedRoadmapIds,
     selectedPromptRoadmap,
     userRole,
     selectedDsaRoadmap,
