@@ -64,21 +64,27 @@ function KiboHeaderAvatar({ size = 72, className = "", eyeTracking = true }) {
 }
 
 // ponytail: duration rules for stages to compute dynamic weeks
-const STAGE_WEEKS = { git: 1, python: 2, dsa: 2, ship: 1, prompt: 1, system_design: 1 };
+const STAGE_WEEKS = {
+  git: 1,
+  python: 2,
+  dsa: 2,
+  ship: 1,
+  prompt: 1,
+  system_design: 1,
+};
 
 export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
-  const isDsa = goal === "dsa" || (roadmapIds && roadmapIds.length === 1 && roadmapIds[0] === "dsa");
+  const isDsa =
+    goal === "dsa" ||
+    (roadmapIds && roadmapIds.length === 1 && roadmapIds[0] === "dsa");
 
   // ponytail: compute active stages and dynamic labels inline instead of complex state
-  const activeStages = useMemo(
-    () => {
-      if (isDsa) return DSA_STAGES;
-      return STAGES.filter(
-        (s) => s.kind === "finish" || !roadmapIds || roadmapIds.includes(s.id),
-      );
-    },
-    [roadmapIds, isDsa],
-  );
+  const activeStages = useMemo(() => {
+    if (isDsa) return DSA_STAGES;
+    return STAGES.filter(
+      (s) => s.kind === "finish" || !roadmapIds || roadmapIds.includes(s.id),
+    );
+  }, [roadmapIds, isDsa]);
 
   const dynamicStages = useMemo(() => {
     if (isDsa) return DSA_STAGES;
@@ -112,22 +118,19 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
     });
   }, [activeStages, isDsa]);
 
-  const totalWeeks = useMemo(
-    () => {
-      if (isDsa) return 4;
-      return activeStages.reduce(
-        (acc, stage) =>
-          acc +
-          (stage.kind === "stage"
-            ? STAGE_WEEKS[stage.id] || 1
-            : stage.kind === "finish"
-              ? 1
-              : 0),
-        0,
-      );
-    },
-    [activeStages, isDsa],
-  );
+  const totalWeeks = useMemo(() => {
+    if (isDsa) return 4;
+    return activeStages.reduce(
+      (acc, stage) =>
+        acc +
+        (stage.kind === "stage"
+          ? STAGE_WEEKS[stage.id] || 1
+          : stage.kind === "finish"
+            ? 1
+            : 0),
+      0,
+    );
+  }, [activeStages, isDsa]);
 
   // ponytail: dynamic geometry based on filtered stages
   const trackWidth = stageX(dynamicStages.length - 1) + 296 + 20;
@@ -358,7 +361,10 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
       const scrollingUp = e.deltaY < 0;
 
       // Allow natural page vertical scroll at boundaries
-      if ((el.scrollLeft <= 5 && scrollingUp) || (el.scrollLeft >= max - 5 && scrollingDown)) {
+      if (
+        (el.scrollLeft <= 5 && scrollingUp) ||
+        (el.scrollLeft >= max - 5 && scrollingDown)
+      ) {
         return;
       }
 
@@ -388,7 +394,7 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
 
   const handlePointerDown = (event) => {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
-    if (event.target.closest("button") || event.target.closest("a")) return;
+    if (event.target.closest("button") || event.target.closest("a") || event.target.closest('[role="button"]')) return;
     const el = scrollerRef.current;
     if (!el) return;
     if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
@@ -404,7 +410,8 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
 
   const handlePointerMove = (event) => {
     if (!drag.current.active || !scrollerRef.current) return;
-    const nextLeft = drag.current.startLeft - (event.clientX - drag.current.startX);
+    const nextLeft =
+      drag.current.startLeft - (event.clientX - drag.current.startX);
     scrollerRef.current.scrollLeft = nextLeft;
     scrollTargetRef.current = nextLeft;
   };
@@ -525,8 +532,8 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
               <p className="text-pretty text-base sm:text-lg leading-relaxed text-ig-text font-medium">
                 {isDsa ? (
                   <>
-                    I&apos;ve analyzed everything and crafted a personalized path
-                    especially for you. Stick to this plan, and in just{" "}
+                    I&apos;ve analyzed everything and crafted a personalized
+                    path especially for you. Stick to this plan, and in just{" "}
                     <strong className="text-ig-cyan-soft font-bold">
                       4 weeks
                     </strong>
@@ -538,13 +545,16 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
                   </>
                 ) : (
                   <>
-                    I&apos;ve analyzed everything and crafted a personalized path
-                    especially for you. Stick to this plan, and in just{" "}
+                    I&apos;ve analyzed everything and crafted a personalized
+                    path especially for you. Stick to this plan, and in just{" "}
                     <strong className="text-ig-cyan-soft font-bold">
                       {totalWeeks} weeks
                     </strong>
                     , you&apos;ll launch your very own project directly to{" "}
-                    <strong className="text-ig-cyan-soft font-bold">GitHub</strong>!
+                    <strong className="text-ig-cyan-soft font-bold">
+                      GitHub
+                    </strong>
+                    !
                   </>
                 )}
               </p>
@@ -572,10 +582,11 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
           onPointerMove={handlePointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          className={`rm-scroll overflow-x-auto overscroll-x-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ig-cyan/60 ${dragging
-            ? "cursor-grabbing select-none"
-            : "cursor-grab snap-x snap-proximity"
-            }`}
+          className={`rm-scroll overflow-x-auto overscroll-x-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ig-cyan/60 ${
+            dragging
+              ? "cursor-grabbing select-none"
+              : "cursor-grab snap-x snap-proximity"
+          }`}
         >
           <ol
             className="relative list-none"
@@ -609,7 +620,7 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
                 >
                   <Lock className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-ig-text/25" />
                 </div>
-                <StageCard stage={stage} on={revealed > i} />
+                <StageCard stage={stage} on={revealed > i} onCommit={done ? commit : null} />
               </li>
             ))}
             {dynamicStages.map((stage, i) => (
@@ -625,23 +636,26 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
 
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-ig-bg to-transparent transition-opacity duration-300 ${atStart ? "opacity-0" : "opacity-100"
-            }`}
+          className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-ig-bg to-transparent transition-opacity duration-300 ${
+            atStart ? "opacity-0" : "opacity-100"
+          }`}
         />
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-ig-bg to-transparent transition-opacity duration-300 ${atEnd ? "opacity-0" : "opacity-100"
-            }`}
+          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-ig-bg to-transparent transition-opacity duration-300 ${
+            atEnd ? "opacity-0" : "opacity-100"
+          }`}
         />
       </div>
 
       {/* ── STICKY PRIMARY CTA DOCK (Apple HIG Floating Bar + Glassmorphic Antigravity) ── */}
       <div
         id="rm-cta"
-        className={`fixed bottom-0 inset-x-0 z-40 w-full bg-[#13122e]/85 backdrop-blur-xl border-t border-white/10 shadow-[0_-12px_32px_rgba(0,0,0,0.4)] px-5 sm:px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-all duration-500 ${pixelSwapDone
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 pointer-events-none"
-          }`}
+        className={`fixed bottom-0 inset-x-0 z-40 w-full bg-[#13122e]/85 backdrop-blur-xl border-t border-white/10 shadow-[0_-12px_32px_rgba(0,0,0,0.4)] px-5 sm:px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-all duration-500 ${
+          pixelSwapDone
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
       >
         {/* Subtle top gradient feather to soften scrolling cards behind the dock */}
         <div
@@ -656,12 +670,13 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
             aria-disabled={!done || committed}
             onClick={commit}
             aria-live="polite"
-            className={`group flex w-full items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-extrabold text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ig-cyan focus-visible:outline-none ${!done
-              ? "cursor-not-allowed bg-white/10 text-white/45 border border-white/10 shadow-none select-none"
-              : committed
-                ? "cursor-default bg-ig-teal shadow-[0_4px_0_#0D9488]"
-                : "cursor-pointer bg-[#00A9FF] hover:bg-[#0096e6] shadow-[0_4px_0_#007bcc] hover:shadow-[0_4px_0_#007bcc] hover:-translate-y-[1px] active:translate-y-[2px] active:shadow-none active:scale-[0.99]"
-              }`}
+            className={`group flex w-full items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-extrabold text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ig-cyan focus-visible:outline-none ${
+              !done
+                ? "cursor-not-allowed bg-white/10 text-white/45 border border-white/10 shadow-none select-none"
+                : committed
+                  ? "cursor-default bg-ig-teal shadow-[0_4px_0_#0D9488]"
+                  : "cursor-pointer bg-[#00A9FF] hover:bg-[#0096e6] shadow-[0_4px_0_#007bcc] hover:shadow-[0_4px_0_#007bcc] hover:-translate-y-[1px] active:translate-y-[2px] active:shadow-none active:scale-[0.99]"
+            }`}
           >
             {!done ? (
               <span className="flex items-center gap-2.5 text-sm sm:text-base font-semibold tracking-wide">
@@ -673,11 +688,7 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
               </span>
             ) : committed ? (
               <span className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-300">
-                <Check
-                  aria-hidden="true"
-                  className="size-5"
-                  strokeWidth={3}
-                />
+                <Check aria-hidden="true" className="size-5" strokeWidth={3} />
                 You're in!
               </span>
             ) : (

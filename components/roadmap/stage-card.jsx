@@ -19,7 +19,7 @@ function chunk(items, size) {
   return rows;
 }
 
-export function StageCard({ stage, on }) {
+export function StageCard({ stage, on, onCommit }) {
   const { icon: Icon, accent } = stage;
   const isFinish = stage.kind === "finish";
   const accentStyle = { "--accent": accent };
@@ -57,8 +57,12 @@ export function StageCard({ stage, on }) {
         <article
           className={`rm-card relative flex flex-col overflow-hidden rounded-3xl hover:-translate-y-0.5 ${
             isFinish ? "rm-finish" : ""
-          }`}
+          } ${onCommit ? "cursor-pointer" : ""}`}
           style={{ height: isFinish ? FINISH_H : CARD_H }}
+          onClick={onCommit ?? undefined}
+          role={onCommit ? "button" : undefined}
+          tabIndex={onCommit ? 0 : undefined}
+          onKeyDown={onCommit ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCommit(e); } } : undefined}
         >
           <div
             className="rm-icon pointer-events-none absolute -right-4 -top-5"
