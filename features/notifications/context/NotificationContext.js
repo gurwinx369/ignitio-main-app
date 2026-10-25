@@ -7,6 +7,7 @@ import {
   displayNotification,
 } from "../../../lib/firebase/firebase-messaging";
 import { auth } from "../../../lib/firebase/firebase";
+import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics/events";
 
 const NotificationContext = createContext({});
 
@@ -74,6 +75,37 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [permission]);
 
+  const saveTokenToBackend = async (fcmToken, email) => {
+    try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+      if (!idToken) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[NotificationContext] No ID token available to save FCM token yet");
+        }
+        return;
+      }
+
+      const response = await fetch("/api/v1/notifications/save-token", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ token: fcmToken, email: email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("Failed to save token:", data?.error || data?.message || "unknown error");
+        }
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error saving token:", error?.message || "unknown error");
+      }
+    }
+  };
+
   // Auto-sync token whenever permission is granted and user authentication state changes
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged(async (currentUser) => {
@@ -111,40 +143,10 @@ export const NotificationProvider = ({ children }) => {
     if (fcmToken) {
       setToken(fcmToken);
       setPermission("granted");
+      trackEvent(ANALYTICS_EVENTS.NOTIFICATION_ACTIVATED, { source: "in_app_modal" });
       saveTokenToBackend(fcmToken, targetEmail); // Fire and forget
     }
     return fcmToken;
-  };
-
-  const saveTokenToBackend = async (fcmToken, email) => {
-    try {
-      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-      if (!idToken) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn("[NotificationContext] No ID token available to save FCM token yet");
-        }
-        return;
-      }
-
-      const response = await fetch("/api/v1/notifications/save-token", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ token: fcmToken, email: email }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("Failed to save token:", data?.error || data?.message || "unknown error");
-        }
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("Error saving token:", error?.message || "unknown error");
-      }
-    }
   };
 
   const value = { token, notification, permission, requestPermission, saveTokenToBackend };

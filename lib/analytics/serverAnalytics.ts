@@ -17,10 +17,39 @@ export function getServerPostHog(): PostHog | null {
   if (!key) return null;
 
   try {
-    serverPostHog = new PostHog(key, { host });
+    serverPostHog = new PostHog(key, {
+      host,
+      flushAt: 1,
+      flushInterval: 0,
+    });
     return serverPostHog;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Capture an authoritative server-side event after database commit succeeds.
+ * In serverless runtimes, flush ensures the event is dispatched immediately.
+ */
+export async function captureServerEvent(
+  distinctId: string,
+  event: string,
+  properties: Record<string, any> = {}
+): Promise<void> {
+  const client = getServerPostHog();
+  if (!client || !distinctId) return;
+
+  try {
+    client.capture({
+      distinctId,
+      event,
+      properties,
+    });
+    // Flush immediately in serverless/short-lived execution contexts
+    await client.flush().catch(() => {});
+  } catch (e) {
+    console.warn(`Failed to capture server event ${event} in PostHog:`, e);
   }
 }
 

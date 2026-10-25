@@ -14,6 +14,7 @@ import { syncOnboardingFromLocalStorage } from '@/lib/onboarding/sync-localstora
 import { deriveScheduleFromBrowser } from '@/lib/onboarding/schedule-periods';
 import KiboBody from "@/features/kyle/pet/KiboBody";
 import { useKiboEyeTracking } from "@/features/kyle/pet/useKiboEyeTracking";
+import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics/events";
 
 async function ensureUserProfile(firebaseUser, initializeLegalConsent = false) {
   const idToken = await firebaseUser.getIdToken();
@@ -280,6 +281,7 @@ export default function SignupForm() {
     }
 
     try {
+      trackEvent(ANALYTICS_EVENTS.SIGNUP_SUBMITTED, { method: "email" });
       isHandlingAuthActionRef.current = true;
       const result = await signup(form.email, form.password);
 
@@ -435,6 +437,7 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
+      trackEvent(ANALYTICS_EVENTS.SIGNUP_SUBMITTED, { method: "google" });
       isHandlingAuthActionRef.current = true;
       const result = await loginWithGoogle();
 

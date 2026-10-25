@@ -132,6 +132,7 @@ export default function DiagnosticAssessment({
   const stepEnteredAtRef = useRef(Date.now());
   const pauseTimerRef = useRef(null);
   const hasCompletedStepRef = useRef(false);
+  const lastTrackedQRef = useRef(null);
 
   const currentQIndex = resolvedRoute.indexOf(activeQuestionId) >= 0
     ? resolvedRoute.indexOf(activeQuestionId)
@@ -140,18 +141,22 @@ export default function DiagnosticAssessment({
 
   // Track each question step view, abandonment, and 15s pause friction
   useEffect(() => {
+    if (!activeQuestionId) return;
     stepEnteredAtRef.current = Date.now();
     hasCompletedStepRef.current = false;
     const sessionId = getOrCreateOnboardingSessionId();
 
-    try {
-      posthog.capture("onboarding_step_viewed", {
-        step_id: currentStepId,
-        step_index: currentQIndex,
-        onboarding_session_id: sessionId,
-        question_id: activeQuestionId,
-      });
-    } catch {}
+    if (lastTrackedQRef.current !== activeQuestionId) {
+      lastTrackedQRef.current = activeQuestionId;
+      try {
+        posthog.capture("onboarding_step_viewed", {
+          step_id: currentStepId,
+          step_index: currentQIndex,
+          onboarding_session_id: sessionId,
+          question_id: activeQuestionId,
+        });
+      } catch {}
+    }
 
     // Flag long pause if user has no interaction for >15s on a question
     if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);

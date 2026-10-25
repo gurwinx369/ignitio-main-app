@@ -7,6 +7,7 @@ import { UserLegalConsent } from "@/models/v2/user.legal-consent.model";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { activateRoadmap } from "@/lib/onboarding/activation.service";
 import { getOnboardingRoute } from "@/lib/onboarding/onboarding-route";
+import { captureServerEvent } from "@/lib/analytics/serverAnalytics";
 
 const CURRENT_TERMS_VERSION = "2026-07-07";
 const CURRENT_PRIVACY_VERSION = "2026-07-07";
@@ -258,6 +259,13 @@ export async function POST(request) {
 
     // Execute atomic roadmap & streak activation
     const activationResult = await activateRoadmap(decodedToken.uid);
+
+    // Authoritative server-side event: user signed up
+    await captureServerEvent(decodedToken.uid, "user_signed_up", {
+      role: newProfile.role,
+      goal: newProfile.goal,
+      roadmap_slug: initialActiveRoadmapSlug,
+    });
 
     return NextResponse.json(
       {

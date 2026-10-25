@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowRight, CalendarCheck, CalendarPlus } from 'lucide-react'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
 // ponytail: inline map, skills routing for celebration
 const ROADMAP_ROUTES = {
@@ -27,6 +28,10 @@ export function CelebrateCta({ visible }) {
   const [committed, setCommitted] = useState(false)
 
   const handleContinue = () => {
+    trackEvent(ANALYTICS_EVENTS.STREAK_CELEBRATION_CLICKED, {
+      action: 'continue_to_roadmap',
+      target_href: getRoadmapHref(),
+    })
     try {
       localStorage.setItem('ignitio:streak_phase', 'completed')
     } catch {}
