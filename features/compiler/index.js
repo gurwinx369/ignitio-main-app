@@ -12,3 +12,11 @@ export {
   SUPPORTED_LANGUAGES,
   ERROR_TYPES
 } from './services/jdoodleApi';
+
+// Syntax Highlighting & Global Color Scheme
+export {
+  GLOBAL_SYNTAX_COLORS,
+  highlightCode,
+  tokenizeCode,
+  normalizeLanguage
+} from './lib/syntaxHighlighter';

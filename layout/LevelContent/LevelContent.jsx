@@ -421,16 +421,11 @@ const LevelContent = ({
         {/* Practice tab suppressed in preview */}
         {currentStep === 1 && showPracticeTab && !isPreview && (
           <div className="pb-24">
-            <PracticeTab level={level} roadmapType={roadmapType} />
-            <div className="max-w-7xl mx-auto px-4 mt-8 flex justify-end">
-              <button
-                onClick={handleMarkComplete}
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-green-500 hover:bg-green-400 text-white rounded-full transition-all duration-150 border-b-[4px] border-green-700 active:border-b-0 active:translate-y-[4px] text-lg font-bold shadow-lg"
-              >
-                <CheckCircle className="w-6 h-6" />
-                Complete Lesson
-              </button>
-            </div>
+            <PracticeTab
+              level={level}
+              roadmapType={roadmapType}
+              onMarkComplete={handleMarkComplete}
+            />
           </div>
         )}
         {/* Quiz suppressed in preview — no auth context available */}
