@@ -376,7 +376,7 @@ export default function SignupForm() {
           timezone: derived.timezone,
           windows: [{ period: derived.period, startTime: derived.startTime, endTime: derived.endTime }],
         },
-        role: "student",
+        role: "developer",
         initializeLegalConsent: true,
       };
 

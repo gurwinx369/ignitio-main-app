@@ -50,7 +50,7 @@ export default function ActivationPage() {
                 Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({
-                role: "student",
+                role: "developer",
                 schedule: {
                   timezone: derived.timezone,
                   windows: [
