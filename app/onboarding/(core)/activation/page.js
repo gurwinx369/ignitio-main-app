@@ -75,8 +75,11 @@ export default function ActivationPage() {
               });
               const retryData = await retryRes.json();
               if (retryRes.ok && retryData.success && retryData.nextStep === "completed") {
+                try {
+                  localStorage.setItem("ignitio:streak_phase", "anticipated");
+                } catch {}
                 await mutateProfile();
-                router.replace("/home");
+                router.replace("/onboarding/streak");
                 return;
               }
             }
@@ -93,8 +96,11 @@ export default function ActivationPage() {
 
       // Success or Idempotent Success
       if (data.success && data.nextStep === "completed") {
+        try {
+          localStorage.setItem("ignitio:streak_phase", "anticipated");
+        } catch {}
         await mutateProfile(); // Invalidate the cached profile so /home doesn't bounce us back
-        router.replace("/home"); // Final transition to main app
+        router.replace("/onboarding/streak"); // Final transition to streak celebration
       } else {
         setErrorMsg("Unexpected response from server.");
         setLoading(false);

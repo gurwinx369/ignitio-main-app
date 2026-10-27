@@ -59,7 +59,7 @@ const PAYWALL_FORWARD_STEPS = new Set([
 
 export default function Paywall() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, mutateProfile } = useAuth();
 
   // Page-level state
   const [pageLoading, setPageLoading] = useState(true);
@@ -70,10 +70,13 @@ export default function Paywall() {
 
   // Checkout state
   const [isPremiumLoading, setIsPremiumLoading] = useState(false);
+  const [isPaymentVerifying, setIsPaymentVerifying] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [statusVariant, setStatusVariant] = useState("idle"); // "idle"|"dismissed"|"error"|"success"
   const [statusMessage, setStatusMessage] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(DEFAULT_SUBSCRIPTION_PLAN);
+
+  const isLockedAfterSuccessRef = useRef(false);
 
   // ── PostHog Step 6 & 7 Tracking ───────────────────────────────────────────
   const paywallEnteredAtRef = useRef(Date.now());
@@ -156,19 +159,16 @@ export default function Paywall() {
 
         const nextStep = res.nextStep;
 
-        if (nextStep === "paywall") {
+        // If user is at paywall, or if user is NOT yet entitled to Premium, stay on paywall!
+        if (nextStep === "paywall" || !res.entitled) {
           setPageLoading(false);
           return;
         }
 
         /*
-         * Only redirect forward from Paywall.
-         *
-         * Earlier-state routing is owned by ProtectedRoute.
-         * Redirecting Paywall back to Results here can race
-         * with Results redirecting forward to Paywall.
+         * Only redirect forward from Paywall if the user is confirmed entitled.
          */
-        if (PAYWALL_FORWARD_STEPS.has(nextStep)) {
+        if (PAYWALL_FORWARD_STEPS.has(nextStep) && res.entitled) {
           const route = ONBOARDING_ROUTES[nextStep];
 
           if (!route) {
@@ -354,6 +354,14 @@ export default function Paywall() {
           razorpaySubscriptionId: rzpSubId,
           razorpaySignature,
         }) => {
+          // Lock UI immediately: user has paid. Block any dismiss or duplicate actions.
+          hasCompletedPaywallRef.current = true;
+          isLockedAfterSuccessRef.current = true;
+          setIsPaymentVerifying(true);
+          setIsPremiumLoading(true);
+          setStatusVariant("idle");
+          setStatusMessage("Securing payment and activating your Premium access…");
+
           // 5. Verify server-side — never trust client callback alone.
           try {
             const freshToken = await user.getIdToken();
@@ -390,43 +398,94 @@ export default function Paywall() {
               } catch {}
 
               setStatusVariant("success");
-              setStatusMessage(
-                "Payment confirmed. Preparing your Premium access…",
-              );
+              setStatusMessage("Payment confirmed. Preparing your roadmap…");
 
-              /*
-               * Payment verification owns entitlement activation.
-               * Onboarding routing is resolved separately from the
-               * trusted paywall-status endpoint.
-               *
-               * /payment/verify intentionally does not own or expose
-               * the frontend routing contract.
-               */
-              const statusRes = await getPaywallStatus(freshToken);
+              // Seamless transition: silently persist schedule & activate roadmap
+              try {
+                const { deriveScheduleFromBrowser } = await import(
+                  "@/lib/onboarding/schedule-periods"
+                );
+                const { syncOnboardingFromLocalStorage } = await import(
+                  "@/lib/onboarding/sync-localstorage"
+                );
 
-              if (
-                statusRes.success &&
-                PAYWALL_FORWARD_STEPS.has(statusRes.nextStep)
-              ) {
-                const nextRoute = ONBOARDING_ROUTES[statusRes.nextStep];
+                await syncOnboardingFromLocalStorage(freshToken).catch(() => {});
+                const derived = deriveScheduleFromBrowser();
 
-                if (nextRoute) {
-                  router.replace(nextRoute);
-                  return;
+                await fetch("/api/v2/onboarding/role-schedule", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${freshToken}`,
+                  },
+                  body: JSON.stringify({
+                    role: "developer",
+                    schedule: {
+                      timezone: derived.timezone,
+                      windows: [
+                        {
+                          period: derived.period,
+                          startTime: derived.startTime,
+                          endTime: derived.endTime,
+                        },
+                      ],
+                    },
+                  }),
+                }).catch(() => {});
+
+                const actRes = await fetch("/api/v2/onboarding/activate", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${freshToken}`,
+                  },
+                  body: JSON.stringify({}),
+                }).catch(() => null);
+
+                let startingRoute = "/home/premium/genai/beginner";
+                let startingTier = "beginner";
+                if (actRes && actRes.ok) {
+                  const actData = await actRes.json().catch(() => ({}));
+                  if (actData.startingRoute) {
+                    startingRoute = actData.startingRoute;
+                  } else if (actData.beginnerSkipped) {
+                    startingRoute = "/home/premium/genai/intermediate";
+                  }
+                  if (actData.startingTier) {
+                    startingTier = actData.startingTier;
+                  } else if (actData.beginnerSkipped) {
+                    startingTier = "intermediate";
+                  }
                 }
-              }
 
-              /*
-               * Payment has already been verified successfully.
-               * Never ask the user to purchase again just because
-               * routing reconciliation failed.
-               */
-              setStatusVariant("error");
-              setStatusMessage(
-                "Your payment was confirmed, but we could not continue to the next onboarding step. Please refresh the page.",
-              );
-              setIsPremiumLoading(false);
+                try {
+                  localStorage.setItem("ignitio:streak_phase", "anticipated");
+                  localStorage.setItem("ignitio:streak_lesson_href", startingRoute);
+                  localStorage.setItem("ignitio:genai_starting_tier", startingTier);
+                  localStorage.setItem(
+                    "ignitio:assigned_roadmaps",
+                    JSON.stringify(["prompt-engineering", "genai"]),
+                  );
+                } catch {}
+
+                if (mutateProfile) {
+                  await mutateProfile().catch(() => {});
+                }
+
+                router.replace("/onboarding/streak");
+                return;
+              } catch (autoErr) {
+                console.error(
+                  "[Paywall] Background activation failed, routing to role-selection:",
+                  autoErr,
+                );
+                router.replace("/onboarding/role-selection");
+                return;
+              }
             } else {
+              isLockedAfterSuccessRef.current = false;
+              setIsPaymentVerifying(false);
+              setIsPremiumLoading(false);
               try {
                 posthog.capture("payment_failed", {
                   onboarding_session_id: sessionId,
@@ -440,10 +499,12 @@ export default function Paywall() {
                 verifyRes.message ??
                   "Payment verification failed. Please contact support.",
               );
-              setIsPremiumLoading(false);
             }
           } catch (err) {
             console.error("[Paywall] Verification error:", err);
+            isLockedAfterSuccessRef.current = false;
+            setIsPaymentVerifying(false);
+            setIsPremiumLoading(false);
 
             try {
               posthog.capture("payment_failed", {
@@ -464,12 +525,14 @@ export default function Paywall() {
               setStatusMessage(
                 "Verification failed. Please contact support if your payment was charged.",
               );
-              setIsPremiumLoading(false);
             }
           }
         },
 
         onDismiss: () => {
+          // If payment was completed and verification is running, do not dismiss!
+          if (isLockedAfterSuccessRef.current) return;
+
           // User closed the modal intentionally — not a payment error.
           try {
             posthog.capture("checkout_abandoned", {
@@ -482,6 +545,7 @@ export default function Paywall() {
           setStatusVariant("dismissed");
           setStatusMessage(null);
           setIsPremiumLoading(false);
+          setIsPaymentVerifying(false);
         },
       });
     } catch (err) {
@@ -532,20 +596,9 @@ export default function Paywall() {
       if (!isMounted.current) return;
 
       if (res.success) {
-        const nextRoute = PAYWALL_FORWARD_STEPS.has(res.nextStep)
-          ? ONBOARDING_ROUTES[res.nextStep]
-          : null;
-
-        if (!nextRoute) {
-          setStatusVariant("error");
-          setStatusMessage(
-            "The next onboarding step could not be resolved. Please refresh and try again.",
-          );
-          setIsSkipping(false);
-          return;
-        }
-
-        router.replace(nextRoute);
+        // Declining paywall routes the user into the free onboarding path's next question set,
+        // so they complete a free one-month roadmap instead of hitting a dead end.
+        router.replace("/onboarding?resume=foundation");
       } else {
         setStatusVariant("error");
         setStatusMessage(
@@ -645,7 +698,8 @@ export default function Paywall() {
                 } catch {}
               }}
               onContinue={handlePremium}
-              disabled={isPremiumLoading || isSkipping}
+              disabled={isPremiumLoading || isSkipping || isPaymentVerifying}
+              isVerifying={isPaymentVerifying}
               couponCode={couponCode}
               onCouponChange={(val) => {
                 setCouponCode(val);
@@ -660,7 +714,7 @@ export default function Paywall() {
                 <button
                   id="paywall-skip-btn"
                   onClick={handleSkip}
-                  disabled={isPremiumLoading || isSkipping}
+                  disabled={isPremiumLoading || isSkipping || isPaymentVerifying}
                   className="text-[13px] text-slate-500 hover:text-[#001D32] underline underline-offset-4 decoration-slate-300 hover:decoration-[#001D32] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {isSkipping

@@ -27,6 +27,11 @@ export async function POST(request) {
       success: true,
       nextStep: result.nextStep,
       alreadyActivated: result.alreadyActivated || false,
+      startingTier: result.startingTier || null,
+      startingRoute: result.startingRoute || null,
+      beginnerSkipped: Boolean(result.beginnerSkipped),
+      includedDayIds: result.includedDayIds || [],
+      skippedDayIds: result.skippedDayIds || [],
     });
   } catch (error) {
     console.error("Activation POST Error:", error);

@@ -23,6 +23,7 @@ import {
   LABEL_H,
   STAGES,
   DSA_STAGES,
+  GENAI_STAGES,
   STAGE_MS,
   STEP_X,
   TRACK_HEIGHT,
@@ -78,15 +79,23 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
     goal === "dsa" ||
     (roadmapIds && roadmapIds.length === 1 && roadmapIds[0] === "dsa");
 
+  const isGenAi =
+    goal === "gen_ai" ||
+    goal === "genai" ||
+    goal === "ai_internship" ||
+    (roadmapIds && (roadmapIds.includes("prompt-engineering") || roadmapIds.includes("genai")));
+
   // ponytail: compute active stages and dynamic labels inline instead of complex state
   const activeStages = useMemo(() => {
+    if (isGenAi) return GENAI_STAGES;
     if (isDsa) return DSA_STAGES;
     return STAGES.filter(
       (s) => s.kind === "finish" || !roadmapIds || roadmapIds.includes(s.id),
     );
-  }, [roadmapIds, isDsa]);
+  }, [roadmapIds, isDsa, isGenAi]);
 
   const dynamicStages = useMemo(() => {
+    if (isGenAi) return GENAI_STAGES;
     if (isDsa) return DSA_STAGES;
     let currentWeek = 1;
     let currentDay = 1;
@@ -116,9 +125,10 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
       currentDay += weeks * 7;
       return res;
     });
-  }, [activeStages, isDsa]);
+  }, [activeStages, isDsa, isGenAi]);
 
   const totalWeeks = useMemo(() => {
+    if (isGenAi) return 10;
     if (isDsa) return 4;
     return activeStages.reduce(
       (acc, stage) =>
@@ -130,7 +140,7 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
             : 0),
       0,
     );
-  }, [activeStages, isDsa]);
+  }, [activeStages, isDsa, isGenAi]);
 
   // ponytail: dynamic geometry based on filtered stages
   const trackWidth = stageX(dynamicStages.length - 1) + 296 + 20;
@@ -530,7 +540,20 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
                 Your customized roadmap
               </h1>
               <p className="text-pretty text-base sm:text-lg leading-relaxed text-ig-text font-medium">
-                {isDsa ? (
+                {isGenAi ? (
+                  <>
+                    I&apos;ve analyzed everything and crafted a personalized
+                    path especially for you. Stick to this plan, and in{" "}
+                    <strong className="text-ig-cyan-soft font-bold">
+                      10 weeks
+                    </strong>
+                    , you&apos;ll deploy production-ready{" "}
+                    <strong className="text-ig-cyan-soft font-bold">
+                      Generative AI &amp; Autonomous Agents
+                    </strong>
+                    !
+                  </>
+                ) : isDsa ? (
                   <>
                     I&apos;ve analyzed everything and crafted a personalized
                     path especially for you. Stick to this plan, and in just{" "}
@@ -562,9 +585,11 @@ export function RoadmapResult({ roadmapIds, goal, onContinue, onBack }) {
                 className="rm-reveal rm-fade mt-3 text-sm text-ig-muted"
                 style={delay(880)}
               >
-                {isDsa
-                  ? "Top 23 curated patterns. No fluff, just small wins every day. Are you ready?"
-                  : "No fluff, just small wins every week. Are you ready?"}
+                {isGenAi
+                  ? "Real LLM architectures, RAG pipelines, and agent tools. Are you ready?"
+                  : isDsa
+                    ? "Top 23 curated patterns. No fluff, just small wins every day. Are you ready?"
+                    : "No fluff, just small wins every week. Are you ready?"}
               </p>
             </div>
           </div>

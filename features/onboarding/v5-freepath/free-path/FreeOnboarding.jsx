@@ -23,7 +23,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/context/AuthContext";
 import {
   classifyFreePathSkills,
@@ -112,6 +112,7 @@ export default function FreeOnboarding() {
   const { user } = useAuth();
   // routing hook for the routing
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [screen, setScreen] = useState(SCREENS.YEAR);
   const [goal, setGoal] = useState(null);
@@ -122,10 +123,39 @@ export default function FreeOnboarding() {
 
   // Restore progress on mount — users should never redo the diagnostic after abandoning
   useEffect(() => {
-    // ProtectedRoute already handles authenticated user routing.
-    // If an authenticated user lands here, they are meant to take the diagnostic.
-
     const saved = loadSaved();
+    const stepParam = searchParams?.get("step");
+    const resumeParam = searchParams?.get("resume");
+
+    let initialGoal = saved?.goal || null;
+    let initialYear = saved?.year || null;
+
+    if (!initialGoal || !initialYear) {
+      try {
+        const genaiEntry = JSON.parse(localStorage.getItem("ignitio:genai_entry"));
+        if (genaiEntry) {
+          if (!initialGoal) initialGoal = genaiEntry.goal;
+          if (!initialYear) initialYear = genaiEntry.year;
+        }
+      } catch {}
+    }
+
+    if (initialGoal) setGoal(initialGoal);
+    if (initialYear) setYear(initialYear);
+
+    // Resuming from paywall skip: "Continue with Foundation" routes into the free onboarding path's question set
+    if (resumeParam === "foundation") {
+      setPath("C");
+      setScreen(SCREENS.KNOWLEDGE_CHECK);
+      return;
+    }
+
+    // Boundary return: user hit back from Gen AI diagnostic screen 1
+    if (stepParam === "shortcut") {
+      setScreen(SCREENS.SHORTCUT);
+      return;
+    }
+
     if (!saved) return;
 
     setTimeout(() => {
@@ -146,7 +176,7 @@ export default function FreeOnboarding() {
       }
       if (saved.path) setPath(saved.path);
     }, 0);
-  }, [user]);
+  }, [user, searchParams]);
 
   // Persist whenever key state changes
   useEffect(() => {
@@ -186,7 +216,7 @@ export default function FreeOnboarding() {
   const handleShortcutFastTrack = useCallback(() => {
     // Path A — exit to Gen AI module's own onboarding
     setPath("A");
-    clearPersisted();
+    persist({ screen: SCREENS.SHORTCUT, goal, year, path: "A" });
     // Preserve goal/year in a separate key for the Gen AI module to read
     try {
       localStorage.setItem(
@@ -370,12 +400,16 @@ export default function FreeOnboarding() {
   // ── Screen rendering ─────────────────────────────────────────────────────────
 
   if (screen === SCREENS.YEAR) {
-    return <YearScreen onNext={handleYear} />;
+    return <YearScreen onNext={handleYear} initialYear={year} />;
   }
 
   if (screen === SCREENS.GOAL) {
     return (
-      <GoalScreen onNext={handleGoal} onBack={() => setScreen(SCREENS.YEAR)} />
+      <GoalScreen
+        onNext={handleGoal}
+        onBack={() => setScreen(SCREENS.YEAR)}
+        initialGoal={goal}
+      />
     );
   }
 

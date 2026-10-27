@@ -24,6 +24,8 @@ import ShortTextQuestion from "./components/questions/ShortTextQuestion";
 import OrderingQuestion from "./components/questions/OrderingQuestion";
 import CodeBlock from "./components/questions/CodeBlock";
 import OnboardingShell from "@/features/onboarding/core/components/OnboardingShell";
+import OnboardingKiboHeader from "@/features/onboarding/core/components/OnboardingKiboHeader";
+import { getKiboMessageForQuestion } from "./constants/kiboDiagnosticCopy";
 
 // Kyle illustrations removed — all questions use the single-column layout.
 const QUESTION_ASSET_MAP = {};
@@ -108,9 +110,17 @@ export default function DiagnosticAssessment({
   const router = useRouter();
   const { user } = useAuth();
 
-  const [answers, setAnswers] = useState(() => ({
-    ...DEFAULT_ANSWERS,
-  }));
+  const [answers, setAnswers] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("ignitio:genai_diagnostic_answers");
+        if (saved) {
+          return { ...DEFAULT_ANSWERS, ...JSON.parse(saved) };
+        }
+      }
+    } catch {}
+    return { ...DEFAULT_ANSWERS };
+  });
   const [visitedQuestionIds, setVisitedQuestionIds] = useState([
     QUESTION_IDS.Q1,
   ]);
@@ -226,17 +236,27 @@ export default function DiagnosticAssessment({
         from_step: activeQuestionId,
         to_step: prevQuestionId,
       });
+
+      setVisitedQuestionIds((previousHistory) => {
+        if (previousHistory.length <= 1) return previousHistory;
+        return previousHistory.slice(0, -1);
+      });
+      setError(null);
+      return;
     }
 
-    setVisitedQuestionIds((previousHistory) => {
-      if (previousHistory.length <= 1) {
-        return previousHistory;
-      }
+    // Boundary case: on diagnostic screen 1, back takes the user back to the free path questions
+    // preserving answers in both flows so the user never loses progress.
+    try {
+      localStorage.setItem("ignitio:genai_diagnostic_answers", JSON.stringify(answers));
+    } catch {}
 
-      return previousHistory.slice(0, -1);
+    trackOnboardingFriction(currentStepId, "back_navigation", {
+      from_step: activeQuestionId,
+      to_step: "free_path_boundary",
     });
 
-    setError(null);
+    router.push("/onboarding?step=shortcut");
   };
 
   const moveToNextQuestion = () => {
@@ -552,35 +572,14 @@ export default function DiagnosticAssessment({
       className="h-dvh flex flex-col overflow-hidden"
       style={{ backgroundColor: "#FCF5EE" }}
     >
-      {/* ── Zone 1: Top bar ─────────────────────────────────────────── */}
-      <div className="flex-shrink-0 w-full px-4 sm:px-6 pt-4 pb-3">
-        <div className="flex items-center gap-3 w-full max-w-[500px] mx-auto">
-          {/* Back button — fixed 40px so progress bar always lines up */}
-          <div className="w-10 flex-shrink-0">
-            {visitedQuestionIds.length > 1 && (
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={isSubmitting}
-                aria-label="Go back"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-[#001D32] hover:bg-black/5 transition-colors disabled:opacity-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {/* Progress bar — fills remaining space */}
-          <div className="flex-1 min-w-0">
-            <DiagnosticProgress
-              current={visitedQuestionIds.length}
-              total={Math.max(resolvedRoute.length, visitedQuestionIds.length, 1)}
-            />
-          </div>
-        </div>
-      </div>
+      {/* ── Zone 1: Conversational Kibo Header (persistent back + progress + avatar + speech bubble) ── */}
+      <OnboardingKiboHeader
+        currentStep={visitedQuestionIds.length}
+        totalSteps={Math.max(resolvedRoute.length, visitedQuestionIds.length, 1)}
+        onBack={handleBack}
+        backDisabled={isSubmitting}
+        kiboMessage={getKiboMessageForQuestion(activeQuestionId, currentQIndex)}
+      />
 
       {/* ── Zone 2: Scrollable content ──────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">

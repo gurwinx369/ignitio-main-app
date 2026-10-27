@@ -16,6 +16,8 @@ const LESSON_ROUTES = {
   git: '/home/roadmaps/git-github/interactive-overviews/first-overview',
   python: '/home/roadmaps/python-beginner',
   dsa: '/home/roadmaps/dsa',
+  gen_ai: '/home/premium/genai/beginner',
+  genai: '/home/premium/genai/beginner',
 }
 
 function getDays() {
@@ -25,11 +27,20 @@ function getDays() {
 
 function getLessonHref() {
   try {
-    // Primary: written by FreeOnboarding before auth — survives sync clearing onboarding_result
+    // Primary: written by Paywall / FreeOnboarding / RoleScheduleController
     const direct = localStorage.getItem('ignitio:streak_lesson_href')
     if (direct) return direct
-    // Fallback: already-authenticated users who never went through signup
+
+    // Check if genai starting tier was stored
+    const genAiTier = localStorage.getItem('ignitio:genai_starting_tier')
+    if (genAiTier === 'intermediate') return '/home/premium/genai/intermediate'
+    if (genAiTier === 'beginner') return '/home/premium/genai/beginner'
+
+    // Fallback: goal check
+    const goal = localStorage.getItem('goal')
+    if (goal === 'gen_ai' || goal === 'genai') return '/home/premium/genai/beginner'
     const result = JSON.parse(localStorage.getItem('ignitio:onboarding_result') ?? 'null')
+    if (result?.goal === 'gen_ai' || result?.goal === 'genai') return '/home/premium/genai/beginner'
     const firstSkill = result?.goal === 'dsa' ? 'dsa' : (result?.roadmap?.[0] || 'python')
     return LESSON_ROUTES[firstSkill] ?? (result?.goal === 'dsa' ? '/home/roadmaps/dsa' : '/home/roadmaps/python-beginner')
   } catch {
@@ -79,6 +90,37 @@ export default function StreakPage() {
     if (typeof window === 'undefined') return '/home';
     return getLessonHref();
   });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function verifyGenAiTier() {
+      try {
+        const goal = typeof window !== 'undefined' ? localStorage.getItem('goal') : null;
+        const isGenAi = goal === 'gen_ai' || goal === 'genai' || lessonHref.includes('/premium/genai');
+        if (!isGenAi) return;
+
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+        if (!idToken) return;
+
+        const res = await fetch('/api/v2/premium/genai/tier-status', {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.beginnerSkipped && isMounted) {
+          setLessonHref('/home/premium/genai/intermediate');
+          try {
+            localStorage.setItem('ignitio:streak_lesson_href', '/home/premium/genai/intermediate');
+            localStorage.setItem('ignitio:genai_starting_tier', 'intermediate');
+          } catch {}
+        }
+      } catch {}
+    }
+    verifyGenAiTier();
+    return () => {
+      isMounted = false;
+    };
+  }, [lessonHref]);
 
   const handleNotificationResponse = async (allowed) => {
     if (allowed) {

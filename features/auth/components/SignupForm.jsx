@@ -157,7 +157,12 @@ export default function SignupForm() {
   const isResumingRef = useRef(false);
   const posthog = usePostHog();
   const searchParams = useSearchParams();
-  const isFromOnboarding = searchParams?.get("from") === "freepath";
+  const fromParam = searchParams?.get("from");
+  const isFromOnboarding =
+    fromParam === "freepath" ||
+    fromParam === "genai" ||
+    fromParam === "genai_preview" ||
+    searchParams?.get("redirect")?.includes("/onboarding");
   const kiboWrapperRef = useRef(null);
   const kiboEyesRef = useRef(null);
   useKiboEyeTracking({ eyesRef: kiboEyesRef, wrapperRef: kiboWrapperRef, active: isFromOnboarding, trackFullPage: true });
@@ -322,12 +327,17 @@ export default function SignupForm() {
         !!localStorage.getItem("genai_preview_assessment");
 
       if (result.authMode === "new_signup" && (isGenAiPreview || hasPreview || hasGenAiAssessment)) {
-        await syncOnboardingFromLocalStorage(idToken).catch(() => {});
-        router.replace(
-          isGenAiPreview
-            ? "/onboarding/role-selection?from=genai_preview"
-            : "/onboarding/paywall"
-        );
+        try {
+          await ensureUserProfile(result.user, true).catch(() => {});
+          await fetch("/api/v2/legal-consent", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }).catch(() => {});
+          await syncOnboardingFromLocalStorage(idToken).catch(() => {});
+        } catch {}
+        router.replace("/onboarding/paywall");
         return;
       }
 

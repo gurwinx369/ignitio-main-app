@@ -6,6 +6,6 @@ export const ONBOARDING_ROUTES = {
   results: "/onboarding/results",
   paywall: "/onboarding/paywall",
   role_selection: "/onboarding/role-selection",
-  activation_pending: "/onboarding/activation",
+  activation_pending: "/onboarding/streak",
   completed: "/home",
 };

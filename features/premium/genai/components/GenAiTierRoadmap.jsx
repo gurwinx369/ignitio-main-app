@@ -14,6 +14,7 @@ import { useCalibrationStatus } from "@/features/premium/calibration/useCalibrat
 import { usePremiumUpgrade } from "@/features/premium/upgrade/usePremiumUpgrade";
 import RoadmapTemplate from "@/components/roadmap/RoadmapTemplate";
 import { filterGenAiWeeks } from "@/features/premium/genai/lib/genAiWeekHelper";
+import { useGenAiTierStatus } from "@/features/premium/genai/hooks/useGenAiTierStatus";
 
 function VerificationError({
     message,
@@ -144,6 +145,19 @@ export default function GenAiTierRoadmap({
         usePremiumUpgrade({
             enabled: upgradeEnabled,
         });
+
+    const tierStatus = useGenAiTierStatus({
+        enabled: tierKey === "beginner" && calibrationEnabled && calibration.status === "ready",
+    });
+
+    useEffect(() => {
+        if (
+            tierKey === "beginner" &&
+            tierStatus.beginnerSkipped === true
+        ) {
+            router.replace("/home/premium/genai/intermediate");
+        }
+    }, [tierKey, tierStatus.beginnerSkipped, router]);
 
     useEffect(() => {
         if (status === "foundation") {
@@ -304,6 +318,11 @@ export default function GenAiTierRoadmap({
                 if (isActive) {
                     // Filter semantically using pure helper
                     const filteredDays = filterGenAiWeeks(data.days || [], minWeek, maxWeek);
+
+                    if (tierKey === "beginner" && filteredDays.length === 0) {
+                        router.replace("/home/premium/genai/intermediate");
+                        return;
+                    }
 
                     const filteredTotalLevels = filteredDays.reduce(
                         (sum, day) => sum + (Array.isArray(day.levels) ? day.levels.length : 0),
