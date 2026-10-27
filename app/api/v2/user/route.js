@@ -20,7 +20,7 @@ const CURRENT_PRIVACY_VERSION = "2026-07-07";
 const CreateUserValidator = z.object({
   email: z.string().email("Invalid email format").toLowerCase().trim(),
   role: z.enum(["student", "writer", "designer", "developer", "other"]).optional().nullable(),
-  initializeLegalConsent: z.boolean().optional().default(false),
+  initializeLegalConsent: z.boolean().optional().default(true),
 });
 
 async function ensureCanonicalOnboardingState(profile) {
@@ -446,10 +446,26 @@ export async function GET(request) {
     }
 
     if (!userProfile) {
-      return NextResponse.json(
-        { message: "User profile not found" },
-        { status: 404 },
-      );
+      try {
+        userProfile = await UserProfile.create({
+          firebaseUID: decodedToken.uid,
+          email: tokenEmail,
+          onboardingComplete: false,
+          onboardingVersion: ONBOARDING_VERSIONS.V5,
+          onboardingState: { step: "diagnostic" },
+        });
+        userProfile = userProfile.toObject();
+      } catch (createErr) {
+        // Handle E11000 race condition if created concurrently by another request
+        userProfile = await UserProfile.findOne({
+          $or: [
+            { firebaseUID: decodedToken.uid },
+            ...(tokenEmail ? [{ email: tokenEmail }] : []),
+          ],
+        })
+          .select("-__v")
+          .lean();
+      }
     }
 
     await normalizeUserProfileRetentionFields(userProfile._id);
@@ -526,10 +542,24 @@ export async function PATCH(request) {
   if (onboardingVersion) updatePayload.onboardingVersion = onboardingVersion;
 
   try {
+    const tokenEmail =
+      typeof decodedToken.email === "string"
+        ? decodedToken.email.toLowerCase().trim()
+        : "";
+
     const updated = await UserProfile.findOneAndUpdate(
       { firebaseUID: decodedToken.uid },
-      { $set: updatePayload },
-      { new: true }
+      {
+        $setOnInsert: {
+          firebaseUID: decodedToken.uid,
+          email: tokenEmail,
+          onboardingComplete: false,
+          onboardingVersion: ONBOARDING_VERSIONS.V5,
+          onboardingState: { step: "diagnostic" },
+        },
+        $set: updatePayload,
+      },
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     ).select("goal onboardingVersion").lean();
 
     if (!updated) {

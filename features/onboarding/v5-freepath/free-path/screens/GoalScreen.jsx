@@ -64,8 +64,8 @@ const CSS = `
 }
 `;
 
-export default function GoalScreen({ onNext, onBack }) {
-  const [selected, setSelected] = useState(null);
+export default function GoalScreen({ onNext, onBack, initialGoal = null }) {
+  const [selected, setSelected] = useState(initialGoal);
   const [isTyping, setIsTyping] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [barWidth, setBarWidth] = useState(0);

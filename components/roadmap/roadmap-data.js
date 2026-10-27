@@ -153,6 +153,71 @@ export const DSA_STAGES = [
   },
 ];
 
+export const GENAI_STAGES = [
+  {
+    id: "genai_prompt",
+    kind: "stage",
+    number: "01",
+    weekLabel: "Weeks 1–2",
+    days: "Days 1–14",
+    title: "Prompt Engineering & Foundations",
+    concepts: ["Tokenization & BPE", "Context Windows", "Chain-of-Thought", "Output Formatting"],
+    outcome: "Build production-grade prompt templates & evals",
+    accent: "#818cf8",
+    icon: BrainCircuit,
+    startHere: true,
+  },
+  {
+    id: "genai_python",
+    kind: "stage",
+    number: "02",
+    weekLabel: "Weeks 3–4",
+    days: "Days 15–28",
+    title: "Python for AI & API Layer",
+    concepts: ["Async Python", "OpenAI & Anthropic SDKs", "Structured JSON", "Pydantic Schemas"],
+    outcome: "Connect LLM providers to backend services",
+    accent: "#38bdf8",
+    icon: CodeXml,
+  },
+  {
+    id: "genai_rag",
+    kind: "stage",
+    number: "03",
+    weekLabel: "Weeks 5–7",
+    days: "Days 29–49",
+    title: "RAG & Vector Search",
+    concepts: ["Embeddings & Chunking", "Vector Databases", "Hybrid Retrieval", "FastAPI Endpoints"],
+    outcome: "Ship a production semantic search & retrieval pipeline",
+    accent: "#34d399",
+    icon: Database,
+  },
+  {
+    id: "genai_agents",
+    kind: "stage",
+    number: "04",
+    weekLabel: "Weeks 8–10",
+    days: "Days 50–70",
+    title: "Autonomous Agents & Tool Calling",
+    concepts: ["LangGraph & State Graphs", "Function Calling", "Multi-Agent Systems", "Eval Harness"],
+    outcome: "Deploy autonomous reasoning agents in production",
+    accent: "#c084fc",
+    icon: Layers,
+  },
+  {
+    id: "genai_finish",
+    kind: "finish",
+    weekLabel: "Day 70",
+    days: "The finish line",
+    title: "Your Gen AI System is Live",
+    concepts: [],
+    outcome:
+      "A deployed, production LLM system with custom RAG, agent tool calling, and live APIs ready to showcase.",
+    badge: "ignitio.cloud/genai-ready",
+    accent: "#5cc8ff",
+    icon: Trophy,
+  },
+];
+
 export const CARD_W = 296;
 export const COL_GAP = 96;
 export const PAD_X = 20;

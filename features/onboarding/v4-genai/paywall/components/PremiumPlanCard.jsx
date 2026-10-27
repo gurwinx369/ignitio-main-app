@@ -10,6 +10,7 @@ import {
   Infinity as InfinityIcon,
   Rocket,
   Users,
+  Loader2,
 } from "lucide-react";
 
 /* -----------------------------------------------------------------------
@@ -127,6 +128,7 @@ export default function PremiumPlanCard({
   onSelectPlan,
   onContinue,
   disabled = false,
+  isVerifying = false,
   showOnboardingNote = true,
   // Coupon props
   couponCode = "",
@@ -140,8 +142,10 @@ export default function PremiumPlanCard({
   const [internal, setInternal] = useState("ignitio_monthly");
   const active = selectedPlan ?? internal;
 
+  const isLocked = disabled || isVerifying;
+
   const select = (slug) => {
-    if (disabled) return;
+    if (isLocked) return;
     setInternal(slug);
     onSelectPlan?.(slug);
   };
@@ -399,16 +403,37 @@ export default function PremiumPlanCard({
       <div className="flex flex-col items-center gap-3">
         <motion.button
           type="button"
-          disabled={disabled}
-          whileTap={!disabled ? { scale: 0.97, transition: tapSpring } : {}}
-          onClick={() => onContinue?.(active)}
-          className="w-full md:w-auto md:min-w-72 rounded-2xl px-8 py-4 font-extrabold text-base uppercase tracking-wide text-white"
+          disabled={isLocked}
+          aria-busy={isVerifying}
+          whileTap={!isLocked ? { scale: 0.97, transition: tapSpring } : {}}
+          onClick={() => {
+            if (isLocked) return;
+            onContinue?.(active);
+          }}
+          className={[
+            "w-full md:w-auto md:min-w-80 rounded-2xl px-8 py-4 font-extrabold text-base uppercase tracking-wide text-white flex items-center justify-center gap-3 transition-all duration-200",
+            isLocked
+              ? "opacity-60 cursor-not-allowed pointer-events-none select-none"
+              : "cursor-pointer hover:brightness-105 active:translate-y-0.5",
+          ].join(" ")}
           style={{
             background: activeAccent.solid,
-            boxShadow: `0 5px 0 ${activeAccent.dark}`,
+            boxShadow: isLocked ? "none" : `0 5px 0 ${activeAccent.dark}`,
           }}
         >
-          {activeContent.cta} →
+          {isVerifying ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Securing Payment & Preparing Access…</span>
+            </>
+          ) : disabled ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Starting checkout…</span>
+            </>
+          ) : (
+            <span>{activeContent.cta} →</span>
+          )}
         </motion.button>
         {secondaryAction}
       </div>

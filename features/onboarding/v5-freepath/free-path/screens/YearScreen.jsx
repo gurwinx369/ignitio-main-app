@@ -62,8 +62,8 @@ const CSS = `
 }
 `;
 
-export default function YearScreen({ onNext, onBack }) {
-  const [selected, setSelected] = useState(null);
+export default function YearScreen({ onNext, onBack, initialYear = null }) {
+  const [selected, setSelected] = useState(initialYear);
   const [isTyping, setIsTyping] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [barWidth, setBarWidth] = useState(0);
