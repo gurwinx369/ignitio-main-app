@@ -9,6 +9,7 @@ import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { callKyleFastApi, KyleFastApiError } from "@/features/kyle/server/kyle-fastapi.client";
 import { aiRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
+import { stripThinking } from "@/lib/utils/cleanAiText";
 
 // ---------------------------------------------------------------------------
 // Browser → Next.js request schema (unchanged)
@@ -108,8 +109,9 @@ export async function POST(request) {
 
   // 6. Translate snake_case → camelCase and return the existing browser contract.
   // assignment_prompt → assignmentPrompt
+  const cleanPrompt = stripThinking(validated.data.assignment_prompt);
   return NextResponse.json(
-    { data: { assignmentPrompt: validated.data.assignment_prompt } },
+    { data: { assignmentPrompt: cleanPrompt } },
     { status: 200 }
   );
 }

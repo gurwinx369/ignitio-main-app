@@ -11,6 +11,7 @@ import Image from "next/image";
 import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
 import {
   ArrowLeft,
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
   Calendar,
@@ -598,6 +599,36 @@ export default function RoadmapTemplate({
     [user, roadmapData.id, roadmapData.title, allLevels, userProfession, router],
   );
 
+  const getAssignmentRoute = useCallback((dayId) => {
+    const roadmapRoutePrefixes = {
+      "prompt-engineering": "/home/roadmaps/prompt-engineering",
+      "git-github": "/home/roadmaps/git-github",
+      "cpp": "/home/roadmaps/cpp",
+      "dsa": "/home/roadmaps/dsa",
+      "dsa-student": "/home/roadmaps/dsa",
+      "dsa-developer": "/home/roadmaps/dsa",
+      "dsa-other": "/home/roadmaps/dsa",
+      "python-beginner": "/home/roadmaps/python-beginner",
+      "clang-beginner": "/home/roadmaps/c-beginner",
+      "c-language-course": "/home/roadmaps/c-beginner",
+      "system-design-fundamentals": "/home/roadmaps/system-design-fundamentals",
+    };
+
+    const basePrefix =
+      roadmapRoutePrefixes[roadmapData.id] ||
+      (typeof roadmapData.id === "string" && roadmapData.id.startsWith("prompt-engineering")
+        ? "/home/roadmaps/prompt-engineering"
+        : null) ||
+      (typeof roadmapData.id === "string" && roadmapData.id.startsWith("dsa")
+        ? "/home/roadmaps/dsa"
+        : null);
+
+    if (basePrefix && dayId) {
+      return `${basePrefix}/assignment/${dayId}`;
+    }
+    return null;
+  }, [roadmapData.id]);
+
   const openQueuedLesson = useCallback(async () => {
     const queuedLevel = pendingLessonRef.current;
     if (!queuedLevel) return;
@@ -1150,20 +1181,33 @@ export default function RoadmapTemplate({
           {hasAssignmentGate &&
             isCurrentDayComplete &&
             !isCurrentDayAssignmentPassed && (
-              <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
-                <div>
-                  <h3 className="font-bold text-orange-900 text-lg">
-                    Day {dayNumber} Assignment Pending
-                  </h3>
-                  <p className="text-orange-700 text-sm">
-                    Pass the assignment to unlock the next day&apos;s lessons.
-                  </p>
+              <div className="mb-6 bg-white border-2 border-[#f0caa8] rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-full bg-[#fcf5ee] flex items-center justify-center border-2 border-[#f0caa8] shrink-0">
+                    <KiboAvatar width={36} height={36} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-lg">
+                      Day {dayNumber} Assignment Ready
+                    </h3>
+                    <p className="text-slate-600 text-sm font-medium">
+                      Pass the practical assignment to unlock Day {dayNumber + 1}&apos;s lessons.
+                    </p>
+                  </div>
                 </div>
                 <button
-                  onClick={() => setShowAssignmentModal(true)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+                  onClick={() => {
+                    const targetUrl = getAssignmentRoute(activeDay?.id);
+                    if (targetUrl) {
+                      router.push(targetUrl);
+                    } else {
+                      setShowAssignmentModal(true);
+                    }
+                  }}
+                  className="btn-push bg-[#00a9ff] border-[#007bcc] hover:bg-[#0096e6] text-white font-extrabold py-3.5 px-6 rounded-2xl transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2 cursor-pointer"
                 >
-                  Complete Assignment
+                  <span>Start Assignment</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Flame,
   Shield,
   ArrowRight,
@@ -1136,14 +1136,6 @@ export default function StreakStatusCard({
                   <span>{isUsingFreeze ? "Restoring..." : "Use Freeze (Instant Restore)"}</span>
                 </button>
               )}
-
-              <Link
-                href="/home"
-                className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] hover:shadow-orange-500/35 active:scale-[0.98]"
-              >
-                <span>Rescue via Lessons</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
           </div>
         </div>

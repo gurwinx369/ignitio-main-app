@@ -10,6 +10,9 @@
     "vercel-build": "next build"
   },
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.49.1",
+    "@amplitude/analytics-node": "^1.5.82",
+    "@amplitude/plugin-session-replay-browser": "^1.36.6",
     "@google/generative-ai": "^0.24.1",
     "@gsap/react": "^2.1.2",
     "@posthog/next": "^0.8.6",

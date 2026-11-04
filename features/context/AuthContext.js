@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../../lib/firebase/firebase";
 import posthog from "posthog-js";
+import { identifyUser, resetUserIdentity } from "@/lib/analytics/events";
 import { scheduleIdleTask } from "@/lib/utils/idleTask";
 import { getOrCreateOnboardingSessionId } from "@/lib/analytics/onboardingSession";
 
@@ -111,6 +112,11 @@ export const AuthProvider = ({ children }) => {
                 // Identify user in PostHog
                 try {
                     const sessionId = getOrCreateOnboardingSessionId();
+                    identifyUser(user.uid, {
+                        email: user.email,
+                        name: user.displayName,
+                        onboarding_session_id: sessionId,
+                    });
                     posthog.identify(user.uid, {
                         email: user.email,
                         name: user.displayName,
@@ -317,7 +323,7 @@ export const AuthProvider = ({ children }) => {
             }
             await signOut(auth);
             // Reset PostHog identity on explicit logout only — not on every anonymous page load
-            try { posthog.reset(); } catch (_) { }
+            try { resetUserIdentity(); } catch (_) { }
             if (process.env.NODE_ENV === "development") {
                 console.log("Logout successful");
             }

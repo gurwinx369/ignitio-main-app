@@ -1,8 +1,9 @@
 // lib/analytics/events.ts
-// Single source of truth for PostHog event taxonomy across Ignitio.
+// Single source of truth for analytics event taxonomy across Ignitio.
 // Follows object_action naming convention and prevents scattered string literals.
+// Events are dispatched to PostHog + Amplitude in parallel via the dispatcher.
 
-import posthog from 'posthog-js';
+import { dispatchTrack, dispatchIdentify, dispatchReset } from './dispatcher';
 
 export const ANALYTICS_EVENTS = {
   // Onboarding lifecycle
@@ -46,49 +47,32 @@ export const ANALYTICS_EVENTS = {
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
 
 /**
- * Capture a typed client-side analytics event.
+ * Capture a typed client-side analytics event to all providers (PostHog + Amplitude).
  * Never pass PII (passwords, email, full names) in event properties;
- * use posthog.identify() for person traits.
+ * use identifyUser() for person traits.
  */
 export function trackEvent(
   eventName: AnalyticsEventName,
   properties: Record<string, any> = {}
 ): void {
-  if (typeof window === 'undefined') return;
-
-  try {
-    posthog.capture(eventName, properties);
-  } catch (err) {
-    // Analytics should never break user interactions
-    console.warn(`[Analytics] Failed to track ${eventName}:`, err);
-  }
+  dispatchTrack(eventName, properties);
 }
 
 /**
- * Identify an authenticated user with stable internal ID and person traits.
+ * Identify an authenticated user with stable internal ID and person traits
+ * across all analytics providers.
  */
 export function identifyUser(
   userId: string,
   traits: { role?: string; plan?: string; [key: string]: any } = {}
 ): void {
-  if (typeof window === 'undefined' || !userId) return;
-
-  try {
-    posthog.identify(userId, traits);
-  } catch (err) {
-    console.warn('[Analytics] Failed to identify user:', err);
-  }
+  dispatchIdentify(userId, traits);
 }
 
 /**
- * Reset identity on user logout to prevent session cross-contamination.
+ * Reset identity on user logout to prevent session cross-contamination
+ * across all analytics providers.
  */
 export function resetUserIdentity(): void {
-  if (typeof window === 'undefined') return;
-
-  try {
-    posthog.reset();
-  } catch (err) {
-    console.warn('[Analytics] Failed to reset user identity:', err);
-  }
+  dispatchReset();
 }

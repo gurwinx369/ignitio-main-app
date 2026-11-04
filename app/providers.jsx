@@ -3,9 +3,10 @@
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { GlobalDropoffTracker } from '@/lib/analytics/useGlobalDropoffTracker'
+import { initAmplitude } from '@/lib/analytics/providers/AmplitudeProvider'
+import '@/lib/analytics/dispatcher'
 
-// Init at module level — synchronous, no race condition with identify or pageview
-// The requestIdleCallback pattern was causing identify/pageview to fire before init
+// PostHog: init at module level - synchronous, no race condition with identify or pageview
 const isLocalhost =
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -32,6 +33,12 @@ if (
     },
   });
 }
+
+// Amplitude: also init at module level (same pattern as PostHog above).
+// The typeof window guard inside initAmplitude() handles SSR correctly.
+// MUST be module-level — useEffect() runs AFTER child components' effects,
+// causing a race where tracked events fire before initialized=true.
+initAmplitude();
 
 export function PostHogProvider({ children }) {
   return (
