@@ -18,6 +18,7 @@ import {
 } from '@/lib/roadmaps/progress.migration';
 import { useBehaviorQuiz } from '@/features/kyle/behavior-quiz/useBehaviorQuiz';
 import BehaviorQuizModal from '@/features/kyle/behavior-quiz/BehaviorQuizModal';
+import { isAssignmentGatedRoadmap } from '@/features/roadmaps/lib/roadmapCapabilities';
 import posthog from 'posthog-js';
 import {
   getOrCreateOnboardingSessionId,
@@ -346,8 +347,20 @@ export default function RoadmapLevelClient({
       nextLevel = allLevels[globalIndex + 1];
     }
 
-    // Trigger immediate skeleton and auto-redirect to next level
-    if (nextLevel) {
+    // Check if this was the last level of the active day and assignment is pending
+    const isLastLevelOfDay =
+      activeDay?.levels?.length > 0 &&
+      activeDay.levels[activeDay.levels.length - 1].id === completedLevelId;
+
+    const isAssignmentGated = isAssignmentGatedRoadmap(backendRoadmapId);
+    const isAssignmentPassed =
+      typeof window !== 'undefined' &&
+      localStorage.getItem(`assignment_passed_${backendRoadmapId}_${activeDay?.id}`) === 'true';
+
+    if (isLastLevelOfDay && isAssignmentGated && !isAssignmentPassed && activeDay?.id) {
+      setTransitioningToLevelId('assignment');
+      router.push(`/home/roadmaps/${roadmapSlug}/assignment/${activeDay.id}`);
+    } else if (nextLevel) {
       setTransitioningToLevelId(nextLevel.id);
       router.push(`/home/roadmaps/${roadmapSlug}/${nextLevel.id}`);
     } else {
@@ -357,6 +370,7 @@ export default function RoadmapLevelClient({
   }, [
     completedLevels,
     allLevels,
+    activeDay,
     backendRoadmapId,
     triggerCompletionToast,
     behaviorQuiz,

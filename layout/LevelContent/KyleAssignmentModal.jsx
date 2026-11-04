@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import KiboAvatar from '@/features/kyle/pet/KiboAvatar';
+import { stripThinking } from '@/lib/utils/cleanAiText';
 import { CheckCircle, XCircle, AlertCircle, RefreshCcw, Lock, ArrowRight, Home, Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -19,6 +20,9 @@ function normalizeRole(role) {
 const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, levels, role, isFinalDay, onPassed, onClose }) => {
     const { user } = useAuth();
     const router = useRouter();
+
+    const isDev = process.env.NODE_ENV === 'development';
+    const isCopyPasteDisabled = !isDev && process.env.NEXT_PUBLIC_ALLOW_COPY_PASTE !== 'true';
     
     // States
     const [status, setStatus] = useState('loading'); // loading, ready, scoring, result_pass, result_fail, error, already-passed, cooldown
@@ -28,6 +32,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     const [errorMsg, setErrorMsg] = useState(null);
     const [lockedUntil, setLockedUntil] = useState(null);
     const [retryNonce, setRetryNonce] = useState(0);
+    const [pasteWarning, setPasteWarning] = useState(null);
 
     const hasFetched = useRef(false);
     // Server-equivalent pass thresholds: Day 1 → 5, Day 2 → 6, Day 3+ → 7.
@@ -57,10 +62,14 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
     }, [open, roadmapId, dayId]);
 
     
-    const formattedLevels = levels.map(l => ({
-        concept: l.concept || l.title || l.name || "Concept",
-        transcript: l.transcript || l.description || "Transcript"
-    }));
+    const formattedLevels = levels.map(l => {
+        const conceptName = l.concept || l.title || l.name || "Concept";
+        const transcriptText = l.transcript || l.description || `Comprehensive lesson covering ${conceptName}.`;
+        return {
+            concept: `${roadmapType || roadmapId || "Course"} - ${conceptName}`,
+            transcript: transcriptText
+        };
+    });
 
     useEffect(() => {
         if (!open) return;
@@ -93,7 +102,7 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     throw new Error(data.error || 'Failed to generate assignment');
                 }
                 
-                setAssignmentPrompt(data.data.assignmentPrompt);
+                setAssignmentPrompt(stripThinking(data.data?.assignmentPrompt || ''));
                 setStatus('ready');
             } catch (err) {
                 console.error("Assignment generate error:", err);
@@ -283,17 +292,42 @@ const KyleAssignmentModal = ({ open, roadmapId, roadmapType, dayId, dayNumber, l
                     {status === 'ready' && (
                         <div className="space-y-6 px-6 pt-2 pb-6">
                             <div className="bg-white p-5 rounded-2xl shadow-[0_3px_0_#FFDCBC] border-2 border-[#e5d5c5]">
-                                <p className="text-[#1a2a3a] leading-relaxed font-semibold text-[15px] whitespace-pre-wrap">
-                                    {assignmentPrompt}
+                                <p className={`text-[#1a2a3a] leading-relaxed font-semibold text-[15px] whitespace-pre-wrap ${isCopyPasteDisabled ? 'select-none' : ''}`}>
+                                    {stripThinking(assignmentPrompt)}
                                 </p>
                             </div>
                             
+                            {pasteWarning && (
+                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold animate-in fade-in">
+                                    {pasteWarning}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <textarea 
                                     className="w-full h-48 p-5 bg-white border-2 border-[#e5d5c5] rounded-2xl focus:bg-white focus:outline-none focus:border-[#00a9ff] shadow-[0_3px_0_#FFDCBC] focus:shadow-[0_3px_0_#3081AD] resize-none leading-relaxed text-[#1a2a3a] transition-all text-[15px] font-semibold"
                                     placeholder="Write your answer here. No word limit — think it through."
                                     value={userResponse}
                                     onChange={(e) => setUserResponse(e.target.value)}
+                                    onPaste={(e) => {
+                                        if (isCopyPasteDisabled) {
+                                            e.preventDefault();
+                                            setPasteWarning("Pasting is disabled in production to protect academic integrity.");
+                                            setTimeout(() => setPasteWarning(null), 3500);
+                                        }
+                                    }}
+                                    onCopy={(e) => {
+                                        if (isCopyPasteDisabled) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (isCopyPasteDisabled && (e.ctrlKey || e.metaKey) && ['v', 'c', 'x'].includes(e.key.toLowerCase())) {
+                                            e.preventDefault();
+                                            setPasteWarning("Copying/Pasting is disabled in production.");
+                                            setTimeout(() => setPasteWarning(null), 3500);
+                                        }
+                                    }}
                                 ></textarea>
                                 <p className="text-[13px] text-[#7775a5] font-bold px-2 flex justify-between tracking-tight">
                                     <span>Kibo will review and score your answer out of 10</span>

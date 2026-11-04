@@ -16,6 +16,7 @@ import connectToDB from "@/dbConfig/dbConnection";
 import { KyleHistory } from "@/models/v2/kyle.history.model";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { callKyleFastApi, KyleFastApiError } from "@/features/kyle/server/kyle-fastapi.client";
+import { stripThinking } from "@/lib/utils/cleanAiText";
 
 const LevelSchema = z.object({
   concept: z.string().min(1),
@@ -87,16 +88,35 @@ export async function POST(request) {
       (a) => a.dayNumber === dayNumber
     );
 
-    // Gate: already passed — no further submissions allowed.
-    if (existing?.passed) {
+    const isDev = process.env.NODE_ENV === "development";
+
+    // Gate: already passed — in production, lock submissions and return the passing score card.
+    if (existing?.passed && !isDev) {
+      const lastPassing =
+        existing.attempts?.slice().reverse().find((a) => a.passed) ||
+        existing.attempts?.[existing.attempts.length - 1];
       return NextResponse.json(
-        { error: "You already passed this day's assignment" },
+        {
+          error: "You already passed this day's assignment",
+          alreadyPassed: true,
+          data: lastPassing
+            ? {
+                score: lastPassing.score,
+                feedback: stripThinking(lastPassing.feedback),
+                passed: true,
+                attemptsRemaining: 0,
+                lockedUntil: null,
+                breakdown: null,
+                weaknesses: [],
+              }
+            : null,
+        },
         { status: 423 }
       );
     }
 
-    // Gate: locked — check whether the 6-hour cooldown has expired.
-    if (existing?.locked) {
+    // Gate: locked — check whether the 6-hour cooldown has expired (skipped in development).
+    if (existing?.locked && !isDev) {
       const cooldownExpired = Date.now() >= new Date(existing.lockedUntil).getTime();
 
       if (!cooldownExpired) {
@@ -162,7 +182,9 @@ export async function POST(request) {
     }
 
     // 6. Extract validated fields.
-    const { score, feedback, passed, breakdown: rawBreakdown, weaknesses } = validated.data;
+    const { score, passed, breakdown: rawBreakdown } = validated.data;
+    const feedback = stripThinking(validated.data.feedback);
+    const weaknesses = (validated.data.weaknesses || []).map((w) => stripThinking(w));
 
     // Translate snake_case breakdown → camelCase for browser response.
     const breakdown = {
