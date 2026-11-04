@@ -1,7 +1,8 @@
-// lib/analytics/friction.ts
+﻿// lib/analytics/friction.ts
 // Custom friction tracking for onboarding and diagnostic steps.
+// Dispatched to PostHog + Amplitude via the shared dispatcher.
 
-import posthog from 'posthog-js';
+import { dispatchTrack } from './dispatcher';
 import { getOrCreateOnboardingSessionId } from './onboardingSession';
 
 export type FrictionType =
@@ -26,6 +27,7 @@ export interface FrictionDetail {
 
 /**
  * Captures custom friction signal when a user struggles or encounters resistance on a step.
+ * Dispatched to PostHog + Amplitude via the shared dispatcher.
  */
 export function trackOnboardingFriction(
   stepId: string,
@@ -34,7 +36,7 @@ export function trackOnboardingFriction(
 ): void {
   try {
     const sessionId = getOrCreateOnboardingSessionId();
-    posthog.capture('onboarding_friction_detected', {
+    dispatchTrack('onboarding_friction_detected', {
       step_id: stepId,
       friction_type: frictionType,
       onboarding_session_id: sessionId,
