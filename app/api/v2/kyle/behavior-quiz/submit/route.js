@@ -333,7 +333,7 @@ export async function POST(request) {
             "sess.status": "in_progress",
           },
         ],
-        new: true,
+        returnDocument: 'after',
       },
     );
 

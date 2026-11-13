@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
+import { adminMessaging } from "@/lib/firebase/firebase-admin";
 import connectDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import UserNotification from "@/models/v1/notification.model";
@@ -13,17 +13,6 @@ import { sendRetentionEmail } from "@/lib/retention/resend.client";
 import { createUnsubscribeToken } from "@/lib/retention/unsubscribeToken";
 
 export const maxDuration = 300;
-
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = require("@/features/notifications/credentials/serviceAccountKey.json");
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (error) {
-    console.error("Firebase admin initialization error:", error);
-  }
-}
 
 export async function GET(request) {
   try {
@@ -264,7 +253,7 @@ export async function GET(request) {
               },
             },
           };
-          providerMessageId = await admin.messaging().send(message);
+          providerMessageId = await adminMessaging.send(message);
         } else {
           const appBaseUrl = process.env.APP_BASE_URL || "https://app.ignitio.cloud";
           let unsubscribeLink = `${appBaseUrl}/api/v2/retention/unsubscribe`;

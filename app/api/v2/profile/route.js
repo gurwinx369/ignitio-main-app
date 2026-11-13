@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { RoadmapProgress } from "@/models/v2/roadmap.progress.model";
@@ -190,6 +191,22 @@ export async function GET(request) {
   }
 }
 
+const PatchProfileSchema = z.object({
+  activeRoadmapSlug: z.string().trim().min(1).max(64).optional(),
+  displayName: z.string().trim().max(40).optional(),
+  bio: z.string().max(180).optional(),
+  avatarUrl: z
+    .string()
+    .max(500)
+    .refine((val) => val === "" || val.startsWith("http://") || val.startsWith("https://"), {
+      message: "avatarUrl must be a valid http/https URL or empty string",
+    })
+    .optional(),
+  avatarPreset: z.enum(["default", "spark", "phoenix", "learner", "builder", "creator"]).optional(),
+  bannerColor: z.enum(["cyan", "blue", "purple", "orange", "green", "slate"]).optional(),
+  avatarFrame: z.enum(["cyan", "blue", "purple", "orange", "green", "slate", "gold"]).optional(),
+});
+
 export async function PATCH(request) {
   await connectToDB();
 
@@ -199,61 +216,26 @@ export async function PATCH(request) {
   }
 
   try {
-    const body = await request.json();
-    const { displayName, bio, avatarUrl, avatarPreset, bannerColor, avatarFrame, activeRoadmapSlug } = body;
-
-    // Validation
-    if (activeRoadmapSlug !== undefined) {
-      if (typeof activeRoadmapSlug !== 'string' || activeRoadmapSlug.trim().length === 0 || activeRoadmapSlug.length > 64) {
-        return NextResponse.json({ message: "activeRoadmapSlug must be a valid non-empty string under 64 characters" }, { status: 400 });
-      }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ message: "Invalid JSON in request body" }, { status: 400 });
     }
 
-    if (displayName !== undefined) {
-      if (typeof displayName !== 'string') return NextResponse.json({ message: "displayName must be a string" }, { status: 400 });
-      if (displayName.trim().length > 40) return NextResponse.json({ message: "displayName cannot exceed 40 characters" }, { status: 400 });
+    const validation = PatchProfileSchema.safeParse(body);
+    if (!validation.success) {
+      const first = validation.error.issues[0];
+      return NextResponse.json(
+        {
+          message: first?.message || "Validation failed",
+          field: first?.path?.join(".") ?? "",
+        },
+        { status: 400 }
+      );
     }
 
-    if (bio !== undefined) {
-      if (typeof bio !== 'string') return NextResponse.json({ message: "bio must be a string" }, { status: 400 });
-      if (bio.length > 180) return NextResponse.json({ message: "bio cannot exceed 180 characters" }, { status: 400 });
-    }
-
-    if (avatarUrl !== undefined) {
-      if (typeof avatarUrl !== 'string') return NextResponse.json({ message: "avatarUrl must be a string" }, { status: 400 });
-      if (avatarUrl.length > 500) return NextResponse.json({ message: "avatarUrl cannot exceed 500 characters" }, { status: 400 });
-      if (avatarUrl !== "" && !avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
-        return NextResponse.json({ message: "avatarUrl must be a valid http/https URL or empty string" }, { status: 400 });
-      }
-    }
-
-    if (avatarPreset !== undefined) {
-      const allowedAvatarPresets = ["default", "spark", "phoenix", "learner", "builder", "creator"];
-      if (!allowedAvatarPresets.includes(avatarPreset)) {
-        return NextResponse.json({ message: "Invalid avatarPreset" }, { status: 400 });
-      }
-    }
-
-    if (bannerColor !== undefined) {
-      const allowedBannerColors = [
-        "cyan",
-        "blue",
-        "purple",
-        "orange",
-        "green",
-        "slate",
-      ];
-      if (!allowedBannerColors.includes(bannerColor)) {
-        return NextResponse.json({ message: "Invalid bannerColor" }, { status: 400 });
-      }
-    }
-
-    if (avatarFrame !== undefined) {
-      const allowedAvatarFrames = ["cyan", "blue", "purple", "orange", "green", "slate", "gold"];
-      if (!allowedAvatarFrames.includes(avatarFrame)) {
-        return NextResponse.json({ message: "Invalid avatarFrame" }, { status: 400 });
-      }
-    }
+    const { displayName, bio, avatarUrl, avatarPreset, bannerColor, avatarFrame, activeRoadmapSlug } = validation.data;
 
     // Build update object
     const update = {};

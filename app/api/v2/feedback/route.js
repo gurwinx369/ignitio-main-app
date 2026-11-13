@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
 import connectDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 import { Feedback } from "@/models/v2/feedback.model";
@@ -8,15 +7,14 @@ import { verifyFirebaseToken } from "@/lib/auth";
 import { z } from "zod";
 import { spamRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = require("@/features/notifications/credentials/serviceAccountKey.json");
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (error) {
-    console.error("Firebase admin initialization error:", error);
-  }
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 const FeedbackSchema = z.object({
@@ -70,17 +68,17 @@ export async function POST(request) {
     });
 
     const toEmail = process.env.FEEDBACK_TO_EMAIL || "gurwinder.ignitio@gmail.com";
-    const subject = `Ignitio Feedback from ${email || "User"}`;
+    const subject = `Ignitio Feedback from ${escapeHtml(email || "User")}`;
     const html = `
       <h3>New Feedback Received</h3>
-      <p><strong>Email:</strong> ${email || "Not provided"}</p>
-      <p><strong>FirebaseUID:</strong> ${firebaseUID}</p>
-      <p><strong>Role:</strong> ${role}</p>
-      <p><strong>Page:</strong> ${page || "Unknown"}</p>
-      <p><strong>User Agent:</strong> ${userAgent}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email || "Not provided")}</p>
+      <p><strong>FirebaseUID:</strong> ${escapeHtml(firebaseUID)}</p>
+      <p><strong>Role:</strong> ${escapeHtml(role)}</p>
+      <p><strong>Page:</strong> ${escapeHtml(page || "Unknown")}</p>
+      <p><strong>User Agent:</strong> ${escapeHtml(userAgent)}</p>
       <hr />
       <p><strong>Message:</strong></p>
-      <p style="white-space: pre-wrap;">${message}</p>
+      <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
     `;
 
     try {

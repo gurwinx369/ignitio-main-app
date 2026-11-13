@@ -1,21 +1,9 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
+import { adminMessaging } from "@/lib/firebase/firebase-admin";
 import connectDB from "@/dbConfig/dbConnection";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { z } from "zod";
 import { spamRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
-
-// Initialize Firebase Admin SDK (server-side only)
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = require("@/features/notifications/credentials/serviceAccountKey.json");
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (error) {
-    console.error("Firebase admin initialization error:", error);
-  }
-}
 
 // Zod schemas
 const SendBodySchema = z.object({
@@ -55,7 +43,7 @@ export async function POST(request) {
     if (authError) return NextResponse.json({ error: authError }, { status: authStatus });
 
     const adminUids = getAdminUids();
-    if (adminUids.size > 0 && !adminUids.has(decodedToken.uid)) {
+    if (adminUids.size === 0 || !adminUids.has(decodedToken.uid)) {
       return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
     }
 
@@ -97,7 +85,7 @@ export async function POST(request) {
       },
     };
 
-    const response = await admin.messaging().send(message);
+    const response = await adminMessaging.send(message);
     return NextResponse.json({ success: true, messageId: response, status: 200 });
   } catch (error) {
     console.error("Error sending notification:", error);
@@ -117,7 +105,7 @@ export async function PUT(request) {
     if (authError) return NextResponse.json({ error: authError }, { status: authStatus });
 
     const adminUids = getAdminUids();
-    if (adminUids.size > 0 && !adminUids.has(decodedToken.uid)) {
+    if (adminUids.size === 0 || !adminUids.has(decodedToken.uid)) {
       return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
     }
 
@@ -151,7 +139,7 @@ export async function PUT(request) {
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast({ tokens, ...message });
+    const response = await adminMessaging.sendEachForMulticast({ tokens, ...message });
 
     return NextResponse.json({
       success: true,

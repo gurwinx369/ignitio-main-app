@@ -334,7 +334,7 @@ export async function POST(request) {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedHistory) {
