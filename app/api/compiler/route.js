@@ -6,6 +6,8 @@
 
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { verifyFirebaseToken } from '@/lib/auth';
+import { spamRateLimiter, enforceRateLimit, getClientIp } from '@/lib/security/rateLimiter';
 
 // JDoodle API configuration
 const JDOODLE_CONFIG = {
@@ -14,80 +16,23 @@ const JDOODLE_CONFIG = {
   clientSecret: process.env.JDOODLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_JDOODLE_CLIENT_SECRET || '',
 };
 
-// Rate limiting store (in-memory, resets on server restart)
-// For production, use Redis or a database
-const rateLimitStore = new Map();
-const RATE_LIMIT_MS = 3000; // 3 seconds
-
-/**
- * Get client IP for rate limiting
- */
-function getClientIp(request) {
-  // Try various headers that might contain the real IP
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) {
-    return realIp;
-  }
-
-  // Fallback for development
-  return 'localhost';
-}
-
-/**
- * Check if client is rate limited
- */
-function isRateLimited(clientId) {
-  const now = Date.now();
-  const lastRequest = rateLimitStore.get(clientId);
-
-  if (!lastRequest) {
-    return { limited: false, remainingMs: 0 };
-  }
-
-  const elapsed = now - lastRequest;
-  const remainingMs = RATE_LIMIT_MS - elapsed;
-
-  if (remainingMs <= 0) {
-    return { limited: false, remainingMs: 0 };
-  }
-
-  return { limited: true, remainingMs };
-}
-
-/**
- * Update rate limit timestamp for client
- */
-function updateRateLimit(clientId) {
-  rateLimitStore.set(clientId, Date.now());
-}
-
 /**
  * POST /api/compiler
  * Executes code via JDoodle API
  */
 export async function POST(request) {
   try {
-    // Get client identifier for rate limiting
-    const clientIp = getClientIp(request);
+    // 1. Authenticate user
+    const { decodedToken, error: authError, status: authStatus } = await verifyFirebaseToken(request);
+    if (authError) {
+      return NextResponse.json({ error: authError, message: "Authentication required to execute code." }, { status: authStatus || 401 });
+    }
 
-    // Check rate limit
-    const { limited: rateLimited, remainingMs } = isRateLimited(clientIp);
-
-    if (rateLimited) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          message: `Please wait ${Math.ceil(remainingMs / 1000)} seconds before running code again.`,
-          remainingSeconds: Math.ceil(remainingMs / 1000),
-          errorType: 'RATE_LIMIT'
-        },
-        { status: 429 }
-      );
+    // 2. Rate limiting by user UID (or IP fallback)
+    const rateLimitKey = decodedToken?.uid ? `compiler:${decodedToken.uid}` : `compiler:${getClientIp(request)}`;
+    const rateLimitError = await enforceRateLimit(spamRateLimiter, rateLimitKey);
+    if (rateLimitError) {
+      return rateLimitError;
     }
 
     // Parse request body
@@ -144,9 +89,6 @@ export async function POST(request) {
         timeout: 30000 // 30 second timeout
       }
     );
-
-    // Update rate limit after successful request
-    updateRateLimit(clientIp);
 
     // Return JDoodle response
     const data = response.data;

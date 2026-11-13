@@ -180,7 +180,7 @@ BehaviorQuizHistorySchema.statics.recordConceptCompletion = async function (
       $inc: { conceptsCompletedCounter: 1 },
       $push: { recentConcepts: { $each: [concept], $position: 0, $slice: 30 } },
     },
-    { new: true },
+    { returnDocument: 'after' },
   );
 
   if (!doc) {

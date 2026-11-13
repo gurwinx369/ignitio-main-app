@@ -166,7 +166,7 @@ export async function POST(request) {
     },
   };
 
-  const updatedUser = await UserProfile.findOneAndUpdate(filter, update, { new: true }).lean();
+  const updatedUser = await UserProfile.findOneAndUpdate(filter, update, { returnDocument: 'after' }).lean();
 
   if (!updatedUser) {
     // Exists but invalid state

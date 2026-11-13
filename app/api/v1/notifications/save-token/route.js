@@ -65,7 +65,7 @@ export async function POST(request) {
           lastActive: new Date(),
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     // Authoritative server-side event: notification activated

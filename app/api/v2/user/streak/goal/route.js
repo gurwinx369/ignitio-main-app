@@ -64,7 +64,7 @@ export async function PATCH(request) {
           "streak.day2PromptSeen": true,
         },
       },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     ).lean();
 
     if (!updatedUser) {

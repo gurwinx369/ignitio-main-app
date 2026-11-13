@@ -66,8 +66,8 @@ export async function POST(request) {
 
   // Step 2: Admin check
   const adminUids = getAdminUids();
-  if (adminUids.size > 0 && !adminUids.has(decodedToken.uid)) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  if (adminUids.size === 0 || !adminUids.has(decodedToken.uid)) {
+    return NextResponse.json({ message: "Forbidden: Admin access required" }, { status: 403 });
   }
 
   // Step 3: Parse body

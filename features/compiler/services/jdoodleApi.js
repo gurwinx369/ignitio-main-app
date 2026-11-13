@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import { auth } from '@/lib/firebase/firebase';
 
 // Internal API endpoint (no CORS issues since it's same origin)
 const API_ENDPOINT = '/api/compiler';
@@ -139,6 +140,21 @@ export async function executeCode(code, language = 'cpp', stdin = '') {
   }
 
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (auth.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+      } catch (tokenErr) {
+        console.warn('Failed to retrieve Firebase ID token for compiler request:', tokenErr);
+      }
+    }
+
     const response = await axios.post(
       API_ENDPOINT,
       {
@@ -147,9 +163,7 @@ export async function executeCode(code, language = 'cpp', stdin = '') {
         stdin
       },
       {
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         timeout: 35000 // 35 second timeout (slightly longer than server)
       }
     );

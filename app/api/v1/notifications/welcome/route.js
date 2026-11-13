@@ -1,21 +1,9 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
+import { adminMessaging } from "@/lib/firebase/firebase-admin";
 import connectDB from "@/dbConfig/dbConnection";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { z } from "zod";
 import { spamRateLimiter, enforceRateLimit, getClientIp } from "@/lib/security/rateLimiter";
-
-// Initialize Firebase Admin SDK (server-side only)
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = require("@/features/notifications/credentials/serviceAccountKey.json");
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (error) {
-    console.error("Firebase admin initialization error:", error);
-  }
-}
 
 const getAppUrl = () => {
   const raw =
@@ -119,7 +107,7 @@ export async function POST(request) {
       },
     };
 
-    const response = await admin.messaging().send(message);
+    const response = await adminMessaging.send(message);
 
     return NextResponse.json({
       success: true,

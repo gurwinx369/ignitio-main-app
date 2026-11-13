@@ -75,7 +75,7 @@ export async function POST(request) {
         },
         $inc: wasCorrect ? { totalQuizzesCorrect: 1 } : { totalQuizzesWrong: 1 },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Link the KyleHistory doc to UserProfile on first ever submission.

@@ -224,7 +224,7 @@ export async function POST(request) {
           },
           ...(passed ? { $inc: { assignmentsPassed: 1 } } : {}),
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
 
       // Link KyleHistory to UserProfile on first ever record.
