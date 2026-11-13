@@ -115,7 +115,7 @@ export async function POST(request) {
                 acceptedAtUTC: new Date(),
               },
             },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
           );
         } catch {}
       }
@@ -227,7 +227,7 @@ export async function POST(request) {
               completedAt: new Date(),
             },
           },
-          { upsert: true, new: true, runValidators: true }
+          { upsert: true, returnDocument: 'after', runValidators: true }
         );
       } catch (fpErr) {
         console.warn("[bootstrap] FreePathResult save warning:", fpErr.message);
@@ -250,7 +250,7 @@ export async function POST(request) {
               acceptedAtUTC: new Date(),
             },
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
         );
       } catch (consentErr) {
         console.warn("[bootstrap] Legal consent save warning:", consentErr.message);

@@ -257,7 +257,7 @@ export async function PATCH(request) {
     const updatedUser = await UserProfile.findOneAndUpdate(
       { firebaseUID: decodedToken.uid },
       { $set: update },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("profile activeRoadmapSlug roadmap_name");
 
     if (!updatedUser) {

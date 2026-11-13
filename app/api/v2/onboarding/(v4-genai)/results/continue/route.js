@@ -46,7 +46,7 @@ export async function POST(req) {
         },
       },
       {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       }
     );

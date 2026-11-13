@@ -81,7 +81,7 @@ export async function POST(request) {
       },
       {
         upsert: true,
-        new: true,
+        returnDocument: 'after',
         runValidators: true
       }
     ).lean();

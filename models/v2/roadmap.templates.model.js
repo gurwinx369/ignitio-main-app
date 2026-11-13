@@ -146,7 +146,7 @@ RoadmapTemplateSchema.statics.upsertFromStaticData = function (data, goal) {
         isActive: true,
       },
     },
-    { upsert: true, new: true, runValidators: true },
+    { upsert: true, returnDocument: 'after', runValidators: true },
   );
 };
 

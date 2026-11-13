@@ -83,7 +83,7 @@ export async function POST(request) {
           completedAt: new Date(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // 3. Atomically ensure RoadmapProgress exists with status "not_started"
@@ -103,7 +103,7 @@ export async function POST(request) {
           passedAssignments: [],
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return NextResponse.json(

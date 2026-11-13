@@ -726,7 +726,7 @@ export async function PATCH(request, { params }) {
                     },
                   },
                   {
-                    new: true,
+                    returnDocument: 'after',
                     runValidators: true,
                   },
                 );
@@ -843,7 +843,7 @@ export async function PATCH(request, { params }) {
                   $set: progressUpdates,
                 },
                 {
-                  new: true,
+                  returnDocument: 'after',
                   runValidators: true,
                 },
               );
@@ -970,7 +970,7 @@ export async function PATCH(request, { params }) {
           progress = await RoadmapProgress.findOneAndUpdate(
             { firebaseUID: decodedToken.uid, roadmapSlug },
             { $set: fallbackUpdates },
-            { new: true }
+            { returnDocument: 'after' }
           );
         } else {
           throw saveErr;

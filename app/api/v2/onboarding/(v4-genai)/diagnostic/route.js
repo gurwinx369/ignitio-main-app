@@ -122,7 +122,7 @@ export async function POST(req) {
       },
       {
         upsert: true,
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
         setDefaultsOnInsert: true,
       },
@@ -148,7 +148,7 @@ export async function POST(req) {
         },
       },
       {
-        new: true,
+        returnDocument: 'after',
       },
     );
 

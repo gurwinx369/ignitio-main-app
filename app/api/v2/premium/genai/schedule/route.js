@@ -125,7 +125,7 @@ export async function PATCH(request) {
     },
   };
 
-  const updatedUser = await UserProfile.findOneAndUpdate(filter, update, { new: true }).lean();
+  const updatedUser = await UserProfile.findOneAndUpdate(filter, update, { returnDocument: 'after' }).lean();
 
   if (!updatedUser) {
     // The guarded update failed. Check if someone else updated it.
