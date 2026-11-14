@@ -6,6 +6,11 @@ import { normalizeUserProfileRetentionFields } from "@/lib/users/profileMigratio
 import { verifyFirebaseToken } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding/onboarding-route";
 import { UserLegalConsent } from "@/models/v2/user.legal-consent.model";
+import {
+  getCachedProfile,
+  setCachedProfile,
+  invalidateCachedProfile,
+} from "@/lib/cache/profile.cache";
 
 const CURRENT_TERMS_VERSION = "2026-07-07";
 const CURRENT_PRIVACY_VERSION = "2026-07-07";
@@ -419,59 +424,74 @@ export async function GET(request) {
       : "";
 
   try {
-    let userProfile = await UserProfile.findOne({
-      firebaseUID: decodedToken.uid,
-    })
-      .select("-__v") // strip Mongoose version key
-      .lean(); // return plain JS object, not Mongoose doc
-
-    if (!userProfile && tokenEmail) {
-      // Fallback: search by email to heal stale firebaseUID
-      // Use updateOne to avoid full-document validation on legacy profiles
-      const profileToHeal = await UserProfile.findOne({ email: tokenEmail })
-        .select("-__v")
-        .lean();
-
-      if (profileToHeal) {
-        await UserProfile.updateOne(
-          { _id: profileToHeal._id },
-          { $set: { firebaseUID: decodedToken.uid } },
-          { timestamps: false }
-        );
-        // Re-query lean with healed firebaseUID
-        userProfile = await UserProfile.findById(profileToHeal._id)
-          .select("-__v")
-          .lean();
-      }
-    }
+    // Try Redis cache first — avoids a DB round-trip on every app load.
+    // Cache miss (null) falls through to MongoDB as normal.
+    let userProfile = await getCachedProfile(decodedToken.uid);
 
     if (!userProfile) {
-      try {
-        userProfile = await UserProfile.create({
-          firebaseUID: decodedToken.uid,
-          email: tokenEmail,
-          onboardingComplete: false,
-          onboardingVersion: ONBOARDING_VERSIONS.V5,
-          onboardingState: { step: "diagnostic" },
-        });
-        userProfile = userProfile.toObject();
-      } catch (createErr) {
-        // Handle E11000 race condition if created concurrently by another request
-        userProfile = await UserProfile.findOne({
-          $or: [
-            { firebaseUID: decodedToken.uid },
-            ...(tokenEmail ? [{ email: tokenEmail }] : []),
-          ],
-        })
+      userProfile = await UserProfile.findOne({
+        firebaseUID: decodedToken.uid,
+      })
+        .select("-__v") // strip Mongoose version key
+        .lean(); // return plain JS object, not Mongoose doc
+
+      if (!userProfile && tokenEmail) {
+        // Fallback: search by email to heal stale firebaseUID
+        // Use updateOne to avoid full-document validation on legacy profiles
+        const profileToHeal = await UserProfile.findOne({ email: tokenEmail })
           .select("-__v")
           .lean();
+
+        if (profileToHeal) {
+          await UserProfile.updateOne(
+            { _id: profileToHeal._id },
+            { $set: { firebaseUID: decodedToken.uid } },
+            { timestamps: false }
+          );
+          // Re-query lean with healed firebaseUID
+          userProfile = await UserProfile.findById(profileToHeal._id)
+            .select("-__v")
+            .lean();
+          // Bust stale cache for the old UID before the heal
+          if (profileToHeal.firebaseUID) {
+            await invalidateCachedProfile(profileToHeal.firebaseUID);
+          }
+        }
+      }
+
+      if (!userProfile) {
+        try {
+          userProfile = await UserProfile.create({
+            firebaseUID: decodedToken.uid,
+            email: tokenEmail,
+            onboardingComplete: false,
+            onboardingVersion: ONBOARDING_VERSIONS.V5,
+            onboardingState: { step: "diagnostic" },
+          });
+          userProfile = userProfile.toObject();
+        } catch (createErr) {
+          // Handle E11000 race condition if created concurrently by another request
+          userProfile = await UserProfile.findOne({
+            $or: [
+              { firebaseUID: decodedToken.uid },
+              ...(tokenEmail ? [{ email: tokenEmail }] : []),
+            ],
+          })
+            .select("-__v")
+            .lean();
+        }
+      }
+
+      if (userProfile?._id) {
+        await normalizeUserProfileRetentionFields(userProfile._id);
+        userProfile = await ensureCanonicalOnboardingState(userProfile);
+      }
+
+      // Warm the cache with the fully normalized profile (silent-fail).
+      if (userProfile) {
+        await setCachedProfile(decodedToken.uid, userProfile);
       }
     }
-
-    await normalizeUserProfileRetentionFields(userProfile._id);
-
-    userProfile =
-      await ensureCanonicalOnboardingState(userProfile);
 
     const requiresOnboarding = !isOnboardingComplete(userProfile);
 
@@ -565,6 +585,9 @@ export async function PATCH(request) {
     if (!updated) {
       return NextResponse.json({ message: "User profile not found" }, { status: 404 });
     }
+
+    // Profile changed — bust Redis cache so next GET fetches fresh data.
+    await invalidateCachedProfile(decodedToken.uid);
 
     return NextResponse.json({ ok: true, goal: updated.goal }, { status: 200 });
   } catch (err) {
