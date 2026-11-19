@@ -3,11 +3,12 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Home, Globe2, Crown, User } from "lucide-react";
+import { Home, Globe2, Crown, User, Code2 } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
   { id: "worlds", label: "Worlds", icon: Globe2 },
+  { id: "projects", label: "Projects", icon: Code2 },
   { id: "premium", label: "Premium", icon: Crown },
   { id: "profile", label: "Profile", icon: User },
 ];
@@ -22,6 +23,11 @@ export default function DashboardBottomNav({ activeTab, setActiveTab }) {
   const handleClick = (item) => {
     if (item.id === "profile") {
       router.push("/home/profile");
+      return;
+    }
+
+    if (item.id === "projects") {
+      router.push("/home/projects");
       return;
     }
 
@@ -46,6 +52,9 @@ export default function DashboardBottomNav({ activeTab, setActiveTab }) {
   const isActive = (item) => {
     if (item.id === "profile") {
       return pathname === "/home/profile";
+    }
+    if (item.id === "projects") {
+      return pathname?.startsWith("/home/projects");
     }
     if (!isDashboard) {
       return false;

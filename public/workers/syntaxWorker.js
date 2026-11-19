@@ -18,6 +18,23 @@ const GLOBAL_SYNTAX_COLORS = {
   text: '#0f172a'          // Default text color
 };
 
+const DARK_SYNTAX_COLORS = {
+  keyword: '#C084FC',      // Vibrant royal purple-400
+  type: '#2DD4BF',         // Bright teal-400
+  builtin: '#38BDF8',      // Vivid sky-400
+  preprocessor: '#F472B6', // Bright pink-400
+  string: '#FCD34D',       // Warm amber-300
+  number: '#4ADE80',       // Mint emerald-400
+  comment: '#94A3B8',      // Readable slate-400
+  constant: '#FB7185',     // Rose-400
+  function: '#60A5FA',     // Blue-400
+  operator: '#E2E8F0',     // Light slate-200
+  bracket: '#E2E8F0',      // Light slate-200
+  punctuation: '#CBD5E1',  // Slate-300
+  variable: '#F8FAFC',     // Pure crisp slate-50
+  text: '#F8FAFC'          // Default text color
+};
+
 const LANGUAGES = {
   cpp: {
     keywords: new Set([
@@ -178,13 +195,14 @@ function tokenize(code, language) {
   return tokens;
 }
 
-function resolveStyle(token, language) {
+function resolveStyle(token, language, isDark = false) {
   const normLang = normalizeLanguage(language);
   const langConfig = LANGUAGES[normLang];
   const { type, value } = token;
+  const colors = isDark ? DARK_SYNTAX_COLORS : GLOBAL_SYNTAX_COLORS;
 
   if (type === 'comment-multi' || type === 'comment-single' || type === 'comment-hash') {
-    return { color: GLOBAL_SYNTAX_COLORS.comment, italic: true };
+    return { color: colors.comment, italic: true };
   }
   if (
     type === 'string-triple-double' ||
@@ -195,68 +213,68 @@ function resolveStyle(token, language) {
     type === 'string-single' ||
     type === 'string-backtick'
   ) {
-    return { color: GLOBAL_SYNTAX_COLORS.string };
+    return { color: colors.string };
   }
   if (type === 'preprocessor' || type === 'decorator') {
-    return { color: GLOBAL_SYNTAX_COLORS.preprocessor, bold: true };
+    return { color: colors.preprocessor, bold: true };
   }
   if (type === 'number') {
-    return { color: GLOBAL_SYNTAX_COLORS.number };
+    return { color: colors.number };
   }
   if (type === 'bracket') {
-    return { color: GLOBAL_SYNTAX_COLORS.bracket };
+    return { color: colors.bracket };
   }
   if (type === 'operator') {
-    return { color: GLOBAL_SYNTAX_COLORS.operator };
+    return { color: colors.operator };
   }
   if (type === 'punctuation') {
-    return { color: GLOBAL_SYNTAX_COLORS.punctuation };
+    return { color: colors.punctuation };
   }
   if (type === 'whitespace') {
-    return { color: GLOBAL_SYNTAX_COLORS.text };
+    return { color: colors.text };
   }
   if (type === 'word') {
     if (langConfig) {
       if (langConfig.keywords && langConfig.keywords.has(value)) {
-        return { color: GLOBAL_SYNTAX_COLORS.keyword, bold: true };
+        return { color: colors.keyword, bold: true };
       }
       if (langConfig.wordOperators && langConfig.wordOperators.has(value)) {
-        return { color: GLOBAL_SYNTAX_COLORS.operator, bold: true };
+        return { color: colors.operator, bold: true };
       }
       if (langConfig.types && langConfig.types.has(value)) {
-        return { color: GLOBAL_SYNTAX_COLORS.type };
+        return { color: colors.type };
       }
       if (langConfig.builtins && langConfig.builtins.has(value)) {
-        return { color: GLOBAL_SYNTAX_COLORS.builtin };
+        return { color: colors.builtin };
       }
       if (langConfig.constants && langConfig.constants.has(value)) {
-        return { color: GLOBAL_SYNTAX_COLORS.constant, bold: true };
+        return { color: colors.constant, bold: true };
       }
     }
 
     if (UNIVERSAL_KEYWORDS.has(value)) {
-      return { color: GLOBAL_SYNTAX_COLORS.keyword, bold: true };
+      return { color: colors.keyword, bold: true };
     }
     if (UNIVERSAL_TYPES.has(value)) {
-      return { color: GLOBAL_SYNTAX_COLORS.type };
+      return { color: colors.type };
     }
     if (UNIVERSAL_CONSTANTS.has(value)) {
-      return { color: GLOBAL_SYNTAX_COLORS.constant, bold: true };
+      return { color: colors.constant, bold: true };
     }
     if (UNIVERSAL_BUILTINS.has(value)) {
-      return { color: GLOBAL_SYNTAX_COLORS.builtin };
+      return { color: colors.builtin };
     }
 
-    return { color: GLOBAL_SYNTAX_COLORS.variable };
+    return { color: colors.variable };
   }
 
-  return { color: GLOBAL_SYNTAX_COLORS.text };
+  return { color: colors.text };
 }
 
-function highlight(code, language) {
+function highlight(code, language, isDark = false) {
   const tokens = tokenize(code, language);
   return tokens.map(token => {
-    const style = resolveStyle(token, language);
+    const style = resolveStyle(token, language, isDark);
     return {
       text: token.value,
       color: style.color,
@@ -267,8 +285,8 @@ function highlight(code, language) {
 }
 
 self.onmessage = function(e) {
-  const { code, language } = e.data || {};
+  const { code, language, dark } = e.data || {};
   if (typeof code !== 'string') return;
-  const tokens = highlight(code, language || 'cpp');
+  const tokens = highlight(code, language || 'cpp', !!dark);
   self.postMessage({ tokens, code });
 };
