@@ -13,7 +13,8 @@ export default function CodeEditor({
   onChange,
   readOnly = false,
   className = '',
-  language = 'cpp'
+  language = 'cpp',
+  dark = false,
 }) {
   const textareaRef = useRef(null);
   const highlightRef = useRef(null);
@@ -29,7 +30,7 @@ export default function CodeEditor({
       : '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}';
 
   const code = value !== undefined && value !== null ? value : defaultValue;
-  const [highlightedCode, setHighlightedCode] = useState(() => highlightCode(code, language));
+  const [highlightedCode, setHighlightedCode] = useState(() => highlightCode(code, language, dark));
 
   // React hook to handle worker initialization
   useEffect(() => {
@@ -55,13 +56,13 @@ export default function CodeEditor({
     };
   }, []);
 
-  // Update highlighting when code or language changes (debounced for long code, sync for short)
+  // Update highlighting when code, language, or theme changes
   useEffect(() => {
     pendingCodeRef.current = code;
 
     // Synchronous execution for short code or if worker is unavailable
     if (code.length < 500 || !workerRef.current) {
-      setHighlightedCode(highlightCode(code, language));
+      setHighlightedCode(highlightCode(code, language, dark));
       return;
     }
 
@@ -72,7 +73,7 @@ export default function CodeEditor({
 
     debounceTimerRef.current = setTimeout(() => {
       if (workerRef.current) {
-        workerRef.current.postMessage({ code, language });
+        workerRef.current.postMessage({ code, language, dark });
       }
     }, 150);
 
@@ -81,7 +82,7 @@ export default function CodeEditor({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [code, language]);
+  }, [code, language, dark]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && highlightRef.current) {
@@ -121,8 +122,8 @@ export default function CodeEditor({
   return (
     <div
       className={`
-        relative w-full h-full rounded-lg overflow-hidden
-        bg-white border border-[#f0caa8]
+        relative w-full h-full min-h-[360px] rounded-lg overflow-hidden
+        ${dark ? 'bg-[#1e293b] border border-slate-700' : 'bg-white border border-[#f0caa8]'}
         ${isFocused ? 'ring-2 ring-[#00a9ff]' : ''}
         transition-all duration-200
         ${className}
@@ -130,14 +131,14 @@ export default function CodeEditor({
     >
       {/* Line numbers */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-8 sm:w-10 md:w-12
-                   bg-[#fcf5ee] border-r border-[#f0caa8]
-                   overflow-hidden z-10"
+        className={`absolute left-0 top-0 bottom-0 w-8 sm:w-10 md:w-12
+                   ${dark ? 'bg-[#0f172a] border-r border-slate-700' : 'bg-[#fcf5ee] border-r border-[#f0caa8]'}
+                   overflow-hidden z-10`}
         aria-hidden="true"
       >
         <div className="pt-2 sm:pt-3 md:pt-4 pr-1 sm:pr-2 text-right font-mono text-[10px] sm:text-xs leading-5 sm:leading-6">
           {lineNumbers.map(lineNum => (
-            <div key={lineNum} className="text-[#5a5892] select-none">
+            <div key={lineNum} className={`select-none ${dark ? 'text-slate-500' : 'text-[#5a5892]'}`}>
               {lineNum}
             </div>
           ))}
@@ -150,7 +151,7 @@ export default function CodeEditor({
         className="absolute inset-0 ml-8 sm:ml-10 md:ml-12 overflow-hidden pointer-events-none"
         aria-hidden="true"
       >
-        <pre className="p-2 sm:p-3 md:p-4 font-mono text-[11px] sm:text-xs md:text-sm leading-5 sm:leading-6 whitespace-pre-wrap break-words text-[#19183b]">
+        <pre className={`p-2 sm:p-3 md:p-4 font-mono text-[11px] sm:text-xs md:text-sm leading-5 sm:leading-6 whitespace-pre-wrap break-words ${dark ? 'text-slate-300' : 'text-[#19183b]'}`}>
           {highlightedCode.map((segment, index) => (
             <span
               key={index}
@@ -185,7 +186,7 @@ export default function CodeEditor({
           selection:bg-[#00a9ff]/30
           ${readOnly ? 'cursor-default' : 'cursor-text'}
         `}
-        style={{ caretColor: '#19183b' }}
+        style={{ caretColor: dark ? '#00A9FF' : '#19183b' }}
         aria-label={`${language} code editor`}
       />
     </div>
