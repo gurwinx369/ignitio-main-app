@@ -9,11 +9,11 @@ import axios from 'axios';
 import { verifyFirebaseToken } from '@/lib/auth';
 import { spamRateLimiter, enforceRateLimit, getClientIp } from '@/lib/security/rateLimiter';
 
-// JDoodle API configuration
+// JDoodle API configuration (Server-only credentials)
 const JDOODLE_CONFIG = {
   baseUrl: 'https://api.jdoodle.com/v1/execute',
-  clientId: process.env.JDOODLE_CLIENT_ID || process.env.NEXT_PUBLIC_JDOODLE_CLIENT_ID || '',
-  clientSecret: process.env.JDOODLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_JDOODLE_CLIENT_SECRET || '',
+  clientId: process.env.JDOODLE_CLIENT_ID || '',
+  clientSecret: process.env.JDOODLE_CLIENT_SECRET || '',
 };
 
 /**
@@ -53,13 +53,14 @@ export async function POST(request) {
 
     // Validate credentials
     if (!JDOODLE_CONFIG.clientId || !JDOODLE_CONFIG.clientSecret) {
+      console.error('[Compiler Config] JDOODLE_CLIENT_ID or JDOODLE_CLIENT_SECRET is missing from server environment.');
       return NextResponse.json(
         {
-          error: 'API credentials not configured',
-          message: 'JDoodle API credentials are not configured. Please add JDOODLE_CLIENT_ID and JDOODLE_CLIENT_SECRET to your environment variables.',
+          error: 'Compiler service unavailable',
+          message: 'The compiler service is currently unavailable. Please try again later.',
           errorType: 'CONFIG'
         },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
