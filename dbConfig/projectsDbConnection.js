@@ -40,9 +40,10 @@ export const connectProjectsDB = async () => {
 
   const attempt = async () => {
     for (let i = 1; i <= MAX_RETRIES; i++) {
+      let conn = null;
       try {
         // Use createConnection so projects cluster has an isolated pool
-        projectsConnection = mongoose.createConnection(targetUri, {
+        conn = mongoose.createConnection(targetUri, {
           dbName: "ignitio_projects",
           serverSelectionTimeoutMS: 4000,
           connectTimeoutMS: 8000,
@@ -51,22 +52,31 @@ export const connectProjectsDB = async () => {
           socketTimeoutMS: 30000,
         });
 
-        await projectsConnection.asPromise();
+        // Intercept error events immediately to avoid unhandled event crashes
+        conn.on("error", (err) => {
+          console.error("[ProjectsDB] Connection error:", err.message);
+        });
 
-        projectsConnection.on("disconnected", () => {
+        conn.on("disconnected", () => {
           console.warn("[ProjectsDB] Disconnected from Projects cluster");
           projectsConnectionPromise = null;
           projectsConnection = null;
         });
 
-        projectsConnection.on("error", (err) => {
-          console.error("[ProjectsDB] Connection error:", err.message);
-        });
+        await conn.asPromise();
 
+        projectsConnection = conn;
         return projectsConnection;
       } catch (error) {
         console.error(`[ProjectsDB] Attempt ${i}/${MAX_RETRIES} failed: ${error.message}`);
-        
+
+        // Safely close dangling sockets from failed attempt before retry
+        if (conn) {
+          await conn.close().catch(() => {});
+          conn = null;
+        }
+        projectsConnection = null;
+
         // If connecting to PROJECTS_MONGO_URI failed and we haven't tried mainUri yet, fallback to mainUri
         if (targetUri !== mainUri && mainUri) {
           console.warn("[ProjectsDB] Falling back to primary MONGO_URI...");
@@ -84,7 +94,11 @@ export const connectProjectsDB = async () => {
     }
   };
 
-  projectsConnectionPromise = attempt();
+  projectsConnectionPromise = attempt().catch((err) => {
+    projectsConnectionPromise = null;
+    projectsConnection = null;
+    throw err;
+  });
   return projectsConnectionPromise;
 };
 
