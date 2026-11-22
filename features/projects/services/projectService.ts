@@ -3,11 +3,11 @@ import { projectRepository } from "../repositories/ProjectRepository";
 import connectToDB from "@/dbConfig/dbConnection";
 import { UserProfile } from "@/models/v2/user.profile.model";
 
-// JDoodle API config for server-side sandbox test execution
+// JDoodle API config for server-side sandbox test execution (Server-only credentials)
 const JDOODLE_CONFIG = {
   baseUrl: "https://api.jdoodle.com/v1/execute",
-  clientId: process.env.JDOODLE_CLIENT_ID || process.env.NEXT_PUBLIC_JDOODLE_CLIENT_ID || "",
-  clientSecret: process.env.JDOODLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_JDOODLE_CLIENT_SECRET || "",
+  clientId: process.env.JDOODLE_CLIENT_ID || "",
+  clientSecret: process.env.JDOODLE_CLIENT_SECRET || "",
 };
 
 const LANGUAGE_CONFIGS: Record<string, { lang: string; versionIndex: string }> = {
@@ -213,11 +213,13 @@ export class ProjectService {
         apiErr?.response?.status === 401 || apiErr?.response?.status === 403;
 
       if (isMissingCreds) {
-        executionOutput = `[Config Error]: Sandbox not configured. JDOODLE_CLIENT_ID or JDOODLE_CLIENT_SECRET is missing.`;
+        executionOutput = `[Notice]: Code execution sandbox is temporarily unavailable. Please try again later.`;
+        console.error("[ProjectService] Missing JDOODLE_CLIENT_ID or JDOODLE_CLIENT_SECRET in environment.");
       } else if (isAuthError) {
-        executionOutput = `[Auth Error]: Sandbox rejected the request. Check JDOODLE_CLIENT_ID and JDOODLE_CLIENT_SECRET in .env.`;
+        executionOutput = `[Notice]: Code execution sandbox authentication failed. Please contact support.`;
+        console.error("[ProjectService] Upstream JDoodle authentication rejected credentials.");
       } else {
-        executionOutput = `[Sandbox Error]: ${apiErr.message || "Execution timed out or failed. Try again."}`;
+        executionOutput = `[Notice]: ${apiErr.message || "Execution timed out or failed. Try again."}`;
       }
       console.error(
         "[ProjectService] JDoodle execution error:",
