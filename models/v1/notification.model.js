@@ -4,10 +4,14 @@ const UserNotificationSchema = new mongoose.Schema({
     userID: {
         type: String,
         required: true,
+        unique: true,
+        index: true,
+        trim: true,
     },
     fcmToken: {
         type: String,
         required: true,
+        trim: true,
     },
     lastActive: {
         type: Date,
