@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/dbConfig/dbConnection';
 import { RetentionService } from '../../../../../lib/retention/retention.service';
+import { timingSafeEqual } from '@/lib/security/timingSafe';
 
 export const maxDuration = 300;
 
@@ -13,7 +14,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
     }
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (!timingSafeEqual(authHeader, `Bearer ${cronSecret}`)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

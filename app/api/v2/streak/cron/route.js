@@ -11,6 +11,7 @@ import {
 } from "@/lib/users/streak.service";
 import { sendRetentionEmail } from "@/lib/retention/resend.client";
 import { createUnsubscribeToken } from "@/lib/retention/unsubscribeToken";
+import { timingSafeEqual } from "@/lib/security/timingSafe";
 
 export const maxDuration = 300;
 
@@ -35,7 +36,7 @@ export async function GET(request) {
       );
     }
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (!timingSafeEqual(authHeader, `Bearer ${cronSecret}`)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

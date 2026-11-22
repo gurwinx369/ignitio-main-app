@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { handleWebhookEvent } from "@/lib/subscription/subscription.service";
+import { timingSafeEqual } from "@/lib/security/timingSafe";
 
 export async function POST(request) {
   // Step 1: Read raw body as text (required for HMAC verification).
@@ -46,7 +47,7 @@ export async function POST(request) {
     .update(rawBody)
     .digest("hex");
 
-  if (expectedSignature !== receivedSignature) {
+  if (!timingSafeEqual(expectedSignature, receivedSignature)) {
     // Reject with 400 so Razorpay retries (this may be a legitimate delivery).
     // Do NOT return 200 here — failing silently would hide real signature mismatches.
     console.warn("[webhook] Signature verification failed");
