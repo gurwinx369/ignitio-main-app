@@ -3,6 +3,11 @@ import { z } from "zod";
 import { verifyFirebaseToken } from "@/lib/auth";
 import { validateCoupon } from "@/lib/coupon/coupon.service";
 import { PLAN_SLUGS } from "@/lib/subscription/constants";
+import {
+    sensitiveRateLimiter,
+    enforceRateLimit,
+    getClientIp,
+} from "@/lib/security/rateLimiter";
 
 const ValidateCouponSchema = z.object({
     couponCode: z
@@ -15,6 +20,15 @@ const ValidateCouponSchema = z.object({
 
 export async function POST(request) {
     try {
+        // Step 0: Rate limit by client IP (prevents unauthenticated brute-force/DoS)
+        const ipRateLimitError = await enforceRateLimit(
+            sensitiveRateLimiter,
+            getClientIp(request)
+        );
+        if (ipRateLimitError) {
+            return ipRateLimitError;
+        }
+
         const {
             decodedToken,
             error: authError,
@@ -30,6 +44,15 @@ export async function POST(request) {
                     status: authStatus || 401,
                 },
             );
+        }
+
+        // Step 1: Rate limit by authenticated user UID (prevents distributed proxy enumeration)
+        const userRateLimitError = await enforceRateLimit(
+            sensitiveRateLimiter,
+            `coupon:${decodedToken.uid}`
+        );
+        if (userRateLimitError) {
+            return userRateLimitError;
         }
 
         let rawBody;
