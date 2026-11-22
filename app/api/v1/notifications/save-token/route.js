@@ -55,18 +55,37 @@ export async function POST(request) {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    // 5. Atomic Upsert: Guarantee single active record per user
-    const notificationDoc = await UserNotification.findOneAndUpdate(
-      { userID: user._id.toString() },
-      {
-        $set: {
-          fcmToken: token,
-          notificationsEnabled: true,
-          lastActive: new Date(),
+    // 5. Atomic Upsert: Guarantee single active record per user with E11000 race recovery
+    let notificationDoc;
+    try {
+      notificationDoc = await UserNotification.findOneAndUpdate(
+        { userID: user._id.toString() },
+        {
+          $set: {
+            fcmToken: token,
+            notificationsEnabled: true,
+            lastActive: new Date(),
+          },
         },
-      },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-    );
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+      );
+    } catch (upsertErr) {
+      if (upsertErr.code === 11000) {
+        notificationDoc = await UserNotification.findOneAndUpdate(
+          { userID: user._id.toString() },
+          {
+            $set: {
+              fcmToken: token,
+              notificationsEnabled: true,
+              lastActive: new Date(),
+            },
+          },
+          { returnDocument: 'after' }
+        );
+      } else {
+        throw upsertErr;
+      }
+    }
 
     // Authoritative server-side event: notification activated
     await captureServerEvent(decodedToken.uid, "notification_activated", {
