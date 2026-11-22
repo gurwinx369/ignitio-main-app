@@ -17,14 +17,19 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+function sanitizeEmailHeader(str) {
+  if (!str) return "";
+  return String(str).replace(/[\r\n\t]+/g, " ").trim();
+}
+
 const FeedbackSchema = z.object({
   message: z.string().min(5).max(1000).trim(),
-  page: z.string().optional(),
+  page: z.string().trim().max(200).optional(),
 });
 
 export async function POST(request) {
   try {
-    // 1. Rate Limiting
+    // 1. IP Rate Limiting (prevents unauthenticated flooding)
     const rateLimitError = await enforceRateLimit(spamRateLimiter, getClientIp(request));
     if (rateLimitError) return rateLimitError;
 
@@ -33,6 +38,10 @@ export async function POST(request) {
     if (authError) return NextResponse.json({ error: authError }, { status: authStatus });
 
     const firebaseUID = decodedToken.uid;
+
+    // 2b. User Rate Limiting (prevents distributed proxy spam from a single account)
+    const userLimitError = await enforceRateLimit(spamRateLimiter, `feedback:${firebaseUID}`);
+    if (userLimitError) return userLimitError;
 
     // 3. Parsing and Zod Validation
     let rawBody;
@@ -54,7 +63,8 @@ export async function POST(request) {
 
     const email = userProfile?.email || decodedToken.email;
     const role = userProfile?.role || "unknown";
-    const userAgent = request.headers.get("user-agent") || "unknown";
+    const rawUserAgent = request.headers.get("user-agent") || "unknown";
+    const userAgent = rawUserAgent.slice(0, 300);
 
     const feedbackDoc = await Feedback.create({
       userId: userProfile?._id,
@@ -68,7 +78,8 @@ export async function POST(request) {
     });
 
     const toEmail = process.env.FEEDBACK_TO_EMAIL || "gurwinder.ignitio@gmail.com";
-    const subject = `Ignitio Feedback from ${escapeHtml(email || "User")}`;
+    const cleanEmail = sanitizeEmailHeader(email || "User");
+    const subject = `Ignitio Feedback from ${cleanEmail}`;
     const html = `
       <h3>New Feedback Received</h3>
       <p><strong>Email:</strong> ${escapeHtml(email || "Not provided")}</p>
